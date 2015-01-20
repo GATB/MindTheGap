@@ -28,7 +28,7 @@
 static const char* STR_URI_GRAPH = "-graph";
 static const char* STR_URI_REF = "-ref";
 static const char* STR_MAX_REPEAT = "-max-rep";
-static const char* STR_ONLY_HOMO = "-hom-only";
+static const char* STR_HOMO_ONLY = "-hom-only";
 
 
 class Finder : public Tool
@@ -42,6 +42,7 @@ public:
     Graph _graph;
     int _max_repeat;
     int _nbCores;
+    bool _homo_only;
 
     // Actual job done by the tool is here
     void execute ();

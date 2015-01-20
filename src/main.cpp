@@ -31,19 +31,24 @@ static const char* STR_FILL = "fill";
 
 int main (int argc, char* argv[])
 {
-    
-    
-//    /** We create a command line parser. */
-//    OptionsParser* parser = new OptionsParser(); // ne marche pas
-//    parser->setName ("MindTheGap");
-//    
-//    parser->push_front (new OptionNoParam (STR_FIND, "find module", false));
-//    parser->push_front (new OptionNoParam (STR_FILL, "find module", false));
-//    
+
+	/** We create a command line parser. */
+//	 OptionsParser parser ("MindTheGap");
+//	 parser.push_back (new OptionOneParam (STR_NB_CORES,       "number of cores",                      false, "0"  ));
+//	 parser.push_back (new OptionOneParam (STR_VERBOSE,        "verbosity level",                      false,  "1"));
+//	 parser.push_back (new OptionNoParam  (STR_HELP,           "display help about possible options",  false       ));
+//
+//	 OptionsParser tmp = Graph::getOptionsParser(false);
+//	 parser.add(tmp);
+//	 parser.push_front (new OptionNoParam (STR_FIND, "find module", false));
+//	 parser.push_front (new OptionNoParam (STR_FILL, "find module", false));
+
+	 // parser.displayHelp(stdout);
+
 //    try
 //    {
 //        /** We parse the user options. */
-//        IProperties* options = parser->parse (argc, argv);
+//        IProperties* options = parser.parse (argc, argv);
 //        
 //        if ((options->get(STR_FIND) != 0 && options->get(STR_FILL) != 0) || (options->get(STR_FIND) == 0 && options->get(STR_FILL) == 0))
 //        {
@@ -87,12 +92,13 @@ int main (int argc, char* argv[])
         {
             Finder().run (argc-1, argv+1);
         }
-        catch (OptionFailure& e)
+        catch (OptionFailure& e) //ces 2 catch ne marchent pas si option inconnue (pb de Tool)
         {
-            e.getParser().displayErrors   (stdout);
-            e.getParser().displayWarnings (stdout);
-            e.getParser().displayHelp     (stdout);
-            e.getParser().displayVersion  (stdout);
+            std::cout << "essai" << std::endl;
+//            e.getParser().displayErrors   (stdout);
+//            e.getParser().displayWarnings (stdout);
+//            e.getParser().displayHelp     (stdout);
+//            e.getParser().displayVersion  (stdout);
             return EXIT_FAILURE;
         }
         catch (Exception& e)

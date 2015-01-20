@@ -55,15 +55,17 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     getParser()->push_front (new OptionOneParam (STR_MAX_DISK, "max disk   (in MBytes)", false, "0"));
     
     getParser()->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
-    getParser()->push_front (new OptionNoParam (STR_ONLY_HOMO, "only search for homozygous breakpoints", false));
+    getParser()->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
     
-    getParser()->push_front (new OptionOneParam (STR_KMER_ABUNDANCE, "abundance threshold for solid kmers", false, "3"));
+    getParser()->push_front (new OptionOneParam (STR_SOLIDITY_KIND, "way to consider a solid kmer with several datasets (sum, min or max)", false, "sum"));
+    getParser()->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, "4294967295"));
+    getParser()->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
+
     getParser()->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
     getParser()->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
     getParser()->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", true));
     getParser()->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
     getParser()->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
-    
     
 }
 
@@ -80,8 +82,8 @@ void Finder::execute ()
     
     if ((getInput()->get(STR_URI_GRAPH) != 0 && getInput()->get(STR_URI_INPUT) != 0) || (getInput()->get(STR_URI_GRAPH) == 0 && getInput()->get(STR_URI_INPUT) == 0))
     {
-        getParser()->displayHelp();
-        throw Exception("options -graph and -in are incompatible, but at least one of these is mandatory");
+
+        throw OptionFailure(getParser(), "options -graph and -in are incompatible, but at least one of these is mandatory");
 
     }
     
@@ -152,11 +154,87 @@ void Finder::execute ()
     //Getting other parameters
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_repeat = getInput()->getInt(STR_MAX_REPEAT);
-    //todo homo
-    
+    _homo_only=getInput()->get(STR_HOMO_ONLY) !=0;
+    cout << _homo_only <<endl;
+
+    // Getting the reference genome
+    BankFasta refBank (getInput()->getStr(STR_URI_REF));
     
     // Now do the job
 
+    int nbKmers=0;
+    int nbSequences=0;
+    //TODO gerer le span automatique (cf. template)
+
+    uint64_t nb_ref_solid = 0;
+    uint64_t nb_ref_notsolid = 0;
+    uint64_t solid_stretch_size = 0; //size of current stretch of 1 (ie kmer indexed)
+    uint64_t gap_stretch_size = 0; //size of current stretch of 0 (ie kmer not indexed)
+
+
+    typedef gatb::core::kmer::impl::Kmer<>::ModelDirect KmerModel;
+    typedef gatb::core::kmer::impl::Kmer<>::Type        kmer_type;
+    typedef gatb::core::kmer::impl::Kmer<>::Count       kmer_count;
+
+    kmer_type kmer_begin;
+    kmer_type kmer_end;
+    kmer_type previous_kmer;
+
+    // We declare a kmer model with a given span size.
+    Kmer<>::ModelDirect model (_kmerSize);
+    std::cout << "span: " << model.getSpan() << std::endl;
+    // We create an iterator over this bank.
+    BankFasta::Iterator itSeq (refBank);
+    // We declare an iterator on a given sequence.
+    Kmer<>::ModelDirect::Iterator itKmer (model);
+    // We loop over sequences.
+    for (itSeq.first(); !itSeq.isDone(); itSeq.next())
+    {
+    	solid_stretch_size = 0;
+    	gap_stretch_size = 0;
+
+    	// We set the data from which we want to extract kmers.
+    	itKmer.setData (itSeq->getData());
+    	// We iterate the kmers.
+    	for (itKmer.first(); !itKmer.isDone(); itKmer.next())
+    	{
+    		nbKmers++;
+    		Node n(Node::Value(itKmer->value()));
+    		bool ok=_graph.contains(n);
+    		if( !ok){
+    			cout << "kmer absent " << model.toString (itKmer->value()) << endl;
+    		}
+
+    		if (_graph.contains(n)) //kmer is indexed
+    		{
+    			nb_ref_solid++;
+    			solid_stretch_size++;
+
+    			if (solid_stretch_size > 1) gap_stretch_size = 0; // du coup on sort le trou a tai indexed ==2, gap_stretch_size pas remis a 0 par solide isole (FP)
+    			if (solid_stretch_size==1) kmer_end = itKmer->value(); // kmer_end should be first kmer indexed after a hole
+
+    		}
+    		else //kmer is not indexed, measure size of the zone not covered by kmers of the reads
+    		{
+    			nb_ref_notsolid++;
+    			// if(gap_stretch_size == 0 && solid_stretch_size==1) //si zone indexe prec est ==1, probable FP, merge size, keep old kmer_begin
+    			if(solid_stretch_size > 1) // begin of not indexed zone
+    			{
+    				kmer_begin = previous_kmer ;
+    			}
+    			gap_stretch_size ++;
+    			solid_stretch_size =0;
+
+    		}
+    		previous_kmer = itKmer->value();
+
+    	}
+    	// We increase the sequences counter.
+    	nbSequences++;
+    }
+
+    cout << "nb sequences=" << nbSequences <<endl;
+    cout << "nb kmers=" << nbKmers <<endl;
     //cout << "in MTG" <<endl;
     // We gather some statistics.
 
@@ -180,13 +258,16 @@ void Finder::resumeParameters(){
     getInfo()->add(2,"Reference",getInput()->getStr(STR_URI_REF).c_str());
     getInfo()->add(1,"Graph");
     getInfo()->add(2,"kmer-size","%i", _kmerSize);
-    getInfo()->add(2,"abundance",_graph.getInfo().getStr(ATTR_KMER_ABUNDANCE).c_str());
     try { // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
-        getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
-        getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
-    } catch (Exception e) {
-        // doing nothing
-    }
+            getInfo()->add(2,"abundance_min",_graph.getInfo().getStr("abundance_min").c_str());
+            getInfo()->add(2,"abundance_max",_graph.getInfo().getStr("abundance_max").c_str());
+            getInfo()->add(2,"solidity_kind",_graph.getInfo().getStr("solidity_kind").c_str());
+            getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
+            getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
+        } catch (Exception e) {
+            // doing nothing
+        }
+
     getInfo()->add(1,"Breakpoint Finder options");
     getInfo()->add(2,"max_repeat","%i", _max_repeat);
     getInfo()->add(2,"homo_only","%i", "T"); //todo
