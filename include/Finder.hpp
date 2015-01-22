@@ -25,7 +25,6 @@
 #include <gatb/gatb_core.hpp>
 /********************************************************************************/
 
-static const char* STR_URI_GRAPH = "-graph";
 static const char* STR_URI_REF = "-ref";
 static const char* STR_MAX_REPEAT = "-max-rep";
 static const char* STR_HOMO_ONLY = "-hom-only";
