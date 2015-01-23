@@ -7,13 +7,11 @@
 
 echo  "Testing canonical k-1 insert site"
 
-../build/Mindthegap index reads.fasta.gz  -g 1000 -p insert_simple -k 31 -t 4  &> /dev/null
+
+../build/MindTheGap find -in reads.fasta.gz -ref ref.fasta -kmer-size 31 -abundance-min 4 -out insert_simple   &> /dev/null
 
 
-../build/Mindthegap find ref.fasta -p  insert_simple   &> /dev/null
-
-
-../build/Mindthegap fill insert_simple.breakpoints -p insert_simple  &> /dev/null
+#../build/Mindthegap fill insert_simple.breakpoints -p insert_simple  &> /dev/null
 
 
 sed  '/^>/d' insert_simple.insertions.fa > tres

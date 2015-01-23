@@ -20,7 +20,6 @@
 
 #include <Finder.hpp>
 
-using namespace std;
 
 /********************************************************************************/
 
@@ -38,6 +37,12 @@ static const char* STR_FOO = "-foo";
 Finder::Finder ()  : Tool ("MindTheGap find")
 {
     
+    _nb_homo_clean=0;
+    _nb_homo_fuzzy=0;
+    _nb_hetero_clean=0;
+    _nb_hetero_fuzzy=0;
+
+
     /* Commented this until there is a function hide() for parser
      because we want some of the options of Graph to be masked to the user
      plus it enables to master the order of appearance of options in the Help message
@@ -139,17 +144,16 @@ void Finder::execute ()
         _graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
         _kmerSize = _graph.getKmerSize();
     }
-    
-    
-//    _output_file=getInput()->getStr(STR_URI_OUTPUT)+".fasta";
-//    FILE * out = fopen(_output_file.c_str(), "w");
-//    if(out == NULL){
-//        //cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
-//        string message = "Cannot open file "+ _output_file + " for writting";
-//        throw Exception(message.c_str());
-//        
-//    }
-//    
+
+    string breakpoint_file_name = getInput()->getStr(STR_URI_OUTPUT)+".breakpoints";
+    _breakpoint_file = fopen(breakpoint_file_name.c_str(), "w");
+    if(_breakpoint_file == NULL){
+        //cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
+        string message = "Cannot open file "+ breakpoint_file_name + " for writting";
+        throw Exception(message.c_str());
+
+    }
+
     
     //Getting other parameters
     _nbCores = getInput()->getInt(STR_NB_CORES);
@@ -158,86 +162,22 @@ void Finder::execute ()
     cout << _homo_only <<endl;
 
     // Getting the reference genome
-    BankFasta refBank (getInput()->getStr(STR_URI_REF));
+    _refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
     
     // Now do the job
 
-    int nbKmers=0;
-    int nbSequences=0;
-    //TODO gerer le span automatique (cf. template)
-
-    uint64_t nb_ref_solid = 0;
-    uint64_t nb_ref_notsolid = 0;
-    uint64_t solid_stretch_size = 0; //size of current stretch of 1 (ie kmer indexed)
-    uint64_t gap_stretch_size = 0; //size of current stretch of 0 (ie kmer not indexed)
+    /** According to the kmer size, we instantiate one DSKAlgorithm class and delegate the actual job to it. */
+    if (_kmerSize < KSIZE_1)  { findBreakpoints<KSIZE_1>  ();  }
+    else if (_kmerSize < KSIZE_2)  { findBreakpoints<KSIZE_2>  ();  }
+    else if (_kmerSize < KSIZE_3)  { findBreakpoints<KSIZE_3>  ();  }
+    else if (_kmerSize < KSIZE_4)  { findBreakpoints<KSIZE_4> ();  }
+    else  { throw Exception ("unsupported kmer size %d", _kmerSize);  }
 
 
-    typedef gatb::core::kmer::impl::Kmer<>::ModelDirect KmerModel;
-    typedef gatb::core::kmer::impl::Kmer<>::Type        kmer_type;
-    typedef gatb::core::kmer::impl::Kmer<>::Count       kmer_count;
-
-    kmer_type kmer_begin;
-    kmer_type kmer_end;
-    kmer_type previous_kmer;
-
-    // We declare a kmer model with a given span size.
-    Kmer<>::ModelDirect model (_kmerSize);
-    std::cout << "span: " << model.getSpan() << std::endl;
-    // We create an iterator over this bank.
-    BankFasta::Iterator itSeq (refBank);
-    // We declare an iterator on a given sequence.
-    Kmer<>::ModelDirect::Iterator itKmer (model);
-    // We loop over sequences.
-    for (itSeq.first(); !itSeq.isDone(); itSeq.next())
-    {
-    	solid_stretch_size = 0;
-    	gap_stretch_size = 0;
-
-    	// We set the data from which we want to extract kmers.
-    	itKmer.setData (itSeq->getData());
-    	// We iterate the kmers.
-    	for (itKmer.first(); !itKmer.isDone(); itKmer.next())
-    	{
-    		nbKmers++;
-    		Node n(Node::Value(itKmer->value()));
-    		bool ok=_graph.contains(n);
-    		if( !ok){
-    			cout << "kmer absent " << model.toString (itKmer->value()) << endl;
-    		}
-
-    		if (_graph.contains(n)) //kmer is indexed
-    		{
-    			nb_ref_solid++;
-    			solid_stretch_size++;
-
-    			if (solid_stretch_size > 1) gap_stretch_size = 0; // du coup on sort le trou a tai indexed ==2, gap_stretch_size pas remis a 0 par solide isole (FP)
-    			if (solid_stretch_size==1) kmer_end = itKmer->value(); // kmer_end should be first kmer indexed after a hole
-
-    		}
-    		else //kmer is not indexed, measure size of the zone not covered by kmers of the reads
-    		{
-    			nb_ref_notsolid++;
-    			// if(gap_stretch_size == 0 && solid_stretch_size==1) //si zone indexe prec est ==1, probable FP, merge size, keep old kmer_begin
-    			if(solid_stretch_size > 1) // begin of not indexed zone
-    			{
-    				kmer_begin = previous_kmer ;
-    			}
-    			gap_stretch_size ++;
-    			solid_stretch_size =0;
-
-    		}
-    		previous_kmer = itKmer->value();
-
-    	}
-    	// We increase the sequences counter.
-    	nbSequences++;
-    }
-
-    cout << "nb sequences=" << nbSequences <<endl;
-    cout << "nb kmers=" << nbKmers <<endl;
     //cout << "in MTG" <<endl;
     // We gather some statistics.
 
+    fclose(_breakpoint_file);
     //getInfo()->add(1,"version",getVersion());
     getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
@@ -274,3 +214,123 @@ void Finder::resumeParameters(){
     
 }
 
+template<size_t span>
+void Finder::findBreakpoints(){
+
+	uint64_t bkt_id=0;
+	int nbKmers=0;
+	int nbSequences=0;
+	//TODO gerer le span automatique (cf. template)
+
+	uint64_t nb_ref_solid = 0;
+	uint64_t nb_ref_notsolid = 0;
+	uint64_t solid_stretch_size = 0; //size of current stretch of 1 (ie kmer indexed)
+	uint64_t gap_stretch_size = 0; //size of current stretch of 0 (ie kmer not indexed)
+
+
+	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelDirect KmerModel;
+	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelDirect::Iterator KmerIterator;
+	typedef typename gatb::core::kmer::impl::Kmer<span>::Type        kmer_type;
+	typedef typename gatb::core::kmer::impl::Kmer<span>::Count       kmer_count;
+
+	kmer_type kmer_begin;
+	kmer_type kmer_end;
+	kmer_type previous_kmer;
+
+	// We declare a kmer model with a given span size.
+	KmerModel model (_kmerSize);
+	std::cout << "span: " << model.getSpan() << std::endl;
+	// We create an iterator over this bank.
+	BankFasta::Iterator itSeq (*_refBank);
+	// We declare an iterator on a given sequence.
+	KmerIterator itKmer (model);
+	// We loop over sequences.
+	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
+	{
+		solid_stretch_size = 0;
+		gap_stretch_size = 0;
+
+		// We set the data from which we want to extract kmers.
+		itKmer.setData (itSeq->getData());
+		char* chrom_sequence = itSeq->getDataBuffer();
+		string chrom_name = itSeq->getComment();
+		uint64_t position=0;
+		// We iterate the kmers.
+		for (itKmer.first(); !itKmer.isDone(); itKmer.next(), position++)
+		{
+			nbKmers++;
+			Node node(Node::Value(itKmer->value()));
+			bool ok=_graph.contains(node);
+			if( !ok){
+				cout << "kmer absent " << model.toString (itKmer->value()) << endl;
+			}
+
+			if (_graph.contains(node)) //kmer is indexed
+			{
+				nb_ref_solid++;
+				solid_stretch_size++;
+
+				if(solid_stretch_size > 1){
+					if(gap_stretch_size == (_kmerSize-1)){
+						// clean insert site
+						cout << "trou size k-1" << endl;
+						cout << "position " << position -1 << endl;
+						cout << "kmer begin " << model.toString (kmer_begin) << endl;
+						cout << "kmer end " << model.toString (kmer_end) << endl;
+						//TODO : ecrire breakpoint dans fichier
+						string kmer_begin_str = model.toString (kmer_begin);
+						string kmer_end_str = model.toString (kmer_end);
+						writeBreakpoint(bkt_id,chrom_name,position-1,kmer_begin_str, kmer_end_str);
+						bkt_id++;
+						_nb_homo_clean++;
+					}
+					else if(gap_stretch_size < _kmerSize - 1 && gap_stretch_size >= _kmerSize -1 -_max_repeat){
+						// Fuzzy site, position and kmer_end are impacted by the repeat
+						int repeat_size = _kmerSize - 1 - gap_stretch_size;
+						string kmer_begin_str = model.toString (kmer_begin);
+						string kmer_end_str = string(chrom_sequence[position-1+repeat_size], _kmerSize);
+						writeBreakpoint(bkt_id,chrom_name,position -1 + repeat_size,kmer_begin_str,kmer_end_str);
+						bkt_id++;
+						_nb_homo_fuzzy++;
+					}
+				}
+				if (solid_stretch_size > 1) gap_stretch_size = 0; // du coup on sort le trou a tai indexed ==2, gap_stretch_size pas remis a 0 par solide isole (FP)
+				if (solid_stretch_size==1) kmer_end = itKmer->value(); // kmer_end should be first kmer indexed after a hole
+
+			}
+			else //kmer is not indexed, measure size of the zone not covered by kmers of the reads
+			{
+				nb_ref_notsolid++;
+				// if(gap_stretch_size == 0 && solid_stretch_size==1) //si zone indexe prec est ==1, probable FP, merge size, keep old kmer_begin
+				if(solid_stretch_size > 1) // begin of not indexed zone
+				{
+					kmer_begin = previous_kmer ;
+				}
+				gap_stretch_size ++;
+				solid_stretch_size =0;
+
+			}
+			previous_kmer = itKmer->value();
+
+		}
+		// We increase the sequences counter.
+		nbSequences++;
+	}
+
+	cout << "nb sequences=" << nbSequences <<endl;
+	cout << "nb kmers=" << nbKmers <<endl;
+
+}
+
+void Finder::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end){
+	fprintf(_breakpoint_file,">left_contig_%i_%s_pos_%i\n%s\n>right_contig_%i_%s_pos_%i\n%s\n",
+			bkt_id,
+			chrom_name.c_str(),
+			position,
+			kmer_begin.c_str(),
+			bkt_id,
+			chrom_name.c_str(),
+			position,
+			kmer_end.c_str()
+	);
+}

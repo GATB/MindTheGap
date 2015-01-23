@@ -23,6 +23,8 @@
 
 /********************************************************************************/
 #include <gatb/gatb_core.hpp>
+using namespace std;
+
 /********************************************************************************/
 
 static const char* STR_URI_REF = "-ref";
@@ -42,13 +44,27 @@ public:
     int _max_repeat;
     int _nbCores;
     bool _homo_only;
+    BankFasta* _refBank;
+    FILE * _breakpoint_file;
+
+    int _nb_homo_clean;
+    int _nb_homo_fuzzy;
+    int _nb_hetero_clean;
+    int _nb_hetero_fuzzy;
+
 
     // Actual job done by the tool is here
     void execute ();
+
+private:
     
     /** fills getInfo() with parameters informations
      */
     void resumeParameters();
+
+    template<size_t span>
+    void findBreakpoints();
+    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end);
 
 };
 
