@@ -29,7 +29,7 @@ using namespace std;
 
 static const char* STR_URI_REF = "-ref";
 static const char* STR_MAX_REPEAT = "-max-rep";
-static const char* STR_HOMO_ONLY = "-hom-only";
+static const char* STR_HOMO_ONLY = "-homo-only";
 
 
 class Finder : public Tool
@@ -62,9 +62,18 @@ private:
      */
     void resumeParameters();
 
+    /** fills getInfo() with results informations
+         */
+    void resumeResults();
+
+    /** Main function to find gaps in the reference genome
+         */
     template<size_t span>
     void findBreakpoints();
-    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end);
+
+    /** writes a given breakpoint in the output file
+         */
+    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size);
 
 };
 

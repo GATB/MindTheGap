@@ -159,7 +159,6 @@ void Finder::execute ()
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_repeat = getInput()->getInt(STR_MAX_REPEAT);
     _homo_only=getInput()->get(STR_HOMO_ONLY) !=0;
-    cout << _homo_only <<endl;
 
     // Getting the reference genome
     _refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
@@ -181,7 +180,7 @@ void Finder::execute ()
     //getInfo()->add(1,"version",getVersion());
     getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
-
+    resumeResults();
 }
 
 void Finder::resumeParameters(){
@@ -210,17 +209,26 @@ void Finder::resumeParameters(){
 
     getInfo()->add(1,"Breakpoint Finder options");
     getInfo()->add(2,"max_repeat","%i", _max_repeat);
-    getInfo()->add(2,"homo_only","%i", "T"); //todo
+    getInfo()->add(2,"homo_only","%i", _homo_only); //todo
     
 }
 
+void Finder::resumeResults(){
+	getInfo()->add(0,"Results");
+	getInfo()->add(1,"Breakpoints");
+	getInfo()->add(2,"homozygous","%i", _nb_homo_clean+_nb_homo_fuzzy);
+	getInfo()->add(3,"clean","%i", _nb_homo_clean);
+	getInfo()->add(3,"fuzzy","%i", _nb_hetero_clean);
+
+}
+
+//template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
 void Finder::findBreakpoints(){
 
 	uint64_t bkt_id=0;
 	int nbKmers=0;
 	int nbSequences=0;
-	//TODO gerer le span automatique (cf. template)
 
 	uint64_t nb_ref_solid = 0;
 	uint64_t nb_ref_notsolid = 0;
@@ -239,7 +247,7 @@ void Finder::findBreakpoints(){
 
 	// We declare a kmer model with a given span size.
 	KmerModel model (_kmerSize);
-	std::cout << "span: " << model.getSpan() << std::endl;
+	//std::cout << "span: " << model.getSpan() << std::endl;
 	// We create an iterator over this bank.
 	BankFasta::Iterator itSeq (*_refBank);
 	// We declare an iterator on a given sequence.
@@ -259,13 +267,11 @@ void Finder::findBreakpoints(){
 		for (itKmer.first(); !itKmer.isDone(); itKmer.next(), position++)
 		{
 			nbKmers++;
-			Node node(Node::Value(itKmer->value()));
-			bool ok=_graph.contains(node);
-			if( !ok){
-				cout << "kmer absent " << model.toString (itKmer->value()) << endl;
-			}
 
-			if (_graph.contains(node)) //kmer is indexed
+			//we need to convert the kmer in a node to query the graph.
+			Node node(Node::Value(itKmer->value()));
+
+			if (_graph.contains(node)) //the kmer is indexed
 			{
 				nb_ref_solid++;
 				solid_stretch_size++;
@@ -273,23 +279,25 @@ void Finder::findBreakpoints(){
 				if(solid_stretch_size > 1){
 					if(gap_stretch_size == (_kmerSize-1)){
 						// clean insert site
-						cout << "trou size k-1" << endl;
-						cout << "position " << position -1 << endl;
-						cout << "kmer begin " << model.toString (kmer_begin) << endl;
-						cout << "kmer end " << model.toString (kmer_end) << endl;
-						//TODO : ecrire breakpoint dans fichier
+
+//						cout << "trou size k-1" << endl;
+//						cout << "position " << position -1 << endl;
+//						cout << "kmer begin " << model.toString (kmer_begin) << endl;
+//						cout << "kmer end " << model.toString (kmer_end) << endl;
+
 						string kmer_begin_str = model.toString (kmer_begin);
 						string kmer_end_str = model.toString (kmer_end);
-						writeBreakpoint(bkt_id,chrom_name,position-1,kmer_begin_str, kmer_end_str);
+						writeBreakpoint(bkt_id,chrom_name,position-1,kmer_begin_str, kmer_end_str,0);
 						bkt_id++;
 						_nb_homo_clean++;
 					}
 					else if(gap_stretch_size < _kmerSize - 1 && gap_stretch_size >= _kmerSize -1 -_max_repeat){
 						// Fuzzy site, position and kmer_end are impacted by the repeat
+
 						int repeat_size = _kmerSize - 1 - gap_stretch_size;
 						string kmer_begin_str = model.toString (kmer_begin);
 						string kmer_end_str = string(chrom_sequence[position-1+repeat_size], _kmerSize);
-						writeBreakpoint(bkt_id,chrom_name,position -1 + repeat_size,kmer_begin_str,kmer_end_str);
+						writeBreakpoint(bkt_id,chrom_name,position -1 + repeat_size,kmer_begin_str,kmer_end_str, repeat_size);
 						bkt_id++;
 						_nb_homo_fuzzy++;
 					}
@@ -317,20 +325,22 @@ void Finder::findBreakpoints(){
 		nbSequences++;
 	}
 
-	cout << "nb sequences=" << nbSequences <<endl;
-	cout << "nb kmers=" << nbKmers <<endl;
+//	cout << "nb sequences=" << nbSequences <<endl;
+//	cout << "nb kmers=" << nbKmers <<endl;
 
 }
 
-void Finder::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end){
-	fprintf(_breakpoint_file,">left_contig_%i_%s_pos_%i\n%s\n>right_contig_%i_%s_pos_%i\n%s\n",
+void Finder::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size){
+	fprintf(_breakpoint_file,">left_contig_%i_%s_pos_%lli_repeat_%i\n%s\n>right_contig_%i_%s_pos_%lli_repeat_%i\n%s\n",
 			bkt_id,
 			chrom_name.c_str(),
 			position,
+			repeat_size,
 			kmer_begin.c_str(),
 			bkt_id,
 			chrom_name.c_str(),
 			position,
+			repeat_size,
 			kmer_end.c_str()
 	);
 }
