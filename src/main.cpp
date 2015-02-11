@@ -20,6 +20,7 @@
 
 // We include the header file for the tool
 #include <Finder.hpp>
+#include <Filler.hpp>
 
 /********************************************************************************/
 
@@ -108,6 +109,18 @@ int main (int argc, char* argv[])
         }
     }
 
+    if (strcmp(argv[1],STR_FILL) == 0)
+        {
+            try
+            {
+                Filler().run (argc-1, argv+1);
+            }
+            catch (Exception& e)
+            {
+                std::cout << std::endl << "EXCEPTION: " << e.getMessage() << std::endl;
+                return EXIT_FAILURE;
+            }
+        }
 
     return EXIT_SUCCESS;
     

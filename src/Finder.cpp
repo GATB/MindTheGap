@@ -165,7 +165,7 @@ void Finder::execute ()
     
     // Now do the job
 
-    /** According to the kmer size, we instantiate one DSKAlgorithm class and delegate the actual job to it. */
+    // According to the kmer size,  we call one fillBreakpoints method.
     if (_kmerSize < KSIZE_1)  { findBreakpoints<KSIZE_1>  ();  }
     else if (_kmerSize < KSIZE_2)  { findBreakpoints<KSIZE_2>  ();  }
     else if (_kmerSize < KSIZE_3)  { findBreakpoints<KSIZE_3>  ();  }
