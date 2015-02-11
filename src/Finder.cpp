@@ -20,7 +20,7 @@
 
 #include <Finder.hpp>
 
-
+#define PRINT_DEBUG
 /********************************************************************************/
 
 // We define some constant strings for names of command line parameters
@@ -118,9 +118,9 @@ void Finder::execute ()
         // We need to add the options of dbgh5/Graph that were masked to the user (or we could create a new Properties object)
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
-        getInput()->add(0,STR_BLOOM_TYPE, "neighbor"); //neighbor
-        getInput()->add(0,STR_DEBLOOM_TYPE, "cascading");
-        getInput()->add(0,STR_DEBLOOM_IMPL, "minimizer"); //minimizer => STR_BLOOM_TYPE = neighbor
+        getInput()->add(0,STR_BLOOM_TYPE, "basic"); //neighbor basic cache
+        getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //cascading  pas bien car bcp plus de FP non critique au milieur trou
+        getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_INTEGER_PRECISION, "0");
         getInput()->add(0,STR_MPHF_TYPE, "none");
@@ -236,10 +236,14 @@ void Finder::findBreakpoints(){
 	uint64_t gap_stretch_size = 0; //size of current stretch of 0 (ie kmer not indexed)
 	uint64_t previous_gap_stretch_size = 0;
 
-	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelDirect KmerModel;
-	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelDirect::Iterator KmerIterator;
+	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical KmerModel; // ModelCanonical ModelDirect
+	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical::Iterator KmerIterator;
 	typedef typename gatb::core::kmer::impl::Kmer<span>::Type        kmer_type;
 	typedef typename gatb::core::kmer::impl::Kmer<span>::Count       kmer_count;
+
+#ifdef PRINT_DEBUG
+	string deb01;
+#endif
 
 	kmer_type kmer_begin;
 	kmer_type kmer_end;
@@ -259,6 +263,12 @@ void Finder::findBreakpoints(){
 		gap_stretch_size = 0;
 		previous_gap_stretch_size = 0;
 
+		
+#ifdef PRINT_DEBUG
+		deb01.clear();
+#endif
+
+		
 		// We set the data from which we want to extract kmers.
 		itKmer.setData (itSeq->getData());
 		char* chrom_sequence = itSeq->getDataBuffer();
@@ -269,11 +279,19 @@ void Finder::findBreakpoints(){
 		{
 			nbKmers++;
 
+			
+		// kmer_type current_kmer_min = min(revcomp(itKmer->value(), _kmerSize), itKmer->value());
+
+			
 			//we need to convert the kmer in a node to query the graph.
 			Node node(Node::Value(itKmer->value()));
+		//	Node node(  Node::Value(current_kmer_min.value()) );
 
 			if (_graph.contains(node)) //the kmer is indexed
 			{
+#ifdef PRINT_DEBUG
+				deb01+= "1";
+#endif
 				nb_ref_solid++;
 				solid_stretch_size++;
 
@@ -308,11 +326,14 @@ void Finder::findBreakpoints(){
 					}
 				}
 				if (solid_stretch_size > 1) gap_stretch_size = 0; // du coup on sort le trou a tai indexed ==2, gap_stretch_size pas remis a 0 par solide isole (FP)
-				if (solid_stretch_size==1) kmer_end = itKmer->value(); // kmer_end should be first kmer indexed after a hole
+				if (solid_stretch_size==1) kmer_end = itKmer->forward(); // kmer_end should be first kmer indexed after a hole
 				if(gap_stretch_size) previous_gap_stretch_size = gap_stretch_size;
 			}
 			else //kmer is not indexed, measure size of the zone not covered by kmers of the reads
 			{
+#ifdef PRINT_DEBUG
+				deb01+= "0";
+#endif
 				nb_ref_notsolid++;
 				// if(gap_stretch_size == 0 && solid_stretch_size==1) //si zone indexe prec est ==1, probable FP, merge size, keep old kmer_begin
 				if(solid_stretch_size==1)
@@ -327,9 +348,14 @@ void Finder::findBreakpoints(){
 				solid_stretch_size =0;
 
 			}
-			previous_kmer = itKmer->value();
+			previous_kmer = itKmer->forward();
 
 		}
+		
+#ifdef PRINT_DEBUG
+		cout << deb01 << endl;
+#endif
+		
 		// We increase the sequences counter.
 		nbSequences++;
 	}
