@@ -2,7 +2,7 @@
  *   MindTheGap: Integrated detection and assembly of insertion variants
  *   A tool from the GATB (Genome Assembly Tool Box)
  *   Copyright (C) 2014  INRIA
- *   Authors: C.Lemaitre, G. Rizk
+ *   Authors: C.Lemaitre, G.Rizk
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -180,8 +180,9 @@ void Filler::resumeParameters(){
         }
 
     getInfo()->add(1,"Breakpoint Filler options");
-//    getInfo()->add(2,"max_repeat","%i", _max_repeat);
-//    getInfo()->add(2,"homo_only","%i", _homo_only); //todo
+    getParser()->push_front (new OptionOneParam (STR_MAX_DEPTH, "maximum length of insertions (nt)", false, "10000"));
+    getInfo()->add(2,"max_depth","%i", _max_depth);
+    getInfo()->add(2,"max_nodes","%i", _max_nodes); //todo
     
 }
 
@@ -248,6 +249,18 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 	BranchingTerminator terminator (_graph);
 	IterativeExtensions<span> extension (_graph, terminator, TRAVERSAL_CONTIG, ExtendStopMode_until_max_depth, SearchMode_Breadth, false, _max_depth, _max_nodes);
 	//todo check param dontOutputFirstNucl=false ??
+	// todo put these two above lines in fillBreakpoints and pass object extension in param
+
+	//Build contigs and output them in a file in fasta format
+	string contig_file_name = "contigs.fasta";
+	extension.construct_linear_seqs(sourceSequence,targetSequence,contig_file_name,false); //last param : swf=stopWhenFound
+
+    // connect the contigs into a graph
+	string contig_graph_file_prefix="contig_graph";
+	GraphOutputDot<span> graph_output(_kmerSize,contig_graph_file_prefix);
+	graph_output.load_nodes_extremities(contig_file_name);
+	graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
+	graph_output.close();
 }
 
 void Filler::writeFilledBreakpoint(){

@@ -2,7 +2,7 @@
  *   MindTheGap: Integrated detection and assembly of insertion variants
  *   A tool from the GATB (Genome Assembly Tool Box)
  *   Copyright (C) 2014  INRIA
- *   Authors: C.Lemaitre, G. Rizk
+ *   Authors: C.Lemaitre, G.Rizk
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
