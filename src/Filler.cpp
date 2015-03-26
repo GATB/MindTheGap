@@ -19,6 +19,8 @@
  *****************************************************************************/
 
 #include <Filler.hpp>
+#include <Utils.hpp>
+#include <GraphAnalysis.hpp>
 
 #define PRINT_DEBUG
 /********************************************************************************/
@@ -37,6 +39,11 @@ static const char* STR_FOO = "-foo";
 Filler::Filler ()  : Tool ("MindTheGap find")
 {
     
+	//TODO rajouter les parametres
+	_nb_mis_allowed = 0;
+	_nb_gap_allowed = 0;
+
+
     getParser()->push_back (new OptionNoParam (STR_VERSION, "version", false));
     
     // from Graph.cpp
@@ -228,9 +235,24 @@ void Filler::fillBreakpoints(){
 
 		gapFill<span>(sourceSequence,targetSequence,filledSequences);
 
-		// TODO if set vide et reverse : reverse les 2 sequences + gapFill
+		//Can be modified : could do in reverse mode even if filledSequences is not empty (new filled sequences are inserted into the set : to verify)
+		if(filledSequences.size()==0){
+			string sourceSequence2 = revcomp_sequence(targetSequence);
+			string targetSequence2 = revcomp_sequence(sourceSequence);
+			gapFill<span>(sourceSequence2,targetSequence2,filledSequences);
+		}
 
-		// TODO ecrire les resultats dans le fichier (method)
+		//Checks if all sequences are roughly the same :
+		if (all_consensuses_almost_identical(filledSequences,90))
+		{
+			//if(verb)     printf(" [SUCCESS]\n");
+			if (filledSequences.size() > 1)
+				filledSequences.erase(++(filledSequences.begin()),filledSequences.end()); // keep only one consensus sequence
+		}
+		else
+			//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
+
+		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
 		writeFilledBreakpoint();
 
 		// We increase the breakpoint counter.
@@ -261,6 +283,37 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 	graph_output.load_nodes_extremities(contig_file_name);
 	graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
 	graph_output.close();
+
+	//find targetSequence in nodes of the contig graph
+	set< std::pair<int,int> > terminal_nodes_with_endpos = find_nodes_containing_R(targetSequence, contig_file_name, _nb_mis_allowed, _nb_gap_allowed);
+
+	//also convert it to list of node id for traditional use
+	set<int> terminal_nodes;
+	for (set< std::pair<int,int> >::iterator it = terminal_nodes_with_endpos.begin(); it != terminal_nodes_with_endpos.end(); it++)
+	{
+		terminal_nodes.insert((*it).first);
+	}
+
+
+	// analyze the graph to find a satisfying gap sequence between L and R
+
+	GraphAnalysis graph = GraphAnalysis(graph_output.get_dot_file_name());
+	graph.debug = false;
+
+	if(terminal_nodes.size()==0)
+	{
+		//if(verb)  printf("Right anchor not found.. gapfillling failed... \n");
+		return ;
+	}
+
+	//if(verb)    fprintf(stderr," analysis..");
+	bool success;
+	set<unlabeled_path> paths = graph.find_all_paths(terminal_nodes, success);
+
+	//now this func also cuts the last node just before the beginning of the right anchor
+	set<string> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
+	filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
+
 }
 
 void Filler::writeFilledBreakpoint(){
@@ -276,4 +329,110 @@ void Filler::writeFilledBreakpoint(){
 //			repeat_size,
 //			kmer_end.c_str()
 //	);
+}
+
+set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed)
+{
+    bool debug = false;
+    //set<int> terminal_nodes;
+    set< std::pair<int,int> >  terminal_nodes;
+    BankFasta* Nodes = new BankFasta((char *)linear_seqs_name.c_str());
+
+    long nodeNb = 0;
+    char * nodeseq;
+    size_t nodelen;
+    int nbmatch =0;
+
+    const char * anchor = targetSequence.c_str();
+    int anchor_size=  targetSequence.size();
+
+    // heuristics: R has to be seen entirely in the node up to nb_mis_allowed errors, in the forward strand
+
+    BankFasta::Iterator itSeq (*Nodes);
+
+    // We loop over sequences.
+    for (itSeq.first(); !itSeq.isDone(); itSeq.next())
+    {
+    	nodelen = itSeq->getDataSize();
+        if (nodelen < targetSequence.size())
+        {
+            nodeNb++;
+            continue;
+        }
+
+        if (debug)
+            printf("searching %s (size=%zu nt) in %s (size=%d nt)\n",anchor,targetSequence.size(),nodeseq,nodelen);
+
+		int best_err = 100000000;
+		int curr_err = 0;
+		int   best_j = -1;
+		int bg, bm;
+        for (int j = 0; j < nodelen-targetSequence.size()+1; j++)
+        {
+            nbmatch=0;
+
+			int nw_mis   = 0 ;
+			int nw_gaps  = 0 ;
+			int nw_match = 0 ;
+
+			if(nb_gaps_allowed>0)
+			{
+
+
+				std::string nodestring(nodeseq + j , min(anchor_size + nb_gaps_allowed, (int)nodelen-j));
+				int deb = j==128;
+				needleman_wunsch(targetSequence,nodestring,&nw_match,&nw_mis, &nw_gaps);
+				curr_err = nw_mis + nw_gaps;
+
+//				printf("-----------   ---------\n");
+//				printf("testing pos %i:   mis %i gap %i  curr_err %i\n",j,nw_mis,nw_gaps,curr_err);
+//				printf("%s  \n",R.c_str());
+//				printf("%s  \n",nodestring.c_str());
+//
+
+				if( (nw_mis <= nb_mis_allowed && nw_gaps <= nb_gaps_allowed )  && (curr_err < best_err))
+				{
+					best_err = curr_err;
+					best_j  = j;
+					bg = nw_gaps; bm = nw_mis;
+				//	printf("found correct pos %i nb mis %i nb gaps %i \n",j,nw_mis,nw_gaps);
+
+				}
+			}
+			else
+			{
+				for (int i = 0; i < anchor_size; i++)
+				{
+					nbmatch += identNT(nodeseq[j+i], anchor[i]);
+				}
+				if(nbmatch >= (anchor_size - nb_mis_allowed))
+				{
+					terminal_nodes.insert( std::make_pair (nodeNb,j) ); // nodeNb,  j pos of beginning of right anchor
+				//	printf("found pos %i nbmatch %i  \n",j,nbmatch);
+
+					break;
+				}
+
+			}
+        }
+
+		if(nb_gaps_allowed>0 && best_j != -1)
+		{
+			terminal_nodes.insert( std::make_pair (nodeNb,best_j) ); // nodeNb,  j pos of beginning of right anchor
+		//	printf("found pos %i nb mis %i nb gaps %i \n",best_j,bm,bg);
+			break;
+		}
+
+
+        nodeNb++;
+    }
+
+    if (debug)
+    {
+        for(set< std::pair<int,int> >::iterator it = terminal_nodes.begin(); it != terminal_nodes.end() ; ++it)
+            fprintf(stderr," (node %d pos %d) ",(*it).first,(*it).second);
+    }
+
+    delete Nodes;
+    return terminal_nodes;
 }

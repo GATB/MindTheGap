@@ -46,6 +46,9 @@ public:
     int _max_depth;
     int _max_nodes;
 
+    int _nb_mis_allowed;
+    int _nb_gap_allowed;
+
 
     // Actual job done by the tool is here
     void execute ();
@@ -73,6 +76,11 @@ private:
     /** writes a given breakpoint in the output file
          */
     void writeFilledBreakpoint();
+
+    /**
+     * returns the nodes containing the targetSequence
+     */
+    set< std::pair<int,int> >  find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed);
 
 };
 

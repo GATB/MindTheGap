@@ -50,6 +50,8 @@ public:
     virtual void print_node (long index, const std::string& seq);
     virtual void print_edge (long index, long id, long id2, const std::string& label, const std::string& comment);
 
+    std::string get_dot_file_name() {return _dot_file_name;};
+
 private:
 
     void init (bool erase);
