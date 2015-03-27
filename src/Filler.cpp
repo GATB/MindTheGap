@@ -214,13 +214,18 @@ void Filler::fillBreakpoints(){
 	// We loop over sequences.
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
+
 		//iterate by pair of sequences (WARNING : no verification same breakpoint id)
 		string sourceSequence =  string(itSeq->getDataBuffer());//previously L
+
+		
 		itSeq.next();
 		if(itSeq.isDone()){
 			throw Exception("Wrong breakpoint file: odd number of sequences...");
 		}
 		string targetSequence =  string(itSeq->getDataBuffer());//previously R
+		
+		//printf("break %i L : %s  R: %s \n",nbBreakpoints,sourceSequence.c_str(),targetSequence.c_str());
 
 		//Initialize set of filled sequences
 		set<string> filledSequences;
@@ -250,10 +255,11 @@ void Filler::fillBreakpoints(){
 				filledSequences.erase(++(filledSequences.begin()),filledSequences.end()); // keep only one consensus sequence
 		}
 		else
+			;
 			//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 
 		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
-		writeFilledBreakpoint();
+		writeFilledBreakpoint(filledSequences);
 
 		// We increase the breakpoint counter.
 		nbBreakpoints++;
@@ -287,6 +293,8 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 	//find targetSequence in nodes of the contig graph
 	set< std::pair<int,int> > terminal_nodes_with_endpos = find_nodes_containing_R(targetSequence, contig_file_name, _nb_mis_allowed, _nb_gap_allowed);
 
+	//printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
+	
 	//also convert it to list of node id for traditional use
 	set<int> terminal_nodes;
 	for (set< std::pair<int,int> >::iterator it = terminal_nodes_with_endpos.begin(); it != terminal_nodes_with_endpos.end(); it++)
@@ -302,7 +310,8 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 
 	if(terminal_nodes.size()==0)
 	{
-		//if(verb)  printf("Right anchor not found.. gapfillling failed... \n");
+		//if(verb)
+		//	printf("Right anchor not found.. gapfillling failed... \n");
 		return ;
 	}
 
@@ -312,11 +321,41 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 
 	//now this func also cuts the last node just before the beginning of the right anchor
 	set<string> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
+
 	filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
+
 
 }
 
-void Filler::writeFilledBreakpoint(){
+void Filler::writeFilledBreakpoint(set<string>& filledSequences){
+	
+	//printf("-- writeFilledBreakpoint --\n");
+	
+	//printf("found %zu seq \n",filledSequences.size());
+	
+int 	nbContig = 0;
+
+	for (set<string>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+	{
+		string insertion = *it;
+		int llen = insertion.length() ;// - (int) R.length() - (int) L.length() - 2*hetmode;
+		
+		//printf("Insertion %i  %s \n",nbContig,insertion.c_str() );
+		//discards insert too long (can happen when last node is very large)
+//		if(llen > max_insertions_size)
+//			continue;
+		
+		// save sequences to results file
+		if(llen > 0)
+		{
+			printf("> insertion %d ( len= %d ) for breakpoint \"%s\"\n",nbContig++,llen, "todo add header here");
+			
+			//todo check  revcomp here
+			printf("%.*s\n",(int)llen,insertion.c_str() );
+		}
+	}
+	
+	
 //	fprintf(_breakpoint_file,">left_contig_%i_%s_pos_%lli_repeat_%i\n%s\n>right_contig_%i_%s_pos_%lli_repeat_%i\n%s\n",
 //			bkt_id,
 //			chrom_name.c_str(),
@@ -360,6 +399,9 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
             continue;
         }
 
+		nodeseq =  itSeq->getDataBuffer();
+
+		
         if (debug)
             printf("searching %s (size=%zu nt) in %s (size=%zu nt)\n",anchor,targetSequence.size(),nodeseq,nodelen);
 
