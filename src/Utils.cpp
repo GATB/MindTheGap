@@ -190,9 +190,9 @@ float needleman_wunsch(string a, string b, int * nbmatch,int * nbmis,int * nbgap
 
 bool all_consensuses_almost_identical(set<string> consensuses, int identity_threshold)
 {
-    for (set<string>::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
+	for (set<string>::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
     {
-        set<string>::iterator it_b = it_a;
+		set<string>::iterator it_b = it_a;
         advance(it_b,1);
         while (it_b != consensuses.end())
         {

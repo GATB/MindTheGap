@@ -297,7 +297,7 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 
 	// analyze the graph to find a satisfying gap sequence between L and R
 
-	GraphAnalysis graph = GraphAnalysis(graph_output.get_dot_file_name());
+	GraphAnalysis graph = GraphAnalysis(graph_output.get_dot_file_name(),_kmerSize);
 	graph.debug = false;
 
 	if(terminal_nodes.size()==0)
@@ -361,7 +361,7 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
         }
 
         if (debug)
-            printf("searching %s (size=%zu nt) in %s (size=%d nt)\n",anchor,targetSequence.size(),nodeseq,nodelen);
+            printf("searching %s (size=%zu nt) in %s (size=%zu nt)\n",anchor,targetSequence.size(),nodeseq,nodelen);
 
 		int best_err = 100000000;
 		int curr_err = 0;

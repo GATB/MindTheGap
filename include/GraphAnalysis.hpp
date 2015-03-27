@@ -55,10 +55,11 @@ public:
     std::tr1::unordered_map<int,string > node_sequences;
     std::tr1::unordered_map<int,set<int> > out_edges;
 #endif
-    
+	
+	size_t _sizeKmer;
 
 
-    GraphAnalysis(string graph_file_name);
+    GraphAnalysis(string graph_file_name,size_t kmerSize);
 
     
 

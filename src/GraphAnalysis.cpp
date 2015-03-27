@@ -53,8 +53,9 @@ int GraphAnalysis::revcomp_node(int node)
     return (node<nb_nodes)?(node+nb_nodes):(node-nb_nodes);
 }
 
-GraphAnalysis::GraphAnalysis(string graph_file_name)
+GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
 {
+	_sizeKmer =kmerSize;
     ifstream graph_file (graph_file_name.c_str());
     string line;
 
@@ -236,9 +237,9 @@ set<string> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< s
                 //sprintf("last node of the path, pos anchor %i \n",pos_anchor);
                 node_sequence = node_sequence.substr(0,pos_anchor);
                 
-                if(pos_anchor <= (sizeKmer-1))
+                if(pos_anchor <= (_sizeKmer-1))
                 {
-                    sequence = sequence.substr(0, sequence.length() - ((sizeKmer-1) - pos_anchor)); //nothing else to add
+                    sequence = sequence.substr(0, sequence.length() - ((_sizeKmer-1) - pos_anchor)); //nothing else to add
                 }
                 else
                 {
@@ -246,11 +247,11 @@ set<string> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< s
                     
                     if (it_path != p.begin())
                     {
-                        node_sequence = node_sequence.substr(sizeKmer-1,node_sequence.npos);
+                        node_sequence = node_sequence.substr(_sizeKmer-1,node_sequence.npos);
                     }
                     else
                     {
-                        node_sequence = node_sequence.substr(sizeKmer,node_sequence.npos);
+                        node_sequence = node_sequence.substr(_sizeKmer,node_sequence.npos);
                     }
                     
                     sequence += node_sequence;
@@ -263,12 +264,12 @@ set<string> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< s
             // trim (k-1) overlaps at beginning, except for the first node
             if (it_path != p.begin())
             {
-                node_sequence = node_sequence.substr(sizeKmer-1,node_sequence.npos); // check if  seq is now larger than sizeKmer-1
+                node_sequence = node_sequence.substr(_sizeKmer-1,node_sequence.npos); // check if  seq is now larger than sizeKmer-1
             }
             else // for first node, remove sizeKmer, the left anchor
             {
 
-                node_sequence = node_sequence.substr(sizeKmer,node_sequence.npos);
+                node_sequence = node_sequence.substr(_sizeKmer,node_sequence.npos);
 
             }
 

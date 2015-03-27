@@ -22,6 +22,9 @@
 #define _Utils_HPP_
 
 #include <string>
+#include <set>
+#include <stdlib.h>
+
 using namespace std;
 
 // TODO factoriser
