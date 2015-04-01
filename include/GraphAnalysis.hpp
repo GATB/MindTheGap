@@ -20,7 +20,13 @@
 #include <string>
 
 
+//GR: humm chez moi ce if clang est necessaire pour compiler avec clang
+#if __clang__
+#include <unordered_map>
+#else
 #include <tr1/unordered_map>
+#endif
+
 
 #include <set>
 #include <vector>
@@ -45,8 +51,13 @@ public:
     string node_identifier(int node);
     int revcomp_node(int node);
 
+#if __clang__
+	std::unordered_map<int,string > node_sequences;
+	std::unordered_map<int,set<int> > out_edges;
+#else
     std::tr1::unordered_map<int,string > node_sequences;
     std::tr1::unordered_map<int,set<int> > out_edges;
+#endif
 	
 	size_t _sizeKmer;
 

@@ -137,6 +137,15 @@ void Filler::execute ()
         _kmerSize = _graph.getKmerSize();
     }
 
+	
+	_insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions";
+	_insert_file = fopen(_insert_file_name.c_str(), "w");
+	if(_insert_file == NULL){
+		string message = "Cannot open file "+ _insert_file_name + " for writting";
+		throw Exception(message.c_str());
+	}
+	
+	
     //Getting the breakpoint sequences
     _breakpointBank = new BankFasta(getInput()->getStr(STR_URI_BKPT));
     
@@ -156,6 +165,8 @@ void Filler::execute ()
     //cout << "in MTG Fill" <<endl;
     // We gather some statistics.
 
+	fclose(_insert_file);
+	
     //getInfo()->add(1,"version",getVersion());
     getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
@@ -333,7 +344,7 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences){
 	
 	//printf("found %zu seq \n",filledSequences.size());
 	
-int 	nbContig = 0;
+	int nbContig = 0;
 
 	for (set<string>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 	{
@@ -348,26 +359,13 @@ int 	nbContig = 0;
 		// save sequences to results file
 		if(llen > 0)
 		{
-			printf("> insertion %d ( len= %d ) for breakpoint \"%s\"\n",nbContig++,llen, "todo add header here");
-			
+			fprintf(_insert_file,"> insertion %d ( len= %d ) for breakpoint \"%s\"\n",nbContig++,llen, "todo add header here");
 			//todo check  revcomp here
-			printf("%.*s\n",(int)llen,insertion.c_str() );
+			fprintf(_insert_file,"%.*s\n",(int)llen,insertion.c_str() );
 		}
 	}
 	
-	
-//	fprintf(_breakpoint_file,">left_contig_%i_%s_pos_%lli_repeat_%i\n%s\n>right_contig_%i_%s_pos_%lli_repeat_%i\n%s\n",
-//			bkt_id,
-//			chrom_name.c_str(),
-//			position,
-//			repeat_size,
-//			kmer_begin.c_str(),
-//			bkt_id,
-//			chrom_name.c_str(),
-//			position,
-//			repeat_size,
-//			kmer_end.c_str()
-//	);
+
 }
 
 set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed)

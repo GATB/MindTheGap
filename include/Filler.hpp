@@ -43,6 +43,10 @@ public:
     Graph _graph;
     int _nbCores;
     BankFasta* _breakpointBank;
+	
+	string _insert_file_name;
+	FILE * _insert_file;
+
     int _max_depth;
     int _max_nodes;
 
