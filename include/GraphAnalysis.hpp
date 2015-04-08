@@ -20,13 +20,14 @@
 #include <string>
 
 
-//GR: humm chez moi ce if clang est necessaire pour compiler avec clang
-#if __clang__
-#include <unordered_map>
+//DONT_USE_TR1 variable defined in CMakeList.txt of gatb-core : depending on the compil version unordered_map is not in the same location...
+#ifdef DONT_USE_TR1
+    #include <unordered_map>
+    #define NS_TR1_PREFIX std
 #else
-#include <tr1/unordered_map>
+    #include <tr1/unordered_map>
+	#define NS_TR1_PREFIX std::tr1
 #endif
-
 
 #include <set>
 #include <vector>
@@ -51,14 +52,9 @@ public:
     string node_identifier(int node);
     int revcomp_node(int node);
 
-#if __clang__
-	std::unordered_map<int,string > node_sequences;
-	std::unordered_map<int,set<int> > out_edges;
-#else
-    std::tr1::unordered_map<int,string > node_sequences;
-    std::tr1::unordered_map<int,set<int> > out_edges;
-#endif
-	
+    NS_TR1_PREFIX::unordered_map<int,string > node_sequences;
+    NS_TR1_PREFIX::unordered_map<int,set<int> > out_edges;
+
 	size_t _sizeKmer;
 
 
