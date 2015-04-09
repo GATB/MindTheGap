@@ -56,6 +56,10 @@ public:
     // Actual job done by the tool is here
     void execute ();
 
+    /** writes a given breakpoint in the output file
+         */
+    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size);
+    
 private:
     
     /** fills getInfo() with parameters informations
@@ -70,11 +74,6 @@ private:
          */
     template<size_t span>
     void findBreakpoints();
-
-    /** writes a given breakpoint in the output file
-         */
-    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size);
-
 };
 
 /********************************************************************************/
