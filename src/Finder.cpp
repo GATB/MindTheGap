@@ -246,6 +246,7 @@ void Finder::runFindBreakpoints()
 
     /* Add observer */
     findBreakpoints.addObserver(new FindCleanInsert<span>(&findBreakpoints));
+    findBreakpoints.addObserver(new FindFuzzyInsert<span>(&findBreakpoints));
 
     /* Run */
     findBreakpoints();

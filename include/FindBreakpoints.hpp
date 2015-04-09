@@ -122,29 +122,8 @@ void FindBreakpoints<span>::operator()()
 	    {
 		solid_stretch_size++;
 
-		if(solid_stretch_size > 1){
-		    if(gap_stretch_size == (this->finder->_kmerSize-1)){
-			// clean insert site
-			string kmer_begin_str = model.toString (kmer_begin);
-			string kmer_end_str = model.toString (kmer_end);
-			this->finder->writeBreakpoint(breakpoint_id, chrom_name, position - 1, kmer_begin_str, kmer_end_str, 0);
-			breakpoint_id++;
-		    }
-		    else if(gap_stretch_size < this->finder->_kmerSize - 1 && gap_stretch_size >= this->finder->_kmerSize - 1 - this->finder->_max_repeat){
-			// Fuzzy site, position and kmer_end are impacted by the repeat
+		this->notify();
 
-			int repeat_size = this->finder->_kmerSize - 1 - gap_stretch_size;
-			string kmer_begin_str = model.toString (kmer_begin);
-			string kmer_end_str = string(&chrom_sequence[position - 1 + repeat_size], this->finder->_kmerSize);
-			this->finder->writeBreakpoint(breakpoint_id, chrom_name, position - 1 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size);
-			breakpoint_id++;
-			this->finder->_nb_homo_fuzzy++;
-		    }
-		    else if(gap_stretch_size>0) {
-			//for debug
-			cout << "gap_stretch_size = " << gap_stretch_size << " in sequence " << chrom_name << " position " << position -1 << endl;
-		    }
-		}
 		if (solid_stretch_size > 1) gap_stretch_size = 0; // du coup on sort le trou a tai indexed ==2, gap_stretch_size pas remis a 0 par solide isole (FP)
 		if (solid_stretch_size==1) kmer_end = it_kmer->forward(); // kmer_end should be first kmer indexed after a hole
 		if(gap_stretch_size) previous_gap_stretch_size = gap_stretch_size;
@@ -161,7 +140,6 @@ void FindBreakpoints<span>::operator()()
 		}
 		gap_stretch_size ++;
 		solid_stretch_size =0;
-
 	    }
 	    previous_kmer = it_kmer->forward();
 
