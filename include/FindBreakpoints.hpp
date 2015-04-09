@@ -22,8 +22,10 @@
 #define _TOOL_FindBreakpoints_HPP_
 
 /********************************************************************************/
+#include <memory>
 #include <gatb/gatb_core.hpp>
 #include <Finder.hpp>
+#include <IFindObserver.hpp>
 
 /********************************************************************************/
 
@@ -43,6 +45,8 @@ public :
     FindBreakpoints(Finder * find);
 
     // Observable
+    void notify();
+    void addObserver(std::unique_ptr<IFindObserver<span> > new_obs);
 
     //Functor
     void operator()();
@@ -72,9 +76,11 @@ public :
     uint64_t gap_stretch_size;
     uint64_t previous_gap_stretch_size;
 
+    Finder * finder;
+
 private :
 
-    Finder * finder;
+    std::vector<std::unique_ptr<IFindObserver<span> > > list_obs;
 };
 
 template class FindBreakpoints<KSIZE_1>;

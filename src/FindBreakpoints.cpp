@@ -21,19 +21,35 @@
 #include <FindBreakpoints.hpp>
 
 template<size_t span>
-FindBreakpoints<span>::FindBreakpoints(Finder * find)
+FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs()
 {
     this->breakpoint_id = 0;
     this->position = 0;
     this->chrom_sequence = NULL;
     this->chrom_name = "";
 
-    this->solid_stretch_size;
-    this->gap_stretch_size;
-    this->previous_gap_stretch_size;
+    this->solid_stretch_size = 0;
+    this->gap_stretch_size = 0;
+    this->previous_gap_stretch_size = 0;
 
     this->finder = find;
 }
+
+template<size_t span>
+void FindBreakpoints<span>::notify()
+{
+    for(auto it = this->list_obs.begin(); it != this->list_obs.end(); it++)
+    {
+	(*it)->update();
+    }
+}
+
+template<size_t span>
+void FindBreakpoints<span>::addObserver(std::unique_ptr<IFindObserver<span> > new_obs)
+{
+    this->list_obs.push_back(std::move(new_obs));
+}
+
 
 template<size_t span>
 void FindBreakpoints<span>::operator()()
