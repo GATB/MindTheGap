@@ -20,6 +20,8 @@
 
 #include <Finder.hpp>
 #include <FindBreakpoints.hpp>
+#include <FindObserver.hpp>
+#include <IFindObserver.hpp>
 
 //#define PRINT_DEBUG
 /********************************************************************************/
@@ -166,15 +168,12 @@ void Finder::execute ()
     
     // Now do the job
 
-    IFindBreakpoints* findBreakpoints = NULL; 
     // According to the kmer size,  we call one fillBreakpoints method.
-    if (_kmerSize < KSIZE_1) { findBreakpoints = new FindBreakpoints<KSIZE_1>(this); }
-    else if (_kmerSize < KSIZE_2) { findBreakpoints = new FindBreakpoints<KSIZE_2>(this); }
-    else if (_kmerSize < KSIZE_3) { findBreakpoints = new FindBreakpoints<KSIZE_3>(this);  }
-    else if (_kmerSize < KSIZE_4) { findBreakpoints = new FindBreakpoints<KSIZE_4>(this);  }
+    if (_kmerSize < KSIZE_1) { runFindBreakpoints<KSIZE_1>(); }
+    else if (_kmerSize < KSIZE_2) { runFindBreakpoints<KSIZE_2>(); }
+    else if (_kmerSize < KSIZE_3) { runFindBreakpoints<KSIZE_3>(); }
+    else if (_kmerSize < KSIZE_4) { runFindBreakpoints<KSIZE_4>(); }
     else  { throw Exception ("unsupported kmer size %d", _kmerSize);  }
-
-    (*findBreakpoints)();
 
     //cout << "in MTG" <<endl;
     // We gather some statistics.
@@ -238,4 +237,16 @@ void Finder::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, 
 			repeat_size,
 			kmer_end.c_str()
 	);
+}
+
+template<size_t span>
+void Finder::runFindBreakpoints()
+{
+    FindBreakpoints<span> findBreakpoints(this);
+
+    /* Add observer */
+    findBreakpoints.addObserver(new FindCleanInsert<span>(&findBreakpoints));
+
+    /* Run */
+    findBreakpoints();
 }

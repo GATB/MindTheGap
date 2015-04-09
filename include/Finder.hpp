@@ -69,6 +69,9 @@ private:
     /** fills getInfo() with results informations
          */
     void resumeResults();
+
+    template<size_t span>
+    void runFindBreakpoints();
 };
 
 /********************************************************************************/

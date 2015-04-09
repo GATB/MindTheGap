@@ -19,6 +19,11 @@
  *****************************************************************************/
 
 #include <FindBreakpoints.hpp>
+#include <FindObserver.hpp>
+
+/********************************************************************************/
+
+/********************************************************************************/
 
 template<size_t span>
 FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs()
@@ -34,22 +39,6 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs()
 
     this->finder = find;
 }
-
-template<size_t span>
-void FindBreakpoints<span>::notify()
-{
-    for(auto it = this->list_obs.begin(); it != this->list_obs.end(); it++)
-    {
-	(*it)->update();
-    }
-}
-
-template<size_t span>
-void FindBreakpoints<span>::addObserver(std::unique_ptr<IFindObserver<span> > new_obs)
-{
-    this->list_obs.push_back(std::move(new_obs));
-}
-
 
 template<size_t span>
 void FindBreakpoints<span>::operator()()
@@ -125,4 +114,18 @@ void FindBreakpoints<span>::operator()()
 	}
     }
 }
-						     
+
+template<size_t span>
+void FindBreakpoints<span>::notify()
+{
+    for(auto it = this->list_obs.begin(); it != this->list_obs.end(); it++)
+    {
+	(*it)->update();
+    }
+}
+
+template<size_t span>
+void FindBreakpoints<span>::addObserver(IFindObserver<span>* new_obs)
+{
+    this->list_obs.push_back(std::unique_ptr<IFindObserver<span> >(new_obs));
+}

@@ -29,27 +29,20 @@
 
 /********************************************************************************/
 
-class IFindBreakpoints
-{
-public :
-
-    virtual void operator()() = 0;
-};
-
 template<size_t span>
-class FindBreakpoints : public IFindBreakpoints
+class FindBreakpoints
 {
 public :
 
     // Constructor
     FindBreakpoints(Finder * find);
 
-    // Observable
-    void notify();
-    void addObserver(std::unique_ptr<IFindObserver<span> > new_obs);
-
     //Functor
     void operator()();
+
+    // Observable
+    void notify();
+    void addObserver(IFindObserver<span>* new_obs);
 
 public :
 
