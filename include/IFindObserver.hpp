@@ -22,7 +22,8 @@
 #define _TOOL_IFindObserver_HPP_
 
 /********************************************************************************/
-
+#include <gatb/gatb_core.hpp>
+#include <FindBreakpoints.hpp>
 
 /********************************************************************************/
 
@@ -33,8 +34,8 @@ template<size_t span>
 class IFindObserver
 {
 public:
-    
-    IFindObserver(FindBreakpoints<span>* find);
+
+IFindObserver(FindBreakpoints<span>* find);
 
     virtual void update() = 0;
 
@@ -42,5 +43,11 @@ protected :
 
     FindBreakpoints<span>* _find;
 };
+
+template<size_t span>
+IFindObserver<span>::IFindObserver(FindBreakpoints<span>* find)
+{
+    this->_find = find;
+}
 
 #endif /* _TOOL_IFindObserver_HPP_ */
