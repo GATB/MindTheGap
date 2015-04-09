@@ -19,6 +19,7 @@
  *****************************************************************************/
 
 #include <Finder.hpp>
+#include <FindBreakpoints.hpp>
 
 //#define PRINT_DEBUG
 /********************************************************************************/
@@ -165,13 +166,15 @@ void Finder::execute ()
     
     // Now do the job
 
+    IFindBreakpoints* findBreakpoints = NULL; 
     // According to the kmer size,  we call one fillBreakpoints method.
-    if (_kmerSize < KSIZE_1)  { findBreakpoints<KSIZE_1>  ();  }
-    else if (_kmerSize < KSIZE_2)  { findBreakpoints<KSIZE_2>  ();  }
-    else if (_kmerSize < KSIZE_3)  { findBreakpoints<KSIZE_3>  ();  }
-    else if (_kmerSize < KSIZE_4)  { findBreakpoints<KSIZE_4> ();  }
+    if (_kmerSize < KSIZE_1) { findBreakpoints = new FindBreakpoints<KSIZE_1>(this); }
+    else if (_kmerSize < KSIZE_2) { findBreakpoints = new FindBreakpoints<KSIZE_2>(this); }
+    else if (_kmerSize < KSIZE_3) { findBreakpoints = new FindBreakpoints<KSIZE_3>(this);  }
+    else if (_kmerSize < KSIZE_4) { findBreakpoints = new FindBreakpoints<KSIZE_4>(this);  }
     else  { throw Exception ("unsupported kmer size %d", _kmerSize);  }
 
+    (*findBreakpoints)();
 
     //cout << "in MTG" <<endl;
     // We gather some statistics.
@@ -219,149 +222,6 @@ void Finder::resumeResults(){
 	getInfo()->add(2,"homozygous","%i", _nb_homo_clean+_nb_homo_fuzzy);
 	getInfo()->add(3,"clean","%i", _nb_homo_clean);
 	getInfo()->add(3,"fuzzy","%i", _nb_homo_fuzzy);
-
-}
-
-//template method : enabling to deal with all sizes of kmer <KSIZE_4
-template<size_t span>
-void Finder::findBreakpoints(){
-
-	uint64_t bkt_id=0;
-	int nbKmers=0;
-	int nbSequences=0;
-
-	uint64_t nb_ref_solid = 0;
-	uint64_t nb_ref_notsolid = 0;
-	uint64_t solid_stretch_size = 0; //size of current stretch of 1 (ie kmer indexed)
-	uint64_t gap_stretch_size = 0; //size of current stretch of 0 (ie kmer not indexed)
-	uint64_t previous_gap_stretch_size = 0;
-
-	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical KmerModel; // ModelCanonical ModelDirect
-	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical::Iterator KmerIterator;
-	typedef typename gatb::core::kmer::impl::Kmer<span>::Type        kmer_type;
-	typedef typename gatb::core::kmer::impl::Kmer<span>::Count       kmer_count;
-
-#ifdef PRINT_DEBUG
-	string deb01;
-#endif
-
-	kmer_type kmer_begin;
-	kmer_type kmer_end;
-	kmer_type previous_kmer;
-
-	// We declare a kmer model with a given span size.
-	KmerModel model (_kmerSize);
-	//std::cout << "span: " << model.getSpan() << std::endl;
-	// We create an iterator over this bank.
-	BankFasta::Iterator itSeq (*_refBank);
-	// We declare an iterator on a given sequence.
-	KmerIterator itKmer (model);
-	// We loop over sequences.
-	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
-	{
-		solid_stretch_size = 0;
-		gap_stretch_size = 0;
-		previous_gap_stretch_size = 0;
-
-		
-#ifdef PRINT_DEBUG
-		deb01.clear();
-#endif
-
-		
-		// We set the data from which we want to extract kmers.
-		itKmer.setData (itSeq->getData());
-		char* chrom_sequence = itSeq->getDataBuffer();
-		string chrom_name = itSeq->getComment();
-		uint64_t position=0;
-		// We iterate the kmers.
-		for (itKmer.first(); !itKmer.isDone(); itKmer.next(), position++)
-		{
-			nbKmers++;
-
-			
-		// kmer_type current_kmer_min = min(revcomp(itKmer->value(), _kmerSize), itKmer->value());
-
-			
-			//we need to convert the kmer in a node to query the graph.
-			Node node(Node::Value(itKmer->value()));
-		//	Node node(  Node::Value(current_kmer_min.value()) );
-
-			if (_graph.contains(node)) //the kmer is indexed
-			{
-#ifdef PRINT_DEBUG
-				deb01+= "1";
-#endif
-				nb_ref_solid++;
-				solid_stretch_size++;
-
-				if(solid_stretch_size > 1){
-					if(gap_stretch_size == (_kmerSize-1)){
-						// clean insert site
-
-//						cout << "trou size k-1" << endl;
-//						cout << "position " << position -1 << endl;
-//						cout << "kmer begin " << model.toString (kmer_begin) << endl;
-//						cout << "kmer end " << model.toString (kmer_end) << endl;
-
-						string kmer_begin_str = model.toString (kmer_begin);
-						string kmer_end_str = model.toString (kmer_end);
-						writeBreakpoint(bkt_id,chrom_name,position-1,kmer_begin_str, kmer_end_str,0);
-						bkt_id++;
-						_nb_homo_clean++;
-					}
-					else if(gap_stretch_size < _kmerSize - 1 && gap_stretch_size >= _kmerSize -1 -_max_repeat){
-						// Fuzzy site, position and kmer_end are impacted by the repeat
-
-						int repeat_size = _kmerSize - 1 - gap_stretch_size;
-						string kmer_begin_str = model.toString (kmer_begin);
-						string kmer_end_str = string(&chrom_sequence[position-1+repeat_size], _kmerSize);
-						writeBreakpoint(bkt_id,chrom_name,position -1 + repeat_size,kmer_begin_str,kmer_end_str, repeat_size);
-						bkt_id++;
-						_nb_homo_fuzzy++;
-					}
-					else if(gap_stretch_size>0) {
-						//for debug
-						cout << "gap_stretch_size = " << gap_stretch_size << " in sequence " << chrom_name << " position " << position -1 << endl;
-					}
-				}
-				if (solid_stretch_size > 1) gap_stretch_size = 0; // du coup on sort le trou a tai indexed ==2, gap_stretch_size pas remis a 0 par solide isole (FP)
-				if (solid_stretch_size==1) kmer_end = itKmer->forward(); // kmer_end should be first kmer indexed after a hole
-				if(gap_stretch_size) previous_gap_stretch_size = gap_stretch_size;
-			}
-			else //kmer is not indexed, measure size of the zone not covered by kmers of the reads
-			{
-#ifdef PRINT_DEBUG
-				deb01+= "0";
-#endif
-				nb_ref_notsolid++;
-				// if(gap_stretch_size == 0 && solid_stretch_size==1) //si zone indexe prec est ==1, probable FP, merge size, keep old kmer_begin
-				if(solid_stretch_size==1)
-				{
-					gap_stretch_size = previous_gap_stretch_size + solid_stretch_size ; //inutile maintenant il me semble, car tai_not_indexed non reset par FP
-				}
-				if(solid_stretch_size > 1) // begin of not indexed zone
-				{
-					kmer_begin = previous_kmer ;
-				}
-				gap_stretch_size ++;
-				solid_stretch_size =0;
-
-			}
-			previous_kmer = itKmer->forward();
-
-		}
-		
-#ifdef PRINT_DEBUG
-		cout << deb01 << endl;
-#endif
-		
-		// We increase the sequences counter.
-		nbSequences++;
-	}
-
-	cout << "nb sequences=" << nbSequences <<endl;
-//	cout << "nb kmers=" << nbKmers <<endl;
 
 }
 

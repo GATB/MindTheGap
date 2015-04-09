@@ -18,60 +18,67 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#ifndef _TOOL_Finder_HPP_
-#define _TOOL_Finder_HPP_
+#ifndef _TOOL_FindBreakpoints_HPP_
+#define _TOOL_FindBreakpoints_HPP_
 
 /********************************************************************************/
 #include <gatb/gatb_core.hpp>
-using namespace std;
+#include <Finder.hpp>
 
 /********************************************************************************/
 
-static const char* STR_URI_REF = "-ref";
-static const char* STR_MAX_REPEAT = "-max-rep";
-static const char* STR_HOMO_ONLY = "-homo-only";
-
-
-class Finder : public Tool
+class IFindBreakpoints
 {
-public:
+public :
 
-    // Constructor
-    Finder ();
-    
-    size_t _kmerSize;
-    Graph _graph;
-    int _max_repeat;
-    int _nbCores;
-    bool _homo_only;
-    BankFasta* _refBank;
-    FILE * _breakpoint_file;
-
-    int _nb_homo_clean;
-    int _nb_homo_fuzzy;
-    int _nb_hetero_clean;
-    int _nb_hetero_fuzzy;
-
-
-    // Actual job done by the tool is here
-    void execute ();
-
-    /** writes a given breakpoint in the output file
-         */
-    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size);
-    
-private:
-    
-    /** fills getInfo() with parameters informations
-     */
-    void resumeParameters();
-
-    /** fills getInfo() with results informations
-         */
-    void resumeResults();
+    virtual void operator()() = 0;
 };
 
-/********************************************************************************/
+template<size_t span>
+class FindBreakpoints : public IFindBreakpoints
+{
+public :
 
-#endif /* _TOOL_Finder_HPP_ */
+    // Constructor
+    FindBreakpoints(Finder * find);
 
+    // Observable
+
+    //Functor
+    void operator()();
+
+public :
+
+    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical KmerModel;
+    typedef typename KmerModel::Iterator KmerIterator;
+    typedef typename gatb::core::kmer::impl::Kmer<span>::Type KmerType;
+
+public :
+
+    /*Write breakpoint*/
+    uint64_t breakpoint_id;
+    uint64_t position;
+    char * chrom_sequence;
+    string chrom_name;
+
+    /*Kmer related object*/
+    KmerModel model;
+    KmerType kmer_begin;
+    KmerType kmer_end;
+    KmerType previous_kmer;
+
+    /*Gap type detection*/
+    uint64_t solid_stretch_size;
+    uint64_t gap_stretch_size;
+    uint64_t previous_gap_stretch_size;
+
+private :
+
+    Finder * finder;
+};
+
+template class FindBreakpoints<KSIZE_1>;
+template class FindBreakpoints<KSIZE_2>;
+template class FindBreakpoints<KSIZE_3>;
+template class FindBreakpoints<KSIZE_4>;
+#endif /* _TOOL_FindBreakpoints_HPP_ */
