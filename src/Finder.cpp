@@ -63,6 +63,8 @@ Finder::Finder ()  : Tool ("MindTheGap find")
 	IOptionsParser* finderParser = new OptionsParser("Detection");
     finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
     finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
+    finderParser->push_front (new OptionOneParam (STR_HET_MAX_OCC, "maximal number of occurrences of a kmer in the reference genome allowed for heterozyguous breakpoints", false,"1"));
+    //allow to find heterozyguous breakpoints in n-repeated regions of the reference genome
 
     IOptionsParser* graphParser = new OptionsParser("Graph building");
     graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
@@ -171,15 +173,32 @@ void Finder::execute ()
 
     }
 
+    // Getting the reference genome
+    _refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
+
     
     //Getting other parameters
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_repeat = getInput()->getInt(STR_MAX_REPEAT);
     _homo_only=getInput()->get(STR_HOMO_ONLY) !=0;
+    _het_max_occ=getInput()->getInt(STR_HET_MAX_OCC);
 
-    // Getting the reference genome
-    _refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
-    
+    if(!_homo_only){
+    	// Building the index of reference (k-1)-mers occurring more than _het_max_occ + 1 times
+    	string tempFileName="trashme";
+    	stringstream commandLine;
+    	commandLine << STR_URI_INPUT << " " << getInput()->getStr(STR_URI_REF) << " " <<  //start from fasta file (and not from Bank : can not be used several times)
+    			STR_KMER_ABUNDANCE_MIN << " " << _het_max_occ + 1 << " " <<
+    			STR_KMER_SIZE << " " << _kmerSize-1 << " " <<
+    			STR_DEBLOOM_TYPE << " none " <<
+    			STR_URI_OUTPUT << " " << tempFileName << " ";
+
+    	cout << commandLine.str() << endl;
+    	_ref_graph = Graph::create(commandLine.str().c_str());
+    	cout << "ok" <<endl;
+    	System::file().remove(tempFileName+".h5");
+    }
+
     // Now do the job
 
     // According to the kmer size,  we call one fillBreakpoints method.

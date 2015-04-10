@@ -30,6 +30,7 @@ using namespace std;
 static const char* STR_URI_REF = "-ref";
 static const char* STR_MAX_REPEAT = "-max-rep";
 static const char* STR_HOMO_ONLY = "-homo-only";
+static const char* STR_HET_MAX_OCC = "-het-max-occ";
 
 
 class Finder : public Tool
@@ -41,7 +42,9 @@ public:
     
     size_t _kmerSize;
     Graph _graph;
+    Graph _ref_graph;
     int _max_repeat;
+    int _het_max_occ;
     int _nbCores;
     bool _homo_only;
     BankFasta* _refBank;
