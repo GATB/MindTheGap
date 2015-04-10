@@ -91,15 +91,6 @@ int main (int argc, char* argv[])
         {
             Finder().run (argc-1, argv+1);
         }
-        catch (OptionFailure& e) //ces 2 catch ne marchent pas si option inconnue (pb de Tool)
-        {
-            std::cout << "essai" << std::endl;
-//            e.getParser().displayErrors   (stdout);
-//            e.getParser().displayWarnings (stdout);
-//            e.getParser().displayHelp     (stdout);
-//            e.getParser().displayVersion  (stdout);
-            return EXIT_FAILURE;
-        }
         catch (Exception& e)
         {
         	if(strcmp(e.getMessage(),"")!=0){

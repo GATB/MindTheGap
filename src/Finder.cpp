@@ -93,6 +93,7 @@ void Finder::execute ()
 		throw Exception(); // to get out with EXIT_FAILURE
 	}
 
+	// Checks mandatory options
     if ((getInput()->get(STR_URI_GRAPH) != 0 && getInput()->get(STR_URI_INPUT) != 0) || (getInput()->get(STR_URI_GRAPH) == 0 && getInput()->get(STR_URI_INPUT) == 0))
     {
         throw OptionFailure(getParser(), "options -graph and -in are incompatible, but at least one of these is mandatory");
@@ -124,26 +125,28 @@ void Finder::execute ()
     {
         //fprintf(log,"Creating the graph from file(s) %s\n",getInput()->getStr(STR_URI_INPUT).c_str());
         
-        // We need to add the options of dbgh5/Graph that were masked to the user (or we could create a new Properties object)
+        // We need to add the options of dbgh5/Graph that were masked to the user
     	getInput()->add(0,STR_SOLIDITY_KIND, "sum"); //way to consider a solid kmer with several datasets (sum, min or max)
     	getInput()->add(0,STR_KMER_ABUNDANCE_MAX, "4294967295"); //maximal abundance threshold for solid kmers
 
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
         getInput()->add(0,STR_BLOOM_TYPE, "basic"); //neighbor basic cache
-        getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //cascading  pas bien car bcp plus de FP non critique au milieur trou
+        getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //DO NOT use cascading : generates too many FP inside  pas bien car bcp plus de FP non critique au milieur trou
         getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_INTEGER_PRECISION, "0");
         getInput()->add(0,STR_MPHF_TYPE, "none");
-        //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //surtout ne pas decommenter cette ligne, sinon les kmers solids sont stockes dans le fichier ./.h5 et les infos ne sont plus dans le output.h5
+        //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //DONOT uncomment this line, otherwise solid kmers are stored in file ./.h5 outside from the considered graph h5 file.
         
         //Warning if kmer size >128 cascading debloom does not work
         if(getInput()->getInt(STR_KMER_SIZE)>128){
             getInput()->get(STR_DEBLOOM_TYPE)->value="original";
         }
         
+        //de Bruijn graph building
         _graph = Graph::create (getInput());
+
         _kmerSize = getInput()->getInt(STR_KMER_SIZE);
         
     }
@@ -157,6 +160,8 @@ void Finder::execute ()
         _kmerSize = _graph.getKmerSize();
     }
 
+
+    // Preparing the output file
     _breakpoint_file_name = getInput()->getStr(STR_URI_OUTPUT)+".breakpoints";
     _breakpoint_file = fopen(_breakpoint_file_name.c_str(), "w");
     if(_breakpoint_file == NULL){
@@ -184,11 +189,9 @@ void Finder::execute ()
     else if (_kmerSize < KSIZE_4)  { findBreakpoints<KSIZE_4> ();  }
     else  { throw Exception ("unsupported kmer size %d", _kmerSize);  }
 
-
-    //cout << "in MTG" <<endl;
-    // We gather some statistics.
-
     fclose(_breakpoint_file);
+
+    // Printing result informations (ie. add info to getInfo(), in Tool Info is printed automatically after end of execute() method
     //getInfo()->add(1,"version",getVersion());
     getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
@@ -197,7 +200,6 @@ void Finder::execute ()
 
 void Finder::resumeParameters(){
     
-    //Properties resumeParams;
     getInfo()->add(0,"Parameters");
     getInfo()->add(1,"Input data");
     if (getInput()->get(STR_URI_INPUT) != 0){
@@ -238,7 +240,8 @@ void Finder::resumeResults(){
 template<size_t span>
 void Finder::findBreakpoints(){
 
-	uint64_t bkt_id=0;
+	uint64_t bkt_id=0; // id of detected breakpoint
+
 	int nbKmers=0;
 	int nbSequences=0; // not used
 
@@ -273,31 +276,30 @@ void Finder::findBreakpoints(){
 	{
 		solid_stretch_size = 0;
 		gap_stretch_size = 0;
-		previous_gap_stretch_size = 0;
 
+		//Method : an homozyguous breakpoint is detected as a gap_stretch (ie. consecutive kmers on the sequence, that are not indexed in the graph) of particular sizes.
+		//BUT there are some False Positives when we query the graph : when we ask the graph if a kmer is indexed (when starting from a previous not indexed kmer) it may wrongly answer yes
+		//(the gatb dbg is exact only if the kmer we query is the neighbor of a truly solid kmer)
+		//FP are likely to be isolated, ie. surrounded by not indexed kmers, therefore they can be detected as solid_stretches of size 1.
 		
 #ifdef PRINT_DEBUG
 		deb01.clear();
 #endif
 
 		
-		// We set the data from which we want to extract kmers.
+		// We set the data from which we want to extract kmers, to the kmer iterator
 		itKmer.setData (itSeq->getData());
 		char* chrom_sequence = itSeq->getDataBuffer();
 		string chrom_name = itSeq->getComment();
 		uint64_t position=0;
+
 		// We iterate the kmers.
 		for (itKmer.first(); !itKmer.isDone(); itKmer.next(), position++)
 		{
 			nbKmers++;
 
-			
-		// kmer_type current_kmer_min = min(revcomp(itKmer->value(), _kmerSize), itKmer->value());
-
-			
 			//we need to convert the kmer in a node to query the graph.
 			Node node(Node::Value(itKmer->value()));
-		//	Node node(  Node::Value(current_kmer_min.value()) );
 
 			if (_graph.contains(node)) //the kmer is indexed
 			{
@@ -307,11 +309,11 @@ void Finder::findBreakpoints(){
 				nb_ref_solid++;
 				solid_stretch_size++;
 
-				if(solid_stretch_size > 1){
+				if(solid_stretch_size > 1){ //to be sure the gap is finished, it must be followed by a solid stretch of size >1, otherwise it could be a false positive of the graph (likely isolated)
 					if(gap_stretch_size == (_kmerSize-1)){
 						// clean insert site
 
-//						cout << "trou size k-1" << endl;
+//						cout << "gap size k-1" << endl;
 //						cout << "position " << position -1 << endl;
 //						cout << "kmer begin " << model.toString (kmer_begin) << endl;
 //						cout << "kmer end " << model.toString (kmer_end) << endl;
@@ -334,25 +336,24 @@ void Finder::findBreakpoints(){
 					}
 					else if(gap_stretch_size>0) {
 						//for debug
-						cout << "gap_stretch_size = " << gap_stretch_size << " in sequence " << chrom_name << " position " << position -1 << endl;
+						//cout << "gap_stretch_size = " << gap_stretch_size << " in sequence " << chrom_name << " position " << position -1 << endl;
 					}
+
+					gap_stretch_size = 0;// gap stretch size is re-set to 0 only when we are sure that the end of the gap is not due to an isolated solid kmer (likely FP)
 				}
-				if (solid_stretch_size > 1) gap_stretch_size = 0; // du coup on sort le trou a tai indexed ==2, gap_stretch_size pas remis a 0 par solide isole (FP)
-				if (solid_stretch_size==1) kmer_end = itKmer->forward(); // kmer_end should be first kmer indexed after a hole
-				if(gap_stretch_size) previous_gap_stretch_size = gap_stretch_size;
+				if (solid_stretch_size==1) kmer_end = itKmer->forward(); // kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when solid_stretch_size=1)
 			}
-			else //kmer is not indexed, measure size of the zone not covered by kmers of the reads
+			else //kmer is not indexed, measure the size of the zone not covered by kmers of the reads (= a gap)
 			{
 #ifdef PRINT_DEBUG
 				deb01+= "0";
 #endif
 				nb_ref_notsolid++;
-				// if(gap_stretch_size == 0 && solid_stretch_size==1) //si zone indexe prec est ==1, probable FP, merge size, keep old kmer_begin
-				if(solid_stretch_size==1)
+				if(solid_stretch_size==1) // it means that the previous position was an isolated solid kmer
 				{
-					gap_stretch_size = previous_gap_stretch_size + solid_stretch_size ; //inutile maintenant il me semble, car tai_not_indexed non reset par FP
+					gap_stretch_size = gap_stretch_size + solid_stretch_size ; //if previous position was an isolated solid kmer, we need to add 1 to the gap_stretch_size (as if replacing the FP by a non indexed kmer)
 				}
-				if(solid_stretch_size > 1) // begin of not indexed zone
+				if(solid_stretch_size > 1) // previous position was a solid kmer, but not an isolated one  => we are at the beginning of a gap
 				{
 					kmer_begin = previous_kmer ;
 				}
@@ -368,11 +369,11 @@ void Finder::findBreakpoints(){
 		cout << deb01 << endl;
 #endif
 		
-		// We increase the sequences counter.
+		// We increase the sequence counter.
 		nbSequences++;
 	}
 
-	cout << "nb sequences=" << nbSequences <<endl;
+//	cout << "nb sequences=" << nbSequences <<endl;
 //	cout << "nb kmers=" << nbKmers <<endl;
 
 }
