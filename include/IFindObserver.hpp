@@ -37,7 +37,7 @@ public:
 
 IFindObserver(FindBreakpoints<span>* find);
 
-    virtual void update() = 0;
+    virtual void update(bool in_graph) = 0;
 
 protected :
 

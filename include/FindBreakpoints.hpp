@@ -25,7 +25,6 @@
 #include <memory>
 #include <gatb/gatb_core.hpp>
 #include <Finder.hpp>
-//#include <IFindObserver.hpp>
 
 /********************************************************************************/
 
@@ -44,7 +43,7 @@ public :
     void operator()();
 
     // Observable
-    void notify();
+    void notify(bool in_graph);
     void addObserver(IFindObserver<span>* new_obs);
 
 public :
@@ -66,6 +65,7 @@ public :
     KmerType kmer_begin;
     KmerType kmer_end;
     KmerType previous_kmer;
+    KmerIterator it_kmer;
 
     /*Gap type detection*/
     uint64_t solid_stretch_size;
@@ -80,7 +80,7 @@ private :
 };
 
 template<size_t span>
-FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs()
+FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs(), model(find->_kmerSize), it_kmer(model)
 {
     this->breakpoint_id = 0;
     this->position = 0;
@@ -98,61 +98,47 @@ template<size_t span>
 void FindBreakpoints<span>::operator()()
 {
     BankFasta::Iterator it_seq(*(finder->_refBank));
-    KmerIterator it_kmer (model);
 
     for (it_seq.first(); !it_seq.isDone(); it_seq.next())
     {
-	solid_stretch_size = 0;
-	gap_stretch_size = 0;
-	previous_gap_stretch_size = 0;
+	this->solid_stretch_size = 0;
+	this->gap_stretch_size = 0;
+	this->previous_gap_stretch_size = 0;
 		
 	// We set the data from which we want to extract kmers.
 	it_kmer.setData (it_seq->getData());
-	char* chrom_sequence = it_seq->getDataBuffer();
-	string chrom_name = it_seq->getComment();
-	uint64_t position=0;
+	this->chrom_sequence = it_seq->getDataBuffer();
+	this->chrom_name = it_seq->getComment();
+	this->position = 0;
 	
 	// We iterate the kmers.
 	for (it_kmer.first(); !it_kmer.isDone(); it_kmer.next(), position++)
 	{
 	    //we need to convert the kmer in a node to query the graph.
 	    Node node(Node::Value(it_kmer->value()));
-
-	    if (this->finder->_graph.contains(node)) //the kmer is indexed
-	    {
-		solid_stretch_size++;
-
-		this->notify();
-
-		if (solid_stretch_size > 1) gap_stretch_size = 0; // du coup on sort le trou a tai indexed ==2, gap_stretch_size pas remis a 0 par solide isole (FP)
-		if (solid_stretch_size==1) kmer_end = it_kmer->forward(); // kmer_end should be first kmer indexed after a hole
-		if(gap_stretch_size) previous_gap_stretch_size = gap_stretch_size;
-	    }
-	    else //kmer is not indexed, measure size of the zone not covered by kmers of the reads
-	    {
-		if(solid_stretch_size==1)
-		{
-		    gap_stretch_size = previous_gap_stretch_size + solid_stretch_size ; //inutile maintenant il me semble, car tai_not_indexed non reset par FP
-		}
-		if(solid_stretch_size > 1) // begin of not indexed zone
-		{
-		    kmer_begin = previous_kmer ;
-		}
-		gap_stretch_size ++;
-		solid_stretch_size =0;
-	    }
+	    this->notify(this->finder->_graph.contains(node));
 	    previous_kmer = it_kmer->forward();
-
 	}
     }
 }
 
 template<size_t span>
-void FindBreakpoints<span>::notify()
+void FindBreakpoints<span>::notify(bool in_graph)
 {
+    if(in_graph)
+    {
+	solid_stretch_size++;
+    }
+
     for(auto it = this->list_obs.begin(); it != this->list_obs.end(); it++)
     {
-	(*it)->update();
+	(*it)->update(in_graph);
+    }
+
+    if(!in_graph)
+    {
+        gap_stretch_size++;
+	solid_stretch_size = 0;
     }
 }
 
