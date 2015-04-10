@@ -45,6 +45,7 @@ public:
     int _nbCores;
     bool _homo_only;
     BankFasta* _refBank;
+    string _breakpoint_file_name;
     FILE * _breakpoint_file;
 
     int _nb_homo_clean;
