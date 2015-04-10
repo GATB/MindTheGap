@@ -36,7 +36,7 @@ static const char* STR_FOO = "-foo";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Filler::Filler ()  : Tool ("MindTheGap find")
+Filler::Filler ()  : Tool ("MindTheGap fill")
 {
     
 	//TODO rajouter les parametres
@@ -44,25 +44,36 @@ Filler::Filler ()  : Tool ("MindTheGap find")
 	_nb_gap_allowed = 0;
 
 
-    getParser()->push_back (new OptionNoParam (STR_VERSION, "version", false));
-    
-    // from Graph.cpp
-    getParser()->push_front (new OptionOneParam (STR_MAX_MEMORY, "max memory (in MBytes)", false, "2000"));
-    getParser()->push_front (new OptionOneParam (STR_MAX_DISK, "max disk   (in MBytes)", false, "0"));
-    
-    //TODO HERE PUT THE FILL OPTIONS
-    getParser()->push_front (new OptionOneParam (STR_MAX_DEPTH, "maximum length of insertions (nt)", false, "10000"));
-    getParser()->push_front (new OptionOneParam (STR_MAX_NODES, "maximum number of nodes in contig graph (nt)", false, "100"));
-    
-    getParser()->push_front (new OptionOneParam (STR_SOLIDITY_KIND, "way to consider a solid kmer with several datasets (sum, min or max)", false, "sum"));
-    getParser()->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, "4294967295"));
-    getParser()->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
+    setParser (new OptionsParser ("MindTheGap fill"));
 
-    getParser()->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
-    getParser()->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
-    getParser()->push_front (new OptionOneParam (STR_URI_BKPT, "breakpoint file", true));
-    getParser()->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
-    getParser()->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
+	IOptionsParser* generalParser = new OptionsParser("General");
+	generalParser->push_front (new OptionNoParam (STR_HELP, "help", false));
+	// generalParser->push_back (new OptionNoParam (STR_VERSION, "version", false)); // move this option in the main.cpp
+	generalParser->push_front (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
+	generalParser->push_front (new OptionOneParam (STR_MAX_MEMORY, "max memory for graph building (in MBytes)", false, "2000"));
+	generalParser->push_front (new OptionOneParam (STR_MAX_DISK, "max disk for graph building   (in MBytes)", false, "0"));
+	generalParser->push_front (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
+
+	IOptionsParser* inputParser = new OptionsParser("Input / output");
+    inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
+    inputParser->push_front (new OptionOneParam (STR_URI_BKPT, "breakpoint file", false, ""));
+    inputParser->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
+    inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
+
+	IOptionsParser* fillerParser = new OptionsParser("Assembly");
+	//TODO HERE PUT THE FILL OPTIONS
+	fillerParser->push_front (new OptionOneParam (STR_MAX_DEPTH, "maximum length of insertions (nt)", false, "10000"));
+	fillerParser->push_front (new OptionOneParam (STR_MAX_NODES, "maximum number of nodes in contig graph (nt)", false, "100"));
+    
+	IOptionsParser* graphParser = new OptionsParser("Graph building");
+	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
+  	graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
+
+
+	getParser()->push_front(generalParser);
+	getParser()->push_front(fillerParser);
+	getParser()->push_front(graphParser);
+	getParser()->push_front(inputParser);
     
 }
 
@@ -77,6 +88,13 @@ Filler::Filler ()  : Tool ("MindTheGap find")
 void Filler::execute ()
 {
     
+	if (getInput()->get(STR_HELP) != 0){
+		cout << endl << "Usage:  MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) -bkpt <breakpoints.fa> [options]" << endl;
+		OptionsHelpVisitor v(cout);
+		getParser()->accept(v);
+		throw Exception(); // to get out with EXIT_FAILURE
+	}
+
     if ((getInput()->get(STR_URI_GRAPH) != 0 && getInput()->get(STR_URI_INPUT) != 0) || (getInput()->get(STR_URI_GRAPH) == 0 && getInput()->get(STR_URI_INPUT) == 0))
     {
 
@@ -84,6 +102,10 @@ void Filler::execute ()
 
     }
     
+    if (getInput()->get(STR_URI_BKPT) == 0){
+    	throw OptionFailure(getParser(), "option -bkpt is mandatory");
+    }
+
     // If outputPrefix is not provided we create one using the current date-time
     if (getInput()->get(STR_URI_OUTPUT) == 0)
     {
@@ -108,6 +130,9 @@ void Filler::execute ()
         //fprintf(log,"Creating the graph from file(s) %s\n",getInput()->getStr(STR_URI_INPUT).c_str());
         
         // We need to add the options of dbgh5/Graph that were masked to the user (or we could create a new Properties object)
+    	getInput()->add(0,STR_SOLIDITY_KIND, "sum"); //way to consider a solid kmer with several datasets (sum, min or max)
+    	getInput()->add(0,STR_KMER_ABUNDANCE_MAX, "4294967295"); //maximal abundance threshold for solid kmers
+
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
         getInput()->add(0,STR_BLOOM_TYPE, "basic"); //neighbor basic cache
@@ -189,15 +214,13 @@ void Filler::resumeParameters(){
     getInfo()->add(2,"kmer-size","%i", _kmerSize);
     try { // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
             getInfo()->add(2,"abundance_min",_graph.getInfo().getStr("abundance_min").c_str());
-            getInfo()->add(2,"abundance_max",_graph.getInfo().getStr("abundance_max").c_str());
-            getInfo()->add(2,"solidity_kind",_graph.getInfo().getStr("solidity_kind").c_str());
             getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
             getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
         } catch (Exception e) {
             // doing nothing
         }
 
-    getInfo()->add(1,"Breakpoint Filler options");
+    getInfo()->add(1,"Assembly options");
     getParser()->push_front (new OptionOneParam (STR_MAX_DEPTH, "maximum length of insertions (nt)", false, "10000"));
     getInfo()->add(2,"max_depth","%i", _max_depth);
     getInfo()->add(2,"max_nodes","%i", _max_nodes); //todo
@@ -211,11 +234,15 @@ void Filler::resumeResults(){
 //	getInfo()->add(3,"clean","%i", _nb_homo_clean);
 //	getInfo()->add(3,"fuzzy","%i", _nb_homo_fuzzy);
 
+	getInfo()->add(1,"output file","%s",_insert_file_name.c_str());
+
 }
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
 void Filler::fillBreakpoints(){
+
+	//TODO count the number of filled insertions (in an attribute of class Filler), to output results in resumeResults()
 
 	// We create an iterator over the breakpoint bank.
 	BankFasta::Iterator itSeq (*_breakpointBank);

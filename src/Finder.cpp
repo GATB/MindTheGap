@@ -44,36 +44,37 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _nb_homo_fuzzy=0;
     _nb_hetero_clean=0;
     _nb_hetero_fuzzy=0;
+    
 
+    // Option parser, with several sub-parsers
+    setParser (new OptionsParser ("MindTheGap find"));
 
-    /* Commented this until there is a function hide() for parser
-     because we want some of the options of Graph to be masked to the user
-     plus it enables to master the order of appearance of options in the Help message
-     //Getting the options of graph (ie. dbgh5)
-     //OptionsParser parser = Graph::getOptionsParser(false);
-     //getParser()->add (parser);
-     */
-    
-    // Here getParser() has already the options inherited from Tool : nb-cores, verbose et help
-    // push_front options, in the order of more and more importance
-    getParser()->push_back (new OptionNoParam (STR_VERSION, "version", false));
-    
-    // from Graph.cpp
-    getParser()->push_front (new OptionOneParam (STR_MAX_MEMORY, "max memory (in MBytes)", false, "2000"));
-    getParser()->push_front (new OptionOneParam (STR_MAX_DISK, "max disk   (in MBytes)", false, "0"));
-    
-    getParser()->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
-    getParser()->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
-    
-    getParser()->push_front (new OptionOneParam (STR_SOLIDITY_KIND, "way to consider a solid kmer with several datasets (sum, min or max)", false, "sum"));
-    getParser()->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, "4294967295"));
-    getParser()->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
+	IOptionsParser* generalParser = new OptionsParser("General");
+	generalParser->push_front (new OptionNoParam (STR_HELP, "help", false));
+	// generalParser->push_back (new OptionNoParam (STR_VERSION, "version", false)); // move this option in the main.cpp
+	generalParser->push_front (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
+	generalParser->push_front (new OptionOneParam (STR_MAX_MEMORY, "max memory for graph building (in MBytes)", false, "2000"));
+	generalParser->push_front (new OptionOneParam (STR_MAX_DISK, "max disk for graph building (in MBytes)", false, "0"));
+	generalParser->push_front (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
 
-    getParser()->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
-    getParser()->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
-    getParser()->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", true));
-    getParser()->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
-    getParser()->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
+	IOptionsParser* inputParser = new OptionsParser("Input / output");
+    inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
+    inputParser->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", false,""));
+    inputParser->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
+    inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
+
+	IOptionsParser* finderParser = new OptionsParser("Detection");
+    finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
+    finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
+
+    IOptionsParser* graphParser = new OptionsParser("Graph building");
+    graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
+  	graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
+
+	getParser()->push_front(generalParser);
+	getParser()->push_front(finderParser);
+	getParser()->push_front(graphParser);
+	getParser()->push_front(inputParser);
     
 }
 
@@ -88,13 +89,24 @@ Finder::Finder ()  : Tool ("MindTheGap find")
 void Finder::execute ()
 {
     
+	if (getInput()->get(STR_HELP) != 0){
+		cout << endl << "Usage:  MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
+		OptionsHelpVisitor v(cout);
+		getParser()->accept(v);
+		throw Exception(); // to get out with EXIT_FAILURE
+	}
+
+	// Checks mandatory options
     if ((getInput()->get(STR_URI_GRAPH) != 0 && getInput()->get(STR_URI_INPUT) != 0) || (getInput()->get(STR_URI_GRAPH) == 0 && getInput()->get(STR_URI_INPUT) == 0))
     {
-
         throw OptionFailure(getParser(), "options -graph and -in are incompatible, but at least one of these is mandatory");
-
     }
     
+    if (getInput()->get(STR_URI_REF) == 0){
+    	throw OptionFailure(getParser(), "option -ref is mandatory");
+    }
+
+
     // If outputPrefix is not provided we create one using the current date-time
     if (getInput()->get(STR_URI_OUTPUT) == 0)
     {
@@ -106,11 +118,9 @@ void Finder::execute ()
         string outputPrefix="MindTheGap_Expe-"+string(buf);
         
         getInput()->add (0, STR_URI_OUTPUT, outputPrefix);
-        
     }
     
-    
-  
+
     // Getting the graph
     
     // Case 1 : -in option, we create the graph from read files
@@ -118,23 +128,28 @@ void Finder::execute ()
     {
         //fprintf(log,"Creating the graph from file(s) %s\n",getInput()->getStr(STR_URI_INPUT).c_str());
         
-        // We need to add the options of dbgh5/Graph that were masked to the user (or we could create a new Properties object)
+        // We need to add the options of dbgh5/Graph that were masked to the user
+    	getInput()->add(0,STR_SOLIDITY_KIND, "sum"); //way to consider a solid kmer with several datasets (sum, min or max)
+    	getInput()->add(0,STR_KMER_ABUNDANCE_MAX, "4294967295"); //maximal abundance threshold for solid kmers
+
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
         getInput()->add(0,STR_BLOOM_TYPE, "basic"); //neighbor basic cache
-        getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //cascading  pas bien car bcp plus de FP non critique au milieur trou
+        getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //DO NOT use cascading : generates too many FP inside  pas bien car bcp plus de FP non critique au milieur trou
         getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_INTEGER_PRECISION, "0");
         getInput()->add(0,STR_MPHF_TYPE, "none");
-        //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //surtout ne pas decommenter cette ligne, sinon les kmers solids sont stockes dans le fichier ./.h5 et les infos ne sont plus dans le output.h5
+        //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //DONOT uncomment this line, otherwise solid kmers are stored in file ./.h5 outside from the considered graph h5 file.
         
         //Warning if kmer size >128 cascading debloom does not work
         if(getInput()->getInt(STR_KMER_SIZE)>128){
             getInput()->get(STR_DEBLOOM_TYPE)->value="original";
         }
         
+        //de Bruijn graph building
         _graph = Graph::create (getInput());
+
         _kmerSize = getInput()->getInt(STR_KMER_SIZE);
         
     }
@@ -148,11 +163,13 @@ void Finder::execute ()
         _kmerSize = _graph.getKmerSize();
     }
 
-    string breakpoint_file_name = getInput()->getStr(STR_URI_OUTPUT)+".breakpoints";
-    _breakpoint_file = fopen(breakpoint_file_name.c_str(), "w");
+
+    // Preparing the output file
+    _breakpoint_file_name = getInput()->getStr(STR_URI_OUTPUT)+".breakpoints";
+    _breakpoint_file = fopen(_breakpoint_file_name.c_str(), "w");
     if(_breakpoint_file == NULL){
         //cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
-        string message = "Cannot open file "+ breakpoint_file_name + " for writting";
+        string message = "Cannot open file "+ _breakpoint_file_name + " for writting";
         throw Exception(message.c_str());
 
     }
@@ -175,10 +192,12 @@ void Finder::execute ()
     else if (_kmerSize < KSIZE_4) { runFindBreakpoints<KSIZE_4>(); }
     else  { throw Exception ("unsupported kmer size %d", _kmerSize);  }
 
+
     //cout << "in MTG" <<endl;
     // We gather some statistics.
-
     fclose(_breakpoint_file);
+
+    // Printing result informations (ie. add info to getInfo(), in Tool Info is printed automatically after end of execute() method
     //getInfo()->add(1,"version",getVersion());
     getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
@@ -187,7 +206,6 @@ void Finder::execute ()
 
 void Finder::resumeParameters(){
     
-    //Properties resumeParams;
     getInfo()->add(0,"Parameters");
     getInfo()->add(1,"Input data");
     if (getInput()->get(STR_URI_INPUT) != 0){
@@ -201,15 +219,13 @@ void Finder::resumeParameters(){
     getInfo()->add(2,"kmer-size","%i", _kmerSize);
     try { // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
             getInfo()->add(2,"abundance_min",_graph.getInfo().getStr("abundance_min").c_str());
-            getInfo()->add(2,"abundance_max",_graph.getInfo().getStr("abundance_max").c_str());
-            getInfo()->add(2,"solidity_kind",_graph.getInfo().getStr("solidity_kind").c_str());
             getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
             getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
         } catch (Exception e) {
             // doing nothing
         }
 
-    getInfo()->add(1,"Breakpoint Finder options");
+    getInfo()->add(1,"Breakpoint detection options");
     getInfo()->add(2,"max_repeat","%i", _max_repeat);
     getInfo()->add(2,"homo_only","%i", _homo_only); //todo
     
@@ -221,6 +237,8 @@ void Finder::resumeResults(){
 	getInfo()->add(2,"homozygous","%i", _nb_homo_clean+_nb_homo_fuzzy);
 	getInfo()->add(3,"clean","%i", _nb_homo_clean);
 	getInfo()->add(3,"fuzzy","%i", _nb_homo_fuzzy);
+
+	getInfo()->add(1,"output file","%s",_breakpoint_file_name.c_str());
 
 }
 

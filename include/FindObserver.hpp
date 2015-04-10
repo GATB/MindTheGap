@@ -76,7 +76,6 @@ void FindFuzzyInsert<span>::update(bool in_graph)
 	if(this->_find->solid_stretch_size > 1){
 	    if(this->_find->gap_stretch_size < this->_find->finder->_kmerSize - 1 && this->_find->gap_stretch_size >= this->_find->finder->_kmerSize - 1 - this->_find->finder->_max_repeat){
 		// Fuzzy site, position and kmer_end are impacted by the repeat
-
 		int repeat_size = this->_find->finder->_kmerSize - 1 - this->_find->gap_stretch_size;
 		string kmer_begin_str = this->_find->model.toString(this->_find->kmer_begin);
 		string kmer_end_str = string(&(this->_find->chrom_sequence[this->_find->position - 1 + repeat_size]), this->_find->finder->_kmerSize);
@@ -106,9 +105,17 @@ void FindEndSolid<span>::update(bool in_graph)
 {
     if(in_graph)
     {
-	if (this->_find->solid_stretch_size > 1) this->_find->gap_stretch_size = 0; // du coup on sort le trou a tai indexed ==2, gap_stretch_size pas remis a 0 par solide isole (FP)
-	if (this->_find->solid_stretch_size==1) this->_find->kmer_end = this->_find->it_kmer->forward(); // kmer_end should be first kmer indexed after a hole
-	if(this->_find->gap_stretch_size) this->_find->previous_gap_stretch_size = this->_find->gap_stretch_size;
+	if (this->_find->solid_stretch_size > 1)
+	{
+	    // gap stretch size is re-set to 0 only when we are sure that the end of the gap is not due to an isolated solid kmer (likely FP)
+	    this->_find->gap_stretch_size = 0; 
+	}
+	
+	if (this->_find->solid_stretch_size==1)
+	{
+	    // kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when solid_stretch_size=1)
+	    this->_find->kmer_end = this->_find->it_kmer->forward(); 
+	}
     }
 }
 
@@ -132,7 +139,7 @@ void FindEndGap<span>::update(bool in_graph)
     {
 	if(this->_find->solid_stretch_size==1)
 	{
-	    this->_find->gap_stretch_size = this->_find->previous_gap_stretch_size + this->_find->solid_stretch_size - 1; //inutile maintenant il me semble, car tai_not_indexed non reset par FP
+	    this->_find->gap_stretch_size = this->_find->gap_stretch_size + this->_find->solid_stretch_size; //if previous position was an isolated solid kmer, we need to add 1 to the gap_stretch_size (as if replacing the FP by a non indexed kmer)
 	}
 	if(this->_find->solid_stretch_size > 1) // begin of not indexed zone
 	{

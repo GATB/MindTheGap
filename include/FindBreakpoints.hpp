@@ -70,7 +70,6 @@ public :
     /*Gap type detection*/
     uint64_t solid_stretch_size;
     uint64_t gap_stretch_size;
-    uint64_t previous_gap_stretch_size;
 
     Finder * finder;
 
@@ -89,7 +88,6 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs(), model(find->
 
     this->solid_stretch_size = 0;
     this->gap_stretch_size = 0;
-    this->previous_gap_stretch_size = 0;
 
     this->finder = find;
 }
@@ -97,14 +95,22 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs(), model(find->
 template<size_t span>
 void FindBreakpoints<span>::operator()()
 {
+    // We create an iterator over this bank
     BankFasta::Iterator it_seq(*(finder->_refBank));
 
+    // We loop over sequences
     for (it_seq.first(); !it_seq.isDone(); it_seq.next())
     {
 	this->solid_stretch_size = 0;
 	this->gap_stretch_size = 0;
-	this->previous_gap_stretch_size = 0;
-		
+
+        //Method : an homozyguous breakpoint is detected as a gap_stretch (ie. consecutive kmers on the sequence, that are not indexed in the graph) of particular sizes.
+	//BUT there are some False Positives when we query the graph : when we ask the graph if a kmer is indexed (when starting from a previous not indexed kmer) it may wrongly answer yes
+	//(the gatb dbg is exact only if the kmer we query is the neighbor of a truly solid kmer)
+	//FP are likely to be isolated, ie. surrounded by not indexed kmers, therefore they can be detected as solid_stretches of size 1.
+	// See FindObserver for code
+	
+	
 	// We set the data from which we want to extract kmers.
 	it_kmer.setData (it_seq->getData());
 	this->chrom_sequence = it_seq->getDataBuffer();
