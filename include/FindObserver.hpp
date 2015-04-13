@@ -44,12 +44,12 @@ void FindCleanInsert<span>::update(bool in_graph)
     if(in_graph)
     {
 	if(this->_find->solid_stretch_size > 1){
-	    if(this->_find->gap_stretch_size == (this->_find->finder->_kmerSize-1)){
+	    if(this->_find->gap_stretch_size == (this->_find->kmer_size()-1)){
 		// clean insert site
-		string kmer_begin_str = this->_find->model.toString(this->_find->kmer_begin);
-		string kmer_end_str = this->_find->model.toString(this->_find->kmer_end);
-		this->_find->finder->writeBreakpoint(this->_find->breakpoint_id, this->_find->chrom_name, this->_find->position - 1, kmer_begin_str, kmer_end_str, 0);
-		this->_find->breakpoint_id++;
+		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin);
+		string kmer_end_str = this->_find->model().toString(this->_find->kmer_end);
+		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0);
+		this->_find->breakpoint_id_iterate();
 	    }
 	}
     }
@@ -74,14 +74,14 @@ void FindFuzzyInsert<span>::update(bool in_graph)
     if(in_graph)
     {
 	if(this->_find->solid_stretch_size > 1){
-	    if(this->_find->gap_stretch_size < this->_find->finder->_kmerSize - 1 && this->_find->gap_stretch_size >= this->_find->finder->_kmerSize - 1 - this->_find->finder->_max_repeat){
+	    if(this->_find->gap_stretch_size < this->_find->kmer_size() - 1 && this->_find->gap_stretch_size >= this->_find->kmer_size() - 1 - this->_find->max_repeat()){
 		// Fuzzy site, position and kmer_end are impacted by the repeat
-		int repeat_size = this->_find->finder->_kmerSize - 1 - this->_find->gap_stretch_size;
-		string kmer_begin_str = this->_find->model.toString(this->_find->kmer_begin);
-		string kmer_end_str = string(&(this->_find->chrom_sequence[this->_find->position - 1 + repeat_size]), this->_find->finder->_kmerSize);
-		this->_find->finder->writeBreakpoint(this->_find->breakpoint_id, this->_find->chrom_name, this->_find->position - 1 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size);
-		this->_find->breakpoint_id++;
-		this->_find->finder->_nb_homo_fuzzy++;
+		int repeat_size = this->_find->kmer_size() - 1 - this->_find->gap_stretch_size;
+		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin);
+		string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
+		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size);
+		this->_find->breakpoint_id_iterate();
+		this->_find->homo_fuzzy_iterate();
 	    }
 	}
     }
@@ -114,7 +114,7 @@ void FindEndSolid<span>::update(bool in_graph)
 	if (this->_find->solid_stretch_size==1)
 	{
 	    // kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when solid_stretch_size=1)
-	    this->_find->kmer_end = this->_find->it_kmer->forward(); 
+	    this->_find->kmer_end = this->_find->it_kmer()->forward();
 	}
     }
 }
@@ -143,7 +143,7 @@ void FindEndGap<span>::update(bool in_graph)
 	}
 	if(this->_find->solid_stretch_size > 1) // begin of not indexed zone
 	{
-	    this->_find->kmer_begin = this->_find->previous_kmer ;
+	    this->_find->kmer_begin = this->_find->previous_kmer() ;
 	}
     }
 }

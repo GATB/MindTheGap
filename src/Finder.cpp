@@ -242,21 +242,6 @@ void Finder::resumeResults(){
 
 }
 
-void Finder::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size){
-	fprintf(_breakpoint_file,">left_contig_%i_%s_pos_%lli_repeat_%i\n%s\n>right_contig_%i_%s_pos_%lli_repeat_%i\n%s\n",
-			bkt_id,
-			chrom_name.c_str(),
-			position,
-			repeat_size,
-			kmer_begin.c_str(),
-			bkt_id,
-			chrom_name.c_str(),
-			position,
-			repeat_size,
-			kmer_end.c_str()
-	);
-}
-
 template<size_t span>
 void Finder::runFindBreakpoints()
 {

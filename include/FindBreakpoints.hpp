@@ -36,6 +36,12 @@ class FindBreakpoints
 {
 public :
 
+    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical KmerModel;
+    typedef typename KmerModel::Iterator KmerIterator;
+    typedef typename gatb::core::kmer::impl::Kmer<span>::Type KmerType;
+
+public :
+
     // Constructor
     FindBreakpoints(Finder * find);
 
@@ -46,26 +52,36 @@ public :
     void notify(bool in_graph);
     void addObserver(IFindObserver<span>* new_obs);
 
+    /** writes a given breakpoint in the output file
+     */
+    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size);
+
+    /*Getter*/
+    uint64_t breakpoint_id();
+    uint64_t position();
+    char * chrom_seq();
+    string& chrom_name();
+
+    KmerModel& model();
+    KmerType& previous_kmer();
+    KmerIterator& it_kmer();
+
+    size_t kmer_size();
+    int max_repeat();
+
+    /*Setter*/
+    uint64_t breakpoint_id_iterate();
+
+    int homo_fuzzy_iterate();
+    int homo_clean_iterate();
+    int hetero_fuzzy_iterate();
+    int hetero_clean_iterate();
+
 public :
-
-    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical KmerModel;
-    typedef typename KmerModel::Iterator KmerIterator;
-    typedef typename gatb::core::kmer::impl::Kmer<span>::Type KmerType;
-
-public :
-
-    /*Write breakpoint*/
-    uint64_t breakpoint_id;
-    uint64_t position;
-    char * chrom_sequence;
-    string chrom_name;
 
     /*Kmer related object*/
-    KmerModel model;
     KmerType kmer_begin;
     KmerType kmer_end;
-    KmerType previous_kmer;
-    KmerIterator it_kmer;
 
     /*Gap type detection*/
     uint64_t solid_stretch_size;
@@ -75,16 +91,29 @@ public :
 
 private :
 
+    /*Observable membre*/
     std::vector<std::unique_ptr<IFindObserver<span> > > list_obs;
+
+    /*Find breakpoint membre*/
+    /*Write breakpoint*/
+    uint64_t m_breakpoint_id;
+    uint64_t m_position;
+    char * m_chrom_sequence;
+    string m_chrom_name;
+
+    /*Kmer related object*/
+    KmerModel m_model;
+    KmerType m_previous_kmer;
+    KmerIterator m_it_kmer;
 };
 
 template<size_t span>
-FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs(), model(find->_kmerSize), it_kmer(model)
+FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs(), m_model(find->_kmerSize), m_it_kmer(m_model)
 {
-    this->breakpoint_id = 0;
-    this->position = 0;
-    this->chrom_sequence = NULL;
-    this->chrom_name = "";
+    this->m_breakpoint_id = 0;
+    this->m_position = 0;
+    this->m_chrom_sequence = NULL;
+    this->m_chrom_name = "";
 
     this->solid_stretch_size = 0;
     this->gap_stretch_size = 0;
@@ -112,18 +141,18 @@ void FindBreakpoints<span>::operator()()
 	
 	
 	// We set the data from which we want to extract kmers.
-	it_kmer.setData (it_seq->getData());
-	this->chrom_sequence = it_seq->getDataBuffer();
-	this->chrom_name = it_seq->getComment();
-	this->position = 0;
+	m_it_kmer.setData (it_seq->getData());
+	this->m_chrom_sequence = it_seq->getDataBuffer();
+	this->m_chrom_name = it_seq->getComment();
+	this->m_position = 0;
 	
 	// We iterate the kmers.
-	for (it_kmer.first(); !it_kmer.isDone(); it_kmer.next(), position++)
+	for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++)
 	{
 	    //we need to convert the kmer in a node to query the graph.
-	    Node node(Node::Value(it_kmer->value()));
+	    Node node(Node::Value(m_it_kmer->value()));
 	    this->notify(this->finder->_graph.contains(node));
-	    previous_kmer = it_kmer->forward();
+	    m_previous_kmer = m_it_kmer->forward();
 	}
     }
 }
@@ -152,6 +181,108 @@ template<size_t span>
 void FindBreakpoints<span>::addObserver(IFindObserver<span>* new_obs)
 {
     this->list_obs.push_back(std::unique_ptr<IFindObserver<span> >(new_obs));
+}
+
+template<size_t span>
+void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size){
+	fprintf(this->finder->_breakpoint_file,">left_contig_%i_%s_pos_%lli_repeat_%i\n%s\n>right_contig_%i_%s_pos_%lli_repeat_%i\n%s\n",
+			bkt_id,
+			chrom_name.c_str(),
+			position,
+			repeat_size,
+			kmer_begin.c_str(),
+			bkt_id,
+			chrom_name.c_str(),
+			position,
+			repeat_size,
+			kmer_end.c_str()
+	);
+}
+
+/*Getter*/
+template<size_t span>
+uint64_t FindBreakpoints<span>::breakpoint_id()
+{
+    return this->m_breakpoint_id;
+}
+
+template<size_t span>
+uint64_t FindBreakpoints<span>::position()
+{
+    return this->m_position;
+}
+
+template<size_t span>
+char * FindBreakpoints<span>::chrom_seq()
+{
+    return this->m_chrom_sequence;
+}
+
+template<size_t span>
+string& FindBreakpoints<span>::chrom_name()
+{
+    this->m_chrom_name;
+}
+
+template<size_t span>
+typename FindBreakpoints<span>::KmerModel& FindBreakpoints<span>::model()
+{
+    this->m_model;
+}
+
+template<size_t span>
+typename FindBreakpoints<span>::KmerType& FindBreakpoints<span>::previous_kmer()
+{
+    this->m_previous_kmer;
+}
+
+template<size_t span>
+typename FindBreakpoints<span>::KmerIterator& FindBreakpoints<span>::it_kmer()
+{
+    this->m_it_kmer;
+}
+
+template<size_t span>
+size_t FindBreakpoints<span>::kmer_size()
+{
+    return this->finder->_kmerSize;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::max_repeat()
+{
+    return this->finder->_max_repeat;
+}
+
+/*Setter*/
+template<size_t span>
+uint64_t  FindBreakpoints<span>::breakpoint_id_iterate()
+{
+    return this->m_breakpoint_id++;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::homo_fuzzy_iterate()
+{
+    return this->finder->_nb_homo_fuzzy++;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::homo_clean_iterate()
+{
+    return this->finder->_nb_homo_clean++;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::hetero_fuzzy_iterate()
+{
+    return this->finder->_nb_hetero_fuzzy++;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::hetero_clean_iterate()
+{
+    return this->finder->_nb_hetero_clean++;
 }
 
 #endif /* _TOOL_FindBreakpoints_HPP_ */
