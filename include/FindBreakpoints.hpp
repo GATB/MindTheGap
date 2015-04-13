@@ -18,6 +18,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+/**
+ * \file FindBreakpoins.hpp
+ * \date 09/04/2015
+ * \author pmarijon
+ * \brief FindBreakpoint definition class
+ */
 #ifndef _TOOL_FindBreakpoints_HPP_
 #define _TOOL_FindBreakpoints_HPP_
 
@@ -31,6 +37,11 @@
 template<size_t type>
 class IFindObserver;
 
+/**
+ * \brief An observable functor for find gaps in reference genome
+ *
+ * This class associated with IFindObserver inherit, to find gaps in reference genome 
+ */
 template<size_t span>
 class FindBreakpoints
 {
@@ -42,14 +53,25 @@ public :
 
 public :
 
-    // Constructor
+    /** Constructor
+     * \param[in] find : A pointeur one Finder instance
+     */
     FindBreakpoints(Finder * find);
 
     //Functor
+    /** overloading operator ()
+     * Read reference genome, and find gaps
+     */
     void operator()();
 
     // Observable
+    /** Notify all observer
+     * \param[in] If kmer is in graph in_graph is true else is false
+     */
     void notify(bool in_graph);
+
+    /** Add an observer in the observer list
+     */
     void addObserver(IFindObserver<span>* new_obs);
 
     /** writes a given breakpoint in the output file
@@ -57,24 +79,61 @@ public :
     void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size);
 
     /*Getter*/
+    /** Return the number of found breakpoints
+     */
     uint64_t breakpoint_id();
+
+    /** Return the position of first pb of actual read kmer
+     */
     uint64_t position();
+
+    /** Return the reference sequence of this kmer 
+     */
     char * chrom_seq();
+
+    /** Return the comment of sequence
+     */
     string& chrom_name();
 
+    /** Return the model of Kmer
+     */
     KmerModel& model();
+
+    /** Return the previous kmer is read
+     */
     KmerType& previous_kmer();
+
+    /** Return the kmer iterator
+     */
     KmerIterator& it_kmer();
 
+    /** Return the size of kmer used for gap search 
+     */
     size_t kmer_size();
+
+    /** Return the numbre of max repeat 
+     */
     int max_repeat();
 
     /*Setter*/
+    /** Incremente the value of breakpoint_id counter
+     */
     uint64_t breakpoint_id_iterate();
 
+    /** Incremente the value of homo_fuzzy_iterate
+     */
     int homo_fuzzy_iterate();
+
+    /** Incremente the value of homo_clean_iterate
+     */
     int homo_clean_iterate();
+
+    /** Incremente the value of hetero_fuzzy_iterate
+     */
     int hetero_fuzzy_iterate();
+
+    /** Incremente the value of hetero_clean_iterate
+     */
     int hetero_clean_iterate();
 
 public :

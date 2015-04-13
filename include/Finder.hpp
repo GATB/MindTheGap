@@ -67,7 +67,7 @@ private:
      */
     void resumeResults();
 
-    /**
+    /** Create and use FindBreakpoints class to find gaps in the reference genome
      */
     template<size_t span>
     void runFindBreakpoints();
