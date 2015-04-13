@@ -32,6 +32,9 @@ static const char* STR_MAX_REPEAT = "-max-rep";
 static const char* STR_HOMO_ONLY = "-homo-only";
 static const char* STR_HET_MAX_OCC = "-het-max-occ";
 
+static const char* STR_HOM_TYPE = "HOM";
+static const char* STR_HET_TYPE = "HET";
+
 
 class Finder : public Tool
 {
@@ -77,7 +80,7 @@ private:
 
     /** writes a given breakpoint in the output file
          */
-    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size);
+    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type);
 
 };
 

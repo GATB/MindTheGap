@@ -61,10 +61,10 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
 
 	IOptionsParser* finderParser = new OptionsParser("Detection");
-    finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
-    finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
     finderParser->push_front (new OptionOneParam (STR_HET_MAX_OCC, "maximal number of occurrences of a kmer in the reference genome allowed for heterozyguous breakpoints", false,"1"));
     //allow to find heterozyguous breakpoints in n-repeated regions of the reference genome
+    finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
+    finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
 
     IOptionsParser* graphParser = new OptionsParser("Graph building");
     graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
@@ -98,11 +98,11 @@ void Finder::execute ()
 	// Checks mandatory options
     if ((getInput()->get(STR_URI_GRAPH) != 0 && getInput()->get(STR_URI_INPUT) != 0) || (getInput()->get(STR_URI_GRAPH) == 0 && getInput()->get(STR_URI_INPUT) == 0))
     {
-        throw OptionFailure(getParser(), "options -graph and -in are incompatible, but at least one of these is mandatory");
+        throw OptionFailure(getParser(), "ERROR: options -graph and -in are incompatible, but at least one of these is mandatory");
     }
     
     if (getInput()->get(STR_URI_REF) == 0){
-    	throw OptionFailure(getParser(), "option -ref is mandatory");
+    	throw OptionFailure(getParser(), "ERROR: option -ref is mandatory");
     }
 
 
@@ -193,9 +193,8 @@ void Finder::execute ()
     			STR_DEBLOOM_TYPE << " none " <<
     			STR_URI_OUTPUT << " " << tempFileName << " ";
 
-    	cout << commandLine.str() << endl;
+    	//cout << commandLine.str() << endl;
     	_ref_graph = Graph::create(commandLine.str().c_str());
-    	cout << "ok" <<endl;
     	System::file().remove(tempFileName+".h5");
     }
 
@@ -240,7 +239,8 @@ void Finder::resumeParameters(){
 
     getInfo()->add(1,"Breakpoint detection options");
     getInfo()->add(2,"max_repeat","%i", _max_repeat);
-    getInfo()->add(2,"homo_only","%i", _homo_only); //todo
+    getInfo()->add(2,"homo_only","%s", _homo_only ? "yes" : "no");
+    getInfo()->add(2,"hetero_max_occ","%i", _het_max_occ);
     
 }
 
@@ -250,7 +250,9 @@ void Finder::resumeResults(){
 	getInfo()->add(2,"homozygous","%i", _nb_homo_clean+_nb_homo_fuzzy);
 	getInfo()->add(3,"clean","%i", _nb_homo_clean);
 	getInfo()->add(3,"fuzzy","%i", _nb_homo_fuzzy);
-
+	getInfo()->add(2,"heterozygous","%i", _nb_hetero_clean+_nb_hetero_fuzzy);
+	getInfo()->add(3,"clean","%i", _nb_hetero_clean);
+	getInfo()->add(3,"fuzzy","%i", _nb_hetero_fuzzy);
 	getInfo()->add(1,"output file","%s",_breakpoint_file_name.c_str());
 
 }
@@ -283,6 +285,26 @@ void Finder::findBreakpoints(){
 	kmer_type kmer_end;
 	kmer_type previous_kmer;
 
+
+	// Variables for the heterozyguous mode
+	// structure to store information about a kmer : kmer that will treated as kmer_begin of a breakpoint
+	typedef struct info_type
+	{
+	    kmer_type kmer;
+	    int nb_in;
+	    int nb_out;
+	    bool is_repeated; // is the k-1 suffix of this kmer repeated in the reference genome
+	} info_type;
+
+	info_type het_kmer_history[256]; //circular buffer, rq : limits the kmerSize <256
+	unsigned char het_kmer_end_index; // index in history, must remain an unsigned char = same limit as the history array
+	unsigned char het_kmer_begin_index;
+	info_type current_info;
+	kmer_type one = 1;
+	kmer_type kminus1_mask = (one << ((_kmerSize-1)*2)) - one ; // mask to get easily the k-1 prefix/suffix of a kmer (in kmer_type unit)
+	int recent_hetero; //to avoid too much close hetero sites
+
+
 	// We declare a kmer model with a given span size.
 	KmerModel model (_kmerSize);
 	//std::cout << "span: " << model.getSpan() << std::endl;
@@ -293,6 +315,14 @@ void Finder::findBreakpoints(){
 	// We loop over sequences.
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
+
+		// for hetero mode:
+		memset(het_kmer_history,0,sizeof(info_type)*256);
+		het_kmer_end_index = _kmerSize +1;
+		het_kmer_begin_index = 1;
+		recent_hetero = 0;
+
+		// for the homo mode :
 		solid_stretch_size = 0;
 		gap_stretch_size = 0;
 
@@ -313,13 +343,62 @@ void Finder::findBreakpoints(){
 		uint64_t position=0;
 
 		// We iterate the kmers.
-		for (itKmer.first(); !itKmer.isDone(); itKmer.next(), position++)
+		for (itKmer.first(); !itKmer.isDone(); itKmer.next(), position++, het_kmer_begin_index++, het_kmer_end_index++)
 		{
 			nbKmers++;
 
 			//we need to convert the kmer in a node to query the graph.
-			Node node(Node::Value(itKmer->value()));
+			Node node(Node::Value(itKmer->value()),itKmer->strand()); // strand is necessary for hetero mode (in/out degree depends on the strand)
 
+			//hetero mode
+			if(!_homo_only){
+				current_info.kmer=itKmer->forward();
+				if (_graph.contains(node)) {
+					current_info.nb_in = _graph.indegree (node);
+					current_info.nb_out =  _graph.outdegree (node);
+				}
+				else{
+					current_info.nb_in = 0;
+					current_info.nb_out = 0;
+				}
+				kmer_type suffix = itKmer->forward() & kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
+				kmer_type suffix_rev = revcomp(suffix,_kmerSize-1);
+				Node::Value suffix_value(min(suffix,suffix_rev)); // to ask the graph, the value must be canonical
+				Node suffix_node(suffix_value);
+				current_info.is_repeated = _ref_graph.contains(suffix_node);
+
+				het_kmer_history[het_kmer_end_index] = current_info;
+
+				kmer_type prefix = (itKmer->forward() >>2) & kminus1_mask ; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
+				kmer_type prefix_rev = revcomp(prefix,_kmerSize-1);
+				Node::Value prefix_value(min(prefix,prefix_rev)); // to ask the graph, the value must be canonical
+				Node prefix_node(prefix_value);
+				bool kmer_end_is_repeated = _ref_graph.contains(prefix_node);
+
+				// hetero site detection
+				if( !kmer_end_is_repeated && current_info.nb_in == 2 && !recent_hetero){
+
+					for(int i=0; i<=_max_repeat;i++){
+						if(het_kmer_history[het_kmer_begin_index+i].nb_out == 2 && ! het_kmer_history[het_kmer_begin_index+i].is_repeated){
+							string kmer_begin_str = model.toString (het_kmer_history[het_kmer_begin_index+i].kmer);
+							string kmer_end_str = model.toString (current_info.kmer);
+							writeBreakpoint(bkt_id,chrom_name,position-1+i,kmer_begin_str, kmer_end_str,i, STR_HET_TYPE);
+							bkt_id++;
+							if(i==0){
+								_nb_hetero_clean++;
+							}
+							else{
+								_nb_hetero_fuzzy++;
+							}
+							recent_hetero = _max_repeat;
+							break;
+						}
+					}
+				}
+				recent_hetero = max(0,recent_hetero - 1);
+			}
+
+			// homo mode
 			if (_graph.contains(node)) //the kmer is indexed
 			{
 #ifdef PRINT_DEBUG
@@ -339,7 +418,7 @@ void Finder::findBreakpoints(){
 
 						string kmer_begin_str = model.toString (kmer_begin);
 						string kmer_end_str = model.toString (kmer_end);
-						writeBreakpoint(bkt_id,chrom_name,position-1,kmer_begin_str, kmer_end_str,0);
+						writeBreakpoint(bkt_id,chrom_name,position-1,kmer_begin_str, kmer_end_str,0, STR_HOM_TYPE);
 						bkt_id++;
 						_nb_homo_clean++;
 					}
@@ -349,7 +428,7 @@ void Finder::findBreakpoints(){
 						int repeat_size = _kmerSize - 1 - gap_stretch_size;
 						string kmer_begin_str = model.toString (kmer_begin);
 						string kmer_end_str = string(&chrom_sequence[position-1+repeat_size], _kmerSize);
-						writeBreakpoint(bkt_id,chrom_name,position -1 + repeat_size,kmer_begin_str,kmer_end_str, repeat_size);
+						writeBreakpoint(bkt_id,chrom_name,position -1 + repeat_size,kmer_begin_str,kmer_end_str, repeat_size, STR_HOM_TYPE);
 						bkt_id++;
 						_nb_homo_fuzzy++;
 					}
@@ -397,17 +476,19 @@ void Finder::findBreakpoints(){
 
 }
 
-void Finder::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size){
-	fprintf(_breakpoint_file,">left_contig_%i_%s_pos_%lli_repeat_%i\n%s\n>right_contig_%i_%s_pos_%lli_repeat_%i\n%s\n",
+void Finder::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type){
+	fprintf(_breakpoint_file,">left_contig_%i_%s_pos_%lli_repeat_%i_%s\n%s\n>right_contig_%i_%s_pos_%lli_repeat_%i_%s\n%s\n",
 			bkt_id,
 			chrom_name.c_str(),
 			position,
 			repeat_size,
+			type.c_str(),
 			kmer_begin.c_str(),
 			bkt_id,
 			chrom_name.c_str(),
 			position,
 			repeat_size,
+			type.c_str(),
 			kmer_end.c_str()
 	);
 }
