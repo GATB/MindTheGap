@@ -242,7 +242,6 @@ typename FindBreakpoints<span>::KmerIterator& FindBreakpoints<span>::it_kmer()
     return this->m_it_kmer;
 }
 
-
 template<size_t span>
 size_t FindBreakpoints<span>::kmer_size()
 {
