@@ -46,7 +46,7 @@ public:
     
     size_t _kmerSize;
     Graph _graph;
-    //Graph _ref_graph;
+    //Graph _ref_graph; // no longer used
     int _max_repeat;
     int _het_max_occ;
     int _nbCores;
@@ -59,7 +59,6 @@ public:
     int _nb_homo_fuzzy;
     int _nb_hetero_clean;
     int _nb_hetero_fuzzy;
-
 
     // Actual job done by the tool is here
     void execute ();
@@ -83,6 +82,8 @@ private:
          */
     void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type);
 
+    template<size_t span>
+    IBloom<typename gatb::core::kmer::impl::Kmer<span>::Type>* fillRefBloom();
 };
 
 /********************************************************************************/

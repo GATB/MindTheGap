@@ -282,60 +282,13 @@ void Finder::findBreakpoints(){
 	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical KmerModel; // ModelCanonical ModelDirect
 	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical::Iterator KmerIterator;
 	typedef typename gatb::core::kmer::impl::Kmer<span>::Type        kmer_type;
-	typedef typename gatb::core::kmer::impl::Kmer<span>::Count       kmer_count; // not used
 
-	//TODO : move all the bloom building in a method
 	IBloom<kmer_type>* ref_bloom = 0;
 	if(!_homo_only){
 		//Bloom of the ref
-		string tempFileName="trashme.h5";
-		Storage* solidStorage = StorageFactory(STORAGE_HDF5).create (tempFileName, true, false);
-		LOCAL (solidStorage);
-
-		/** We create a DSK instance and execute it. */
-		SortingCountAlgorithm<span> sortingCount (
-				solidStorage,
-				_refBank,
-				_kmerSize-1,
-				make_pair(_het_max_occ+1,~0),
-				getInput()->getInt(STR_MAX_MEMORY),
-				getInput()->getInt(STR_MAX_DISK),
-				getInput()->getInt(STR_NB_CORES),
-				gatb::core::tools::misc::KMER_SOLIDITY_DEFAULT
-		);
-
-		sortingCount.getInput()->add (0, STR_VERBOSE, 0);
-		sortingCount.execute();
-
-		Storage* storage = StorageFactory(STORAGE_HDF5).load (tempFileName);
-		LOCAL (storage);
-
-		Partition<kmer_count> & solidCollection = storage->root().getGroup("dsk").getPartition<kmer_count> ("solid");
-		/** We get the number of solid kmers. */
-		u_int64_t nb_solid	= solidCollection.getNbItems();
-
-		float NBITS_PER_KMER = 12;
-		u_int64_t estimatedBloomSize = (u_int64_t) ((double)nb_solid * NBITS_PER_KMER * 3); //TODO *3 ?
-	    //cout<< "bloom " << estimatedBloomSize << endl;
-		if (estimatedBloomSize ==0 ) { estimatedBloomSize = 1000; }
-		size_t    nbHash             = (int)floorf (0.7*NBITS_PER_KMER);
-	    //cout<< "nbHash " << nbHash << endl;
-	    //cout<< "nb_solid" << nb_solid << endl;
-		Iterator<kmer_count>* itKmers = createIterator<kmer_count> (
-				solidCollection.iterator(),
-				nb_solid,
-				"fill bloom filter"
-		);
-		LOCAL (itKmers);
-
-		BloomBuilder<span> builder (estimatedBloomSize, nbHash,_kmerSize-1,BLOOM_CACHE,getDispatcher()->getExecutionUnitsNumber(),_het_max_occ+1);
-		ref_bloom = builder.build (itKmers);
-		//cout << typeid(*ref_bloom).name() << endl;  // to verify the type of bloom
-
-		System::file().remove(tempFileName);
-
+		ref_bloom = fillRefBloom<span>();
 	}
-
+	LOCAL(ref_bloom);
 
 
 #ifdef PRINT_DEBUG
@@ -537,6 +490,64 @@ void Finder::findBreakpoints(){
 //	cout << "nb sequences=" << nbSequences <<endl;
 //	cout << "nb kmers=" << nbKmers <<endl;
 
+}
+
+
+template<size_t span>
+IBloom<typename gatb::core::kmer::impl::Kmer<span>::Type>*  Finder::fillRefBloom(){
+
+	typedef typename gatb::core::kmer::impl::Kmer<span>::Type       kmer_type;
+	typedef typename gatb::core::kmer::impl::Kmer<span>::Count       kmer_count;
+	//Bloom of the ref
+	IBloom<kmer_type>* ref_bloom = 0;
+
+	string tempFileName="trashme.h5";
+	Storage* solidStorage = StorageFactory(STORAGE_HDF5).create (tempFileName, true, false);
+	LOCAL (solidStorage);
+
+	/** We create a DSK instance and execute it. */
+	SortingCountAlgorithm<span> sortingCount (
+			solidStorage,
+			_refBank,
+			_kmerSize-1,
+			make_pair(_het_max_occ+1,~0),
+			getInput()->getInt(STR_MAX_MEMORY),
+			getInput()->getInt(STR_MAX_DISK),
+			getInput()->getInt(STR_NB_CORES),
+			gatb::core::tools::misc::KMER_SOLIDITY_DEFAULT
+	);
+
+	sortingCount.getInput()->add (0, STR_VERBOSE, 0);
+	sortingCount.execute();
+
+	Storage* storage = StorageFactory(STORAGE_HDF5).load (tempFileName);
+	LOCAL (storage);
+
+	Partition<kmer_count> & solidCollection = storage->root().getGroup("dsk").getPartition<kmer_count> ("solid");
+	/** We get the number of solid kmers. */
+	u_int64_t nb_solid	= solidCollection.getNbItems();
+
+	float NBITS_PER_KMER = 12;
+	u_int64_t estimatedBloomSize = (u_int64_t) ((double)nb_solid * NBITS_PER_KMER * 2); //TODO *3 ?
+	//cout<< "bloom " << estimatedBloomSize << endl;
+	if (estimatedBloomSize ==0 ) { estimatedBloomSize = 1000; }
+	size_t    nbHash             = (int)floorf (0.7*NBITS_PER_KMER);
+	//cout<< "nbHash " << nbHash << endl;
+	//cout<< "nb_solid" << nb_solid << endl;
+	Iterator<kmer_count>* itKmers = createIterator<kmer_count> (
+			solidCollection.iterator(),
+			nb_solid,
+			"fill bloom filter"
+	);
+	LOCAL (itKmers);
+
+	BloomBuilder<span> builder (estimatedBloomSize, nbHash,_kmerSize-1,BLOOM_CACHE,getDispatcher()->getExecutionUnitsNumber(),_het_max_occ+1);
+	ref_bloom = builder.build (itKmers);
+	//cout << typeid(*ref_bloom).name() << endl;  // to verify the type of bloom
+
+	System::file().remove(tempFileName);
+
+	return ref_bloom;
 }
 
 void Finder::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type){
