@@ -139,13 +139,13 @@ bool FindSoloSNP<span>::update()
 }
 
 template<size_t span>
-class FindSoloSNP : public IFindObserver<span>
+class FindBackup : public IFindObserver<span>
 {
 public :
 
     /** \copydoc IFindObserver::IFindObserver
      */
-    FindSoloSNP(FindBreakpoints<span> * find);
+    FindBackup(FindBreakpoints<span> * find);
 
     /** \copydoc IFindObserver::update
      */

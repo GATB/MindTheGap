@@ -56,7 +56,7 @@ public :
     /** Constructor
      * \param[in] find : A pointeur one Finder instance
      */
-    FindBreakpoints(Finder * find, IFindObserver* backup);
+    FindBreakpoints(Finder * find, IFindObserver<span>* backup);
 
     /** Destructor. */
     virtual ~FindBreakpoints() {}
@@ -178,7 +178,7 @@ private :
 };
 
 template<size_t span>
-FindBreakpoints<span>::FindBreakpoints(Finder * find, IFindObserver* backup) : list_obs(), m_model(find->_kmerSize), m_it_kmer(m_model), m_backup(backup)
+FindBreakpoints<span>::FindBreakpoints(Finder * find, IFindObserver<span>* backup) : list_obs(), m_model(find->_kmerSize), m_it_kmer(m_model), m_backup(backup)
 {
     this->m_breakpoint_id = 0;
     this->m_position = 0;
@@ -246,8 +246,8 @@ void FindBreakpoints<span>::notify(bool in_graph)
 	    // Call each readonly observer
 	    for(auto it = this->list_obs.begin(); it != this->list_obs.end(); it++)
 	    {
-		current_observer_ret = (*it)->update();
-		if(!one_observer_return_true && current_observer_ret)
+		bool current_observer_ret = (*it)->update();
+		if(!one_observer_ret_true && current_observer_ret)
 		{
 		    one_observer_ret_true = true;
 		}
