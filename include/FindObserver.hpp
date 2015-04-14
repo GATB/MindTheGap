@@ -30,8 +30,12 @@ class FindCleanInsert : public IFindObserver<span>
 {
 public :
     
+    /** \copydoc IFindObserver::IFindObserver
+     */
     FindCleanInsert(FindBreakpoints<span> * find);
 
+    /** \copydoc IFindObserver::update
+     */
     void update(bool in_graph);
 };
 
@@ -41,15 +45,23 @@ FindCleanInsert<span>::FindCleanInsert(FindBreakpoints<span> * find) : IFindObse
 template<size_t span>
 void FindCleanInsert<span>::update(bool in_graph)
 {
+    // last kmer is in graph
     if(in_graph)
     {
-	if(this->_find->solid_stretch_size > 1){
-	    if(this->_find->gap_stretch_size == (this->_find->kmer_size()-1)){
-		// clean insert site
+	if(this->_find->solid_stretch_size > 1) // Check for potential FP
+	{
+	    if(this->_find->gap_stretch_size == (this->_find->kmer_size()-1))
+            //Check size of gap 
+	    {
+		// obtains the kmer sequence
 		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin);
 		string kmer_end_str = this->_find->model().toString(this->_find->kmer_end);
+
 		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0);
+
+		// iterate counter
 		this->_find->breakpoint_id_iterate();
+		this->_find->homo_clean_iterate();
 	    }
 	}
     }
@@ -60,8 +72,12 @@ class FindFuzzyInsert : public IFindObserver<span>
 {
 public :
 
+    /** \copydoc IFindObserver::IFindobserver
+     */
     FindFuzzyInsert(FindBreakpoints<span> * find);
-
+    
+    /** \copydoc IFindObserver::update
+     */
     void update(bool in_graph);
 };
 
@@ -71,15 +87,23 @@ FindFuzzyInsert<span>::FindFuzzyInsert(FindBreakpoints<span> * find) : IFindObse
 template<size_t span>
 void FindFuzzyInsert<span>::update(bool in_graph)
 {
+    // last kmer is in graph
     if(in_graph)
     {
-	if(this->_find->solid_stretch_size > 1){
-	    if(this->_find->gap_stretch_size < this->_find->kmer_size() - 1 && this->_find->gap_stretch_size >= this->_find->kmer_size() - 1 - this->_find->max_repeat()){
+	if(this->_find->solid_stretch_size > 1) // check for FP
+	{
+	    if(this->_find->gap_stretch_size < this->_find->kmer_size() - 1 && this->_find->gap_stretch_size >= this->_find->kmer_size() - 1 - this->_find->max_repeat())
+	    {
 		// Fuzzy site, position and kmer_end are impacted by the repeat
 		int repeat_size = this->_find->kmer_size() - 1 - this->_find->gap_stretch_size;
+
+		// obtains the kmer sequence
 		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin);
 		string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
+
 		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size);
+
+		//iterate counter
 		this->_find->breakpoint_id_iterate();
 		this->_find->homo_fuzzy_iterate();
 	    }
@@ -92,8 +116,12 @@ class FindEndSolid : public IFindObserver<span>
 {
 public :
 
+    /** \copydoc IFindObserver::IFindObserver
+     */
     FindEndSolid(FindBreakpoints<span> * find);
 
+    /** \copydoc IFindObserver::update
+     */
     void update(bool in_graph);
 };
 
@@ -103,6 +131,7 @@ FindEndSolid<span>::FindEndSolid(FindBreakpoints<span> * find) : IFindObserver<s
 template<size_t span>
 void FindEndSolid<span>::update(bool in_graph)
 {
+    // last kmer is in graph
     if(in_graph)
     {
 	if (this->_find->solid_stretch_size > 1)
@@ -124,8 +153,12 @@ class FindEndGap : public IFindObserver<span>
 {
 public :
 
+    /** \copydoc IFindObserver::IFindObserver
+     */
     FindEndGap(FindBreakpoints<span> * find);
 
+    /** \copydoc IFindObserver::update
+     */
     void update(bool in_graph);
 };
 
@@ -135,6 +168,7 @@ FindEndGap<span>::FindEndGap(FindBreakpoints<span> * find) : IFindObserver<span>
 template<size_t span>
 void FindEndGap<span>::update(bool in_graph)
 {
+    //last kmer isn't in gap
     if(!in_graph)
     {
 	if(this->_find->solid_stretch_size==1)
