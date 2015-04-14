@@ -18,6 +18,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+/**
+ * \file IFindObserver.hpp
+ * \date 09/04/2015
+ * \author pmarijon
+ * \brief Interface definition for FindBreakpoints observer
+ */
 #ifndef _TOOL_IFindObserver_HPP_
 #define _TOOL_IFindObserver_HPP_
 
@@ -30,17 +36,33 @@
 template<size_t span>
 class FindBreakpoints;
 
+/** \brief Interface for FindBreakpoints observer
+ * Implementation can be add in FindBreakpoints observer list and call by update.
+ */
 template<size_t span>
 class IFindObserver
 {
 public:
 
-IFindObserver(FindBreakpoints<span>* find);
+    /** Constructor.
+     * \param[in,out] The FindBreakpoints instance, implementation can read and 
+     * write information one this instance.
+     */
+    IFindObserver(FindBreakpoints<span>* find);
 
+    /** Destructor.
+     */
+    virtual ~IFindObserver() {}
+
+    /** Called when FindBreakpoints::notify is called
+     * \param[in] kmer is in graph or not
+     */
     virtual void update(bool in_graph) = 0;
 
 protected :
 
+    /** Pointer one FindBreakpoints instance
+     */
     FindBreakpoints<span>* _find;
 };
 
@@ -51,3 +73,8 @@ IFindObserver<span>::IFindObserver(FindBreakpoints<span>* find)
 }
 
 #endif /* _TOOL_IFindObserver_HPP_ */
+
+
+
+
+
