@@ -102,14 +102,6 @@ public :
      */
     KmerModel& model();
 
-    /** Return the previous kmer is read
-     */
-    KmerType& previous_kmer();
-
-    /** Return the kmer iterator
-     */
-    KmerIterator& it_kmer();
-
     /** Return the size of kmer used for gap search 
      */
     size_t kmer_size();
@@ -118,7 +110,23 @@ public :
      */
     int max_repeat();
 
-    /*Setter*/
+    /** The last solid kmer before gap
+     */
+    KmerType& kmer_begin();
+
+    /** The first solid kmer after gap
+     */
+    KmerType& kmer_end();
+
+    /** Size of current solid stretch
+     */
+    uint64_t solid_stretch_size();
+    
+    /** Size of current gap stretch
+     */
+    uint64_t gap_stretch_size();
+    
+    /*Iterater*/
     /** Incremente the value of breakpoint_id counter
      */
     uint64_t breakpoint_id_iterate();
@@ -139,26 +147,6 @@ public :
      */
     int hetero_clean_iterate();
 
-public :
-
-    /*Kmer related object*/
-    /** The last solid kmer before gap
-     */
-    KmerType kmer_begin;
-
-    /** The first solid kmer after gap
-     */
-    KmerType kmer_end;
-
-    /*Gap type detection*/
-    /** Size of current solid stretch
-     */
-    uint64_t solid_stretch_size;
-    
-    /** Size of current gap stretch
-     */
-    uint64_t gap_stretch_size;
-
 private :
 
     /*Observable membre*/
@@ -176,6 +164,15 @@ private :
     KmerType m_previous_kmer;
     KmerIterator m_it_kmer;
 
+    /*Kmer related object*/
+    KmerType m_kmer_begin;
+    KmerType m_kmer_end;
+
+    /*Gap type detection*/
+    uint64_t m_solid_stretch_size;
+    uint64_t m_gap_stretch_size;
+    
+    /*Finder access*/
     Finder * finder;
 };
 
@@ -187,8 +184,8 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs(), m_model(find
     this->m_chrom_sequence = NULL;
     this->m_chrom_name = "";
 
-    this->solid_stretch_size = 0;
-    this->gap_stretch_size = 0;
+    this->m_solid_stretch_size = 0;
+    this->m_gap_stretch_size = 0;
 
     this->finder = find;
 }
@@ -203,8 +200,8 @@ void FindBreakpoints<span>::operator()()
     for (it_seq.first(); !it_seq.isDone(); it_seq.next())
     {
 	//Reintialize stretch_size for each sequence
-	this->solid_stretch_size = 0;
-	this->gap_stretch_size = 0;
+	this->m_solid_stretch_size = 0;
+	this->m_gap_stretch_size = 0;
 
         //Method : an homozyguous breakpoint is detected as a gap_stretch (ie. consecutive kmers on the sequence, that are not indexed in the graph) of particular sizes.
 	//BUT there are some False Positives when we query the graph : when we ask the graph if a kmer is indexed (when starting from a previous not indexed kmer) it may wrongly answer yes
@@ -240,20 +237,41 @@ void FindBreakpoints<span>::notify(bool in_graph)
     // Kmer is in graph incremente scretch size
     if(in_graph)
     {
-	solid_stretch_size++;
-    }
+	m_solid_stretch_size++;
 
-    // Call each observer
-    for(auto it = this->list_obs.begin(); it != this->list_obs.end(); it++)
-    {
-	(*it)->update(in_graph);
-    }
+	if(m_solid_stretch_size > 1)
+	{
+	    // Call each readonly observer
+	    for(auto it = this->list_obs.begin(); it != this->list_obs.end(); it++)
+	    {
+		(*it)->update();
+	    }
 
+	    // gap stretch size is re-set to 0 only when we are sure that the end of the gap is not due to an isolated solid kmer (likely FP)
+	    this->m_gap_stretch_size = 0; 
+	}
+
+	if (this->m_solid_stretch_size==1)
+	{
+	    // kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when m_solid_stretch_size=1)
+	    this->m_kmer_end = this->m_it_kmer->forward();
+	}
+    }
+    
     // Kmer isn't in graph incremente gap size and reset solid size
     if(!in_graph)
     {
-        gap_stretch_size++;
-	solid_stretch_size = 0;
+	if(this->m_solid_stretch_size==1)
+	{
+	    this->m_gap_stretch_size = this->m_gap_stretch_size + this->m_solid_stretch_size; //if previous position was an isolated solid kmer, we need to add 1 to the m_gap_stretch_size (as if replacing the FP by a non indexed kmer)
+	}
+	if(this->m_solid_stretch_size > 1) // begin of not indexed zone
+	{
+	    this->m_kmer_begin = this->m_previous_kmer;
+	}
+	
+        m_gap_stretch_size++;
+	m_solid_stretch_size = 0;
     }
 }
 
@@ -312,18 +330,6 @@ typename FindBreakpoints<span>::KmerModel& FindBreakpoints<span>::model()
 }
 
 template<size_t span>
-typename FindBreakpoints<span>::KmerType& FindBreakpoints<span>::previous_kmer()
-{
-    return this->m_previous_kmer;
-}
-
-template<size_t span>
-typename FindBreakpoints<span>::KmerIterator& FindBreakpoints<span>::it_kmer()
-{
-    return this->m_it_kmer;
-}
-
-template<size_t span>
 size_t FindBreakpoints<span>::kmer_size()
 {
     return this->finder->_kmerSize;
@@ -335,7 +341,32 @@ int FindBreakpoints<span>::max_repeat()
     return this->finder->_max_repeat;
 }
 
-/*Setter*/
+/*Kmer related object*/
+template<size_t span>
+typename FindBreakpoints<span>::KmerType& FindBreakpoints<span>::kmer_begin()
+{
+    return this->m_kmer_begin;
+}
+
+template<size_t span>
+typename FindBreakpoints<span>::KmerType& FindBreakpoints<span>::kmer_end()
+{
+    return this->m_kmer_end;
+}
+
+template<size_t span>
+uint64_t FindBreakpoints<span>::solid_stretch_size()
+{
+    return this->m_solid_stretch_size();
+}
+
+template<size_t span>
+uint64_t FindBreakpoints<span>::gap_stretch_size()
+{
+    return this->m_gap_stretch_size;
+}
+
+/*Iterater*/
 template<size_t span>
 uint64_t  FindBreakpoints<span>::breakpoint_id_iterate()
 {

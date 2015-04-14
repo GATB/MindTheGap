@@ -42,6 +42,7 @@ class FindBreakpoints;
 template<size_t span>
 class IFindObserver
 {
+    
 public:
 
     /** Constructor.
@@ -57,7 +58,7 @@ public:
     /** Called when FindBreakpoints::notify is called
      * \param[in] kmer is in graph or not
      */
-    virtual void update(bool in_graph) = 0;
+    virtual void update() = 0;
 
 protected :
 
