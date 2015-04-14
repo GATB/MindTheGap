@@ -139,14 +139,22 @@ public :
 public :
 
     /*Kmer related object*/
+    /** The last solid kmer before gap
+     */
     KmerType kmer_begin;
+
+    /** The first solid kmer after gap
+     */
     KmerType kmer_end;
 
     /*Gap type detection*/
+    /** Size of current solid stretch
+     */
     uint64_t solid_stretch_size;
+    
+    /** Size of current gap stretch
+     */
     uint64_t gap_stretch_size;
-
-    Finder * finder;
 
 private :
 
@@ -164,6 +172,8 @@ private :
     KmerModel m_model;
     KmerType m_previous_kmer;
     KmerIterator m_it_kmer;
+
+    Finder * finder;
 };
 
 template<size_t span>
@@ -189,6 +199,7 @@ void FindBreakpoints<span>::operator()()
     // We loop over sequences
     for (it_seq.first(); !it_seq.isDone(); it_seq.next())
     {
+	//Reintialize stretch_size for each sequence
 	this->solid_stretch_size = 0;
 	this->gap_stretch_size = 0;
 
@@ -210,7 +221,11 @@ void FindBreakpoints<span>::operator()()
 	{
 	    //we need to convert the kmer in a node to query the graph.
 	    Node node(Node::Value(m_it_kmer->value()));
+
+	    //we notify all observer
 	    this->notify(this->finder->_graph.contains(node));
+
+	    //save actual kmer for potential False Positive
 	    m_previous_kmer = m_it_kmer->forward();
 	}
     }
@@ -219,16 +234,19 @@ void FindBreakpoints<span>::operator()()
 template<size_t span>
 void FindBreakpoints<span>::notify(bool in_graph)
 {
+    // Kmer is in graph incremente scretch size
     if(in_graph)
     {
 	solid_stretch_size++;
     }
 
+    // Call each observer
     for(auto it = this->list_obs.begin(); it != this->list_obs.end(); it++)
     {
 	(*it)->update(in_graph);
     }
 
+    // Kmer isn't in graph incremente gap size and reset solid size
     if(!in_graph)
     {
         gap_stretch_size++;
@@ -239,6 +257,7 @@ void FindBreakpoints<span>::notify(bool in_graph)
 template<size_t span>
 void FindBreakpoints<span>::addObserver(IFindObserver<span>* new_obs)
 {
+    // Add observer in tables use unique_ptr for safety destruction
     this->list_obs.push_back(std::unique_ptr<IFindObserver<span> >(new_obs));
 }
 
