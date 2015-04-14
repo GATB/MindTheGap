@@ -58,6 +58,9 @@ public :
      */
     FindBreakpoints(Finder * find);
 
+    /** Destructor. */
+    virtual ~FindBreakpoints() {}
+    
     //Functor
     /** overloading operator ()
      * Read reference genome, and find gaps
