@@ -42,15 +42,16 @@ public:
 
     // Constructor
     Finder ();
+    ~Finder (){ if(_refBank != 0) {_refBank->forget();} };
     
     size_t _kmerSize;
     Graph _graph;
-    Graph _ref_graph;
+    //Graph _ref_graph;
     int _max_repeat;
     int _het_max_occ;
     int _nbCores;
     bool _homo_only;
-    BankFasta* _refBank;
+    IBank* _refBank;
     string _breakpoint_file_name;
     FILE * _breakpoint_file;
 

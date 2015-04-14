@@ -19,6 +19,7 @@
  *****************************************************************************/
 
 #include <Finder.hpp>
+//#include <typeinfo>  //used to check the type of an object
 
 //#define PRINT_DEBUG
 /********************************************************************************/
@@ -36,7 +37,8 @@ static const char* STR_FOO = "-foo";
 *********************************************************************/
 Finder::Finder ()  : Tool ("MindTheGap find")
 {
-    
+	//TODO : initialiser tous les attributs a 0 -> plus safe
+    _refBank=0;
     _nb_homo_clean=0;
     _nb_homo_fuzzy=0;
     _nb_hetero_clean=0;
@@ -174,8 +176,9 @@ void Finder::execute ()
     }
 
     // Getting the reference genome
-    _refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
-
+    //_refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
+    _refBank = Bank::open(getInput()->getStr(STR_URI_REF)); // more general can be a list or a file of files
+    _refBank->use(); //to be able to use the bank several times (do not forget at the end to do _refBank->forget() = delete
     
     //Getting other parameters
     _nbCores = getInput()->getInt(STR_NB_CORES);
@@ -183,20 +186,24 @@ void Finder::execute ()
     _homo_only=getInput()->get(STR_HOMO_ONLY) !=0;
     _het_max_occ=getInput()->getInt(STR_HET_MAX_OCC);
 
-    if(!_homo_only){
-    	// Building the index of reference (k-1)-mers occurring more than _het_max_occ + 1 times
-    	string tempFileName="trashme";
-    	stringstream commandLine;
-    	commandLine << STR_URI_INPUT << " " << getInput()->getStr(STR_URI_REF) << " " <<  //start from fasta file (and not from Bank : can not be used several times)
-    			STR_KMER_ABUNDANCE_MIN << " " << _het_max_occ + 1 << " " <<
-    			STR_KMER_SIZE << " " << _kmerSize-1 << " " <<
-    			STR_DEBLOOM_TYPE << " none " <<
-    			STR_URI_OUTPUT << " " << tempFileName << " ";
-
-    	//cout << commandLine.str() << endl;
-    	_ref_graph = Graph::create(commandLine.str().c_str());
-    	System::file().remove(tempFileName+".h5");
-    }
+    //no longer used
+//    if(!_homo_only){
+//    	// Building the index of reference (k-1)-mers occurring more than _het_max_occ + 1 times
+//    	string tempFileName="trashme";
+//    	stringstream commandLine;
+//    	commandLine << //STR_URI_INPUT << " " << getInput()->getStr(STR_URI_REF) << " " <<  //start from fasta file (and not from Bank : can not be used several times)
+//    			STR_KMER_ABUNDANCE_MIN << " " << _het_max_occ + 1 << " " <<
+//    			STR_KMER_SIZE << " " << _kmerSize-1 << " " <<
+//    			STR_DEBLOOM_TYPE << " none " <<
+//    			STR_BLOOM_TYPE << " cache " <<
+//    			STR_URI_OUTPUT << " " << tempFileName << " ";
+//
+//    	//cout << commandLine.str() << endl;
+//
+//    	_ref_graph = Graph::create(_refBank,commandLine.str().c_str()); // PB :  we can not modify the Bloom size
+//
+//    	System::file().remove(tempFileName+".h5");
+//    }
 
     // Now do the job
 
@@ -277,6 +284,60 @@ void Finder::findBreakpoints(){
 	typedef typename gatb::core::kmer::impl::Kmer<span>::Type        kmer_type;
 	typedef typename gatb::core::kmer::impl::Kmer<span>::Count       kmer_count; // not used
 
+	//TODO : move all the bloom building in a method
+	IBloom<kmer_type>* ref_bloom = 0;
+	if(!_homo_only){
+		//Bloom of the ref
+		string tempFileName="trashme.h5";
+		Storage* solidStorage = StorageFactory(STORAGE_HDF5).create (tempFileName, true, false);
+		LOCAL (solidStorage);
+
+		/** We create a DSK instance and execute it. */
+		SortingCountAlgorithm<span> sortingCount (
+				solidStorage,
+				_refBank,
+				_kmerSize-1,
+				make_pair(_het_max_occ+1,~0),
+				getInput()->getInt(STR_MAX_MEMORY),
+				getInput()->getInt(STR_MAX_DISK),
+				getInput()->getInt(STR_NB_CORES),
+				gatb::core::tools::misc::KMER_SOLIDITY_DEFAULT
+		);
+
+		sortingCount.getInput()->add (0, STR_VERBOSE, 0);
+		sortingCount.execute();
+
+		Storage* storage = StorageFactory(STORAGE_HDF5).load (tempFileName);
+		LOCAL (storage);
+
+		Partition<kmer_count> & solidCollection = storage->root().getGroup("dsk").getPartition<kmer_count> ("solid");
+		/** We get the number of solid kmers. */
+		u_int64_t nb_solid	= solidCollection.getNbItems();
+
+		float NBITS_PER_KMER = 12;
+		u_int64_t estimatedBloomSize = (u_int64_t) ((double)nb_solid * NBITS_PER_KMER * 3); //TODO *3 ?
+	    //cout<< "bloom " << estimatedBloomSize << endl;
+		if (estimatedBloomSize ==0 ) { estimatedBloomSize = 1000; }
+		size_t    nbHash             = (int)floorf (0.7*NBITS_PER_KMER);
+	    //cout<< "nbHash " << nbHash << endl;
+	    //cout<< "nb_solid" << nb_solid << endl;
+		Iterator<kmer_count>* itKmers = createIterator<kmer_count> (
+				solidCollection.iterator(),
+				nb_solid,
+				"fill bloom filter"
+		);
+		LOCAL (itKmers);
+
+		BloomBuilder<span> builder (estimatedBloomSize, nbHash,_kmerSize-1,BLOOM_CACHE,getDispatcher()->getExecutionUnitsNumber(),_het_max_occ+1);
+		ref_bloom = builder.build (itKmers);
+		//cout << typeid(*ref_bloom).name() << endl;  // to verify the type of bloom
+
+		System::file().remove(tempFileName);
+
+	}
+
+
+
 #ifdef PRINT_DEBUG
 	string deb01;
 #endif
@@ -304,16 +365,16 @@ void Finder::findBreakpoints(){
 	kmer_type kminus1_mask = (one << ((_kmerSize-1)*2)) - one ; // mask to get easily the k-1 prefix/suffix of a kmer (in kmer_type unit)
 	int recent_hetero; //to avoid too much close hetero sites
 
-
 	// We declare a kmer model with a given span size.
 	KmerModel model (_kmerSize);
 	//std::cout << "span: " << model.getSpan() << std::endl;
 	// We create an iterator over this bank.
-	BankFasta::Iterator itSeq (*_refBank);
+	Iterator<Sequence>* itSeq = _refBank->iterator();
+	LOCAL(itSeq);
 	// We declare an iterator on a given sequence.
 	KmerIterator itKmer (model);
 	// We loop over sequences.
-	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
+	for (itSeq->first(); !itSeq->isDone(); itSeq->next())
 	{
 
 		// for hetero mode:
@@ -337,9 +398,9 @@ void Finder::findBreakpoints(){
 
 		
 		// We set the data from which we want to extract kmers, to the kmer iterator
-		itKmer.setData (itSeq->getData());
-		char* chrom_sequence = itSeq->getDataBuffer();
-		string chrom_name = itSeq->getComment();
+		itKmer.setData ((*itSeq)->getData());
+		char* chrom_sequence = (*itSeq)->getDataBuffer();
+		string chrom_name = (*itSeq)->getComment();
 		uint64_t position=0;
 
 		// We iterate the kmers.
@@ -363,17 +424,19 @@ void Finder::findBreakpoints(){
 				}
 				kmer_type suffix = itKmer->forward() & kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
 				kmer_type suffix_rev = revcomp(suffix,_kmerSize-1);
-				Node::Value suffix_value(min(suffix,suffix_rev)); // to ask the graph, the value must be canonical
-				Node suffix_node(suffix_value);
-				current_info.is_repeated = _ref_graph.contains(suffix_node);
+				//Node::Value suffix_value(min(suffix,suffix_rev)); // to ask the graph, the value must be canonical
+				//Node suffix_node(suffix_value);
+				//current_info.is_repeated = _ref_graph.contains(suffix_node);
+				current_info.is_repeated = ref_bloom->contains(min(suffix,suffix_rev));
 
 				het_kmer_history[het_kmer_end_index] = current_info;
 
 				kmer_type prefix = (itKmer->forward() >>2) & kminus1_mask ; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
 				kmer_type prefix_rev = revcomp(prefix,_kmerSize-1);
-				Node::Value prefix_value(min(prefix,prefix_rev)); // to ask the graph, the value must be canonical
-				Node prefix_node(prefix_value);
-				bool kmer_end_is_repeated = _ref_graph.contains(prefix_node);
+				//Node::Value prefix_value(min(prefix,prefix_rev)); // to ask the graph, the value must be canonical
+				//Node prefix_node(prefix_value);
+				//bool kmer_end_is_repeated = _ref_graph.contains(prefix_node);
+				bool kmer_end_is_repeated = ref_bloom->contains(min(prefix,prefix_rev));
 
 				// hetero site detection
 				if( !kmer_end_is_repeated && current_info.nb_in == 2 && !recent_hetero){
