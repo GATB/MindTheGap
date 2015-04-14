@@ -56,7 +56,7 @@ public :
     /** Constructor
      * \param[in] find : A pointeur one Finder instance
      */
-    FindBreakpoints(Finder * find);
+    FindBreakpoints(Finder * find, IFindObserver* backup);
 
     /** Destructor. */
     virtual ~FindBreakpoints() {}
@@ -151,6 +151,7 @@ private :
 
     /*Observable membre*/
     std::vector<std::unique_ptr<IFindObserver<span> > > list_obs;
+    std::unique_ptr<IFindObserver<span> > m_backup;
 
     /*Find breakpoint membre*/
     /*Write breakpoint*/
@@ -177,7 +178,7 @@ private :
 };
 
 template<size_t span>
-FindBreakpoints<span>::FindBreakpoints(Finder * find) : list_obs(), m_model(find->_kmerSize), m_it_kmer(m_model)
+FindBreakpoints<span>::FindBreakpoints(Finder * find, IFindObserver* backup) : list_obs(), m_model(find->_kmerSize), m_it_kmer(m_model), m_backup(backup)
 {
     this->m_breakpoint_id = 0;
     this->m_position = 0;
@@ -241,10 +242,20 @@ void FindBreakpoints<span>::notify(bool in_graph)
 
 	if(m_solid_stretch_size > 1)
 	{
+	    bool one_observer_ret_true = false;
 	    // Call each readonly observer
 	    for(auto it = this->list_obs.begin(); it != this->list_obs.end(); it++)
 	    {
-		(*it)->update();
+		current_observer_ret = (*it)->update();
+		if(!one_observer_return_true && current_observer_ret)
+		{
+		    one_observer_ret_true = true;
+		}
+	    }
+
+	    if(!one_observer_ret_true)
+	    {
+		this->m_backup->update();
 	    }
 
 	    // gap stretch size is re-set to 0 only when we are sure that the end of the gap is not due to an isolated solid kmer (likely FP)

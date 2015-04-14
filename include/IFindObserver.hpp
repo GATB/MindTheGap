@@ -58,7 +58,7 @@ public:
     /** Called when FindBreakpoints::notify is called
      * \param[in] kmer is in graph or not
      */
-    virtual void update() = 0;
+    virtual bool update() = 0;
 
 protected :
 

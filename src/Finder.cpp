@@ -245,7 +245,7 @@ void Finder::resumeResults(){
 template<size_t span>
 void Finder::runFindBreakpoints()
 {
-    FindBreakpoints<span> findBreakpoints(this);
+    FindBreakpoints<span> findBreakpoints(this, new FindBackup<span>(&findBreakpoints));
 
     /* Add observer */
     findBreakpoints.addObserver(new FindCleanInsert<span>(&findBreakpoints));

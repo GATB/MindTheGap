@@ -36,14 +36,14 @@ public :
 
     /** \copydoc IFindObserver::update
      */
-    void update();
+    bool update();
 };
 
 template<size_t span>
 FindCleanInsert<span>::FindCleanInsert(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
 
 template<size_t span>
-void FindCleanInsert<span>::update()
+bool FindCleanInsert<span>::update()
 {
     if(this->_find->gap_stretch_size() == (this->_find->kmer_size()-1)) //Check size of gap 
     {
@@ -56,7 +56,11 @@ void FindCleanInsert<span>::update()
 	// iterate counter
 	this->_find->breakpoint_id_iterate();
 	this->_find->homo_clean_iterate();
+
+	return true;
     }
+    
+    return false;
 }
 
 template<size_t span>
@@ -70,14 +74,14 @@ public :
     
     /** \copydoc IFindObserver::update
      */
-    void update();
+    bool update();
 };
 
 template<size_t span>
 FindFuzzyInsert<span>::FindFuzzyInsert(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
 
 template<size_t span>
-void FindFuzzyInsert<span>::update()
+bool FindFuzzyInsert<span>::update()
 {
     if(this->_find->gap_stretch_size() < this->_find->kmer_size() - 1 && this->_find->gap_stretch_size() >= this->_find->kmer_size() - 1 - this->_find->max_repeat())
     {
@@ -93,7 +97,11 @@ void FindFuzzyInsert<span>::update()
 	//iterate counter
 	this->_find->breakpoint_id_iterate();
 	this->_find->homo_fuzzy_iterate();
+
+	return true;
     }
+
+    return false;
 }
 
 template<size_t span>
@@ -107,14 +115,14 @@ public :
 
     /** \copydoc IFindObserver::update
      */
-    void update();
+    bool update();
 };
 
 template<size_t span>
 FindSoloSNP<span>::FindSoloSNP(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
 
 template<size_t span>
-void FindSoloSNP<span>::update()
+bool FindSoloSNP<span>::update()
 {
     if(this->_find->gap_stretch_size() == this->_find->kmer_size())
     {
@@ -124,7 +132,33 @@ void FindSoloSNP<span>::update()
 	//     else
 	//         
 	std::cout<<"Potential solo SNP"<<std::endl;
+	return true;
     }
+
+    return false;
+}
+
+template<size_t span>
+class FindSoloSNP : public IFindObserver<span>
+{
+public :
+
+    /** \copydoc IFindObserver::IFindObserver
+     */
+    FindSoloSNP(FindBreakpoints<span> * find);
+
+    /** \copydoc IFindObserver::update
+     */
+    bool update();
+};
+
+template<size_t span>
+FindBackup<span>::FindBackup(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
+
+template<size_t span>
+bool FindBackup<span>::update()
+{
+
 }
 
 #endif /* _TOOL_FindObserver_HPP_ */
