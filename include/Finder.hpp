@@ -30,6 +30,10 @@ using namespace std;
 static const char* STR_URI_REF = "-ref";
 static const char* STR_MAX_REPEAT = "-max-rep";
 static const char* STR_HOMO_ONLY = "-homo-only";
+static const char* STR_HET_MAX_OCC = "-het-max-occ";
+
+static const char* STR_HOM_TYPE = "HOM";
+static const char* STR_HET_TYPE = "HET";
 
 
 class Finder : public Tool
@@ -38,13 +42,16 @@ public:
 
     // Constructor
     Finder ();
+    ~Finder ();
     
     size_t _kmerSize;
     Graph _graph;
+    //Graph _ref_graph; // no longer used
     int _max_repeat;
+    int _het_max_occ;
     int _nbCores;
     bool _homo_only;
-    BankFasta* _refBank;
+    IBank* _refBank;
     string _breakpoint_file_name;
     FILE * _breakpoint_file;
 
@@ -52,7 +59,6 @@ public:
     int _nb_homo_fuzzy;
     int _nb_hetero_clean;
     int _nb_hetero_fuzzy;
-
 
     // Actual job done by the tool is here
     void execute ();
@@ -71,6 +77,9 @@ private:
      */
     template<size_t span>
     void runFindBreakpoints();
+
+    template<size_t span>
+    IBloom<typename gatb::core::kmer::impl::Kmer<span>::Type>* fillRefBloom();
 };
 
 /********************************************************************************/

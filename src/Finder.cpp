@@ -26,20 +26,30 @@
 //#define PRINT_DEBUG
 /********************************************************************************/
 
-// We define some constant strings for names of command line parameters
-static const char* STR_FOO = "-foo";
+
+Finder::~Finder()
+{
+    if(_refBank != 0) {_refBank->forget();}
+    // delete _graph ?
+}
 
 /*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
 Finder::Finder ()  : Tool ("MindTheGap find")
 {
-    
+    _refBank=0;
+    _kmerSize=31;
+    _max_repeat=0;
+    _het_max_occ=1;
+    _nbCores=0;
+    _homo_only=true;
+    _breakpoint_file_name="";
     _nb_homo_clean=0;
     _nb_homo_fuzzy=0;
     _nb_hetero_clean=0;
@@ -49,61 +59,63 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     // Option parser, with several sub-parsers
     setParser (new OptionsParser ("MindTheGap find"));
 
-	IOptionsParser* generalParser = new OptionsParser("General");
-	generalParser->push_front (new OptionNoParam (STR_HELP, "help", false));
-	// generalParser->push_back (new OptionNoParam (STR_VERSION, "version", false)); // move this option in the main.cpp
-	generalParser->push_front (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
-	generalParser->push_front (new OptionOneParam (STR_MAX_MEMORY, "max memory for graph building (in MBytes)", false, "2000"));
-	generalParser->push_front (new OptionOneParam (STR_MAX_DISK, "max disk for graph building (in MBytes)", false, "0"));
-	generalParser->push_front (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
+    IOptionsParser* generalParser = new OptionsParser("General");
+    generalParser->push_front (new OptionNoParam (STR_HELP, "help", false));
+    // generalParser->push_back (new OptionNoParam (STR_VERSION, "version", false)); // move this option in the main.cpp
+    generalParser->push_front (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
+    generalParser->push_front (new OptionOneParam (STR_MAX_MEMORY, "max memory for graph building (in MBytes)", false, "2000"));
+    generalParser->push_front (new OptionOneParam (STR_MAX_DISK, "max disk for graph building (in MBytes)", false, "0"));
+    generalParser->push_front (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
 
-	IOptionsParser* inputParser = new OptionsParser("Input / output");
+    IOptionsParser* inputParser = new OptionsParser("Input / output");
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", false,""));
     inputParser->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
 
-	IOptionsParser* finderParser = new OptionsParser("Detection");
+    IOptionsParser* finderParser = new OptionsParser("Detection");
+    finderParser->push_front (new OptionOneParam (STR_HET_MAX_OCC, "maximal number of occurrences of a kmer in the reference genome allowed for heterozyguous breakpoints", false,"1"));
+    //allow to find heterozyguous breakpoints in n-repeated regions of the reference genome
     finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
     finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
 
     IOptionsParser* graphParser = new OptionsParser("Graph building");
     graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
-  	graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
+    graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
 
-	getParser()->push_front(generalParser);
-	getParser()->push_front(finderParser);
-	getParser()->push_front(graphParser);
-	getParser()->push_front(inputParser);
+    getParser()->push_front(generalParser);
+    getParser()->push_front(finderParser);
+    getParser()->push_front(graphParser);
+    getParser()->push_front(inputParser);
     
 }
 
 /*********************************************************************
-** METHOD  :
-** PURPOSE :
-** INPUT   :
-** OUTPUT  :
-** RETURN  :
-** REMARKS :
-*********************************************************************/
+ ** METHOD  :
+ ** PURPOSE :
+ ** INPUT   :
+ ** OUTPUT  :
+ ** RETURN  :
+ ** REMARKS :
+ *********************************************************************/
 void Finder::execute ()
 {
     
-	if (getInput()->get(STR_HELP) != 0){
-		cout << endl << "Usage:  MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
-		OptionsHelpVisitor v(cout);
-		getParser()->accept(v);
-		throw Exception(); // to get out with EXIT_FAILURE
-	}
+    if (getInput()->get(STR_HELP) != 0){
+	cout << endl << "Usage:  MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
+	OptionsHelpVisitor v(cout);
+	getParser()->accept(v);
+	throw Exception(); // to get out with EXIT_FAILURE
+    }
 
-	// Checks mandatory options
+    // Checks mandatory options
     if ((getInput()->get(STR_URI_GRAPH) != 0 && getInput()->get(STR_URI_INPUT) != 0) || (getInput()->get(STR_URI_GRAPH) == 0 && getInput()->get(STR_URI_INPUT) == 0))
     {
-        throw OptionFailure(getParser(), "options -graph and -in are incompatible, but at least one of these is mandatory");
+        throw OptionFailure(getParser(), "ERROR: options -graph and -in are incompatible, but at least one of these is mandatory");
     }
     
     if (getInput()->get(STR_URI_REF) == 0){
-    	throw OptionFailure(getParser(), "option -ref is mandatory");
+    	throw OptionFailure(getParser(), "ERROR: option -ref is mandatory");
     }
 
 
@@ -174,15 +186,41 @@ void Finder::execute ()
 
     }
 
+    // Getting the reference genome
+    //_refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
+    _refBank = Bank::open(getInput()->getStr(STR_URI_REF)); // more general can be a list or a file of files
+    _refBank->use(); //to be able to use the bank several times (do not forget at the end to do _refBank->forget() = delete)
     
     //Getting other parameters
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_repeat = getInput()->getInt(STR_MAX_REPEAT);
     _homo_only=getInput()->get(STR_HOMO_ONLY) !=0;
+    _het_max_occ=getInput()->getInt(STR_HET_MAX_OCC);
+    if(_het_max_occ<1){
+    	_het_max_occ=1;
+    }
 
-    // Getting the reference genome
-    _refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
-    
+    //no longer used
+//    if(!_homo_only){
+//    	// Building the index of reference (k-1)-mers occurring more than _het_max_occ + 1 times
+//    	string tempFileName="trashme";
+//    	stringstream commandLine;
+//    	commandLine << //STR_URI_INPUT << " " << getInput()->getStr(STR_URI_REF) << " " <<  //start from fasta file (and not from Bank : can not be used several times)
+//    			STR_KMER_ABUNDANCE_MIN << " " << _het_max_occ + 1 << " " <<
+//    			STR_KMER_SIZE << " " << _kmerSize-1 << " " <<
+//    			STR_DEBLOOM_TYPE << " none " <<
+//    			STR_BLOOM_TYPE << " cache " <<
+//    			STR_URI_OUTPUT << " " << tempFileName << " ";
+//
+//    	//cout << commandLine.str() << endl;
+//
+//    	_ref_graph = Graph::create(_refBank,commandLine.str().c_str()); // PB :  we can not modify the Bloom size
+//
+//    	System::file().remove(tempFileName+".h5");
+//    }
+
+
+
     // Now do the job
 
     // According to the kmer size,  we call one fillBreakpoints method.
@@ -218,27 +256,30 @@ void Finder::resumeParameters(){
     getInfo()->add(1,"Graph");
     getInfo()->add(2,"kmer-size","%i", _kmerSize);
     try { // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
-            getInfo()->add(2,"abundance_min",_graph.getInfo().getStr("abundance_min").c_str());
-            getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
-            getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
-        } catch (Exception e) {
-            // doing nothing
-        }
+	getInfo()->add(2,"abundance_min",_graph.getInfo().getStr("abundance_min").c_str());
+	getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
+	getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
+    } catch (Exception e) {
+	// doing nothing
+    }
 
     getInfo()->add(1,"Breakpoint detection options");
     getInfo()->add(2,"max_repeat","%i", _max_repeat);
-    getInfo()->add(2,"homo_only","%i", _homo_only); //todo
+    getInfo()->add(2,"homo_only","%s", _homo_only ? "yes" : "no");
+    getInfo()->add(2,"hetero_max_occ","%i", _het_max_occ);
     
 }
 
 void Finder::resumeResults(){
-	getInfo()->add(0,"Results");
-	getInfo()->add(1,"Breakpoints");
-	getInfo()->add(2,"homozygous","%i", _nb_homo_clean+_nb_homo_fuzzy);
-	getInfo()->add(3,"clean","%i", _nb_homo_clean);
-	getInfo()->add(3,"fuzzy","%i", _nb_homo_fuzzy);
-
-	getInfo()->add(1,"output file","%s",_breakpoint_file_name.c_str());
+    getInfo()->add(0,"Results");
+    getInfo()->add(1,"Breakpoints");
+    getInfo()->add(2,"homozygous","%i", _nb_homo_clean+_nb_homo_fuzzy);
+    getInfo()->add(3,"clean","%i", _nb_homo_clean);
+    getInfo()->add(3,"fuzzy","%i", _nb_homo_fuzzy);
+    getInfo()->add(2,"heterozygous","%i", _nb_hetero_clean+_nb_hetero_fuzzy);
+    getInfo()->add(3,"clean","%i", _nb_hetero_clean);
+    getInfo()->add(3,"fuzzy","%i", _nb_hetero_fuzzy);
+    getInfo()->add(1,"output file","%s",_breakpoint_file_name.c_str());
 
 }
 
@@ -254,4 +295,297 @@ void Finder::runFindBreakpoints()
 
     /* Run */
     findBreakpoints();
+}
+/*
+//Remove in future
+template<size_t span>
+void Finder::findBreakpoints(){
+
+    uint64_t bkt_id=0; // id of detected breakpoint
+
+    int nbKmers=0;
+    int nbSequences=0; // not used
+
+    uint64_t nb_ref_solid = 0; // not used
+    uint64_t nb_ref_notsolid = 0; //not used
+    uint64_t solid_stretch_size = 0; //size of current stretch of 1 (ie kmer indexed)
+    uint64_t gap_stretch_size = 0; //size of current stretch of 0 (ie kmer not indexed)
+    uint64_t previous_gap_stretch_size = 0;
+
+    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical KmerModel; // ModelCanonical ModelDirect
+    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical::Iterator KmerIterator;
+    typedef typename gatb::core::kmer::impl::Kmer<span>::Type        kmer_type;
+
+    IBloom<kmer_type>* ref_bloom = 0;
+    if(!_homo_only){
+    /** Bloom of the repeated kmers of the reference genome *//*
+	ref_bloom = fillRefBloom<span>();
+    }
+    LOCAL(ref_bloom);
+
+
+#ifdef PRINT_DEBUG
+    string deb01;
+#endif
+
+    kmer_type kmer_begin; //kmer just before the breakpoint
+    kmer_type kmer_end; //kmer just after the breakpoint
+    kmer_type previous_kmer; //remember the previous kmer
+
+
+    /** Variables for the heterozyguous mode *//*
+    // structure to store information about a kmer : kmer that will be treated as kmer_begin of a breakpoint
+    typedef struct info_type
+    {
+	kmer_type kmer;
+	int nb_in;
+	int nb_out;
+	bool is_repeated; // is the k-1 suffix of this kmer is repeated in the reference genome
+    } info_type;
+
+    info_type het_kmer_history[256]; //circular buffer, rq : limits the kmerSize <256
+    unsigned char het_kmer_end_index; // index in history, must remain an unsigned char = same limit as the history array
+    unsigned char het_kmer_begin_index;
+    info_type current_info;
+    kmer_type one = 1;
+    kmer_type kminus1_mask = (one << ((_kmerSize-1)*2)) - one ; // mask to get easily the k-1 prefix/suffix of a kmer (in kmer_type unit)
+    int recent_hetero; //if >0, the precedent hetero site was too close, to avoid very close hetero sites
+
+    //TODO : parallelisation + progress bar
+
+    // We declare a kmer model with a given span size.
+    KmerModel model (_kmerSize);
+    //std::cout << "span: " << model.getSpan() << std::endl;
+    // We create an iterator over this bank.
+    Iterator<Sequence>* itSeq = _refBank->iterator();
+    LOCAL(itSeq);
+    // We declare an iterator on a given sequence.
+    KmerIterator itKmer (model);
+    /** We loop over the sequences of the reference genome *//*
+    for (itSeq->first(); !itSeq->isDone(); itSeq->next())
+    {
+
+	// for hetero mode:
+	memset(het_kmer_history,0,sizeof(info_type)*256);
+	het_kmer_end_index = _kmerSize +1;
+	het_kmer_begin_index = 1;
+	recent_hetero = 0;
+
+	// for the homo mode :
+	solid_stretch_size = 0;
+	gap_stretch_size = 0;
+
+#ifdef PRINT_DEBUG
+	deb01.clear();
+#endif
+		
+	// We set the data from which we want to extract kmers, to the kmer iterator
+	itKmer.setData ((*itSeq)->getData());
+	char* chrom_sequence = (*itSeq)->getDataBuffer();
+	string chrom_name = (*itSeq)->getComment();
+	uint64_t position=0;
+
+	/** We iterate the kmers of the reference sequence */ /*
+	for (itKmer.first(); !itKmer.isDone(); itKmer.next(), position++, het_kmer_begin_index++, het_kmer_end_index++)
+	{
+	    nbKmers++;
+
+	    //we need to convert the kmer in a node to query the graph.
+	    Node node(Node::Value(itKmer->value()),itKmer->strand()); // strand is necessary for hetero mode (in/out degree depends on the strand)
+
+	    /** HETEROZYGOUS mode */ /*
+	    // Heterozygous method : an heterozygous breakpoint is a position where both right kmer (kmer-end) and left kmer (kmer-begin) are present in the read Graph
+	    // AND have branhing properties : kmer-end is left-branching (exactly 2 in-neighbors) kmer-begin is right-branching (exactly 2 out-neighbors)
+	    // AND the k-1-mers are not repeated in the reference genome (k-1-suffix of kmer-begin and k-1-prefix of kmer-end) (To avoid branching due to inexact repeats)
+	    // If fuzzy site (ie. small repeat at the insertion borders), the kmer-begin position can be shifted to the right (kmer-begin and kmer-end overlap the size of the repat)
+	    if(!_homo_only){
+		// computing the current kmer informations
+		current_info.kmer=itKmer->forward();
+		if (_graph.contains(node)) {
+		    current_info.nb_in = _graph.indegree (node);
+		    current_info.nb_out =  _graph.outdegree (node);
+		}
+		else{
+		    current_info.nb_in = 0;
+		    current_info.nb_out = 0;
+		}
+		//checking if the k-1 suffix is repeated
+		kmer_type suffix = itKmer->forward() & kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
+		kmer_type suffix_rev = revcomp(suffix,_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
+		//Node::Value suffix_value(min(suffix,suffix_rev)); // to ask the graph, the value must be canonical
+		//Node suffix_node(suffix_value);
+		//current_info.is_repeated = _ref_graph.contains(suffix_node);
+		current_info.is_repeated = ref_bloom->contains(min(suffix,suffix_rev));
+
+		//filling the history array with the current kmer information
+		het_kmer_history[het_kmer_end_index] = current_info;
+
+		//checking if the k-1 prefix is repeated
+		kmer_type prefix = (itKmer->forward() >>2) & kminus1_mask ; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
+		kmer_type prefix_rev = revcomp(prefix,_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
+		//Node::Value prefix_value(min(prefix,prefix_rev)); // to ask the graph, the value must be canonical
+		//Node prefix_node(prefix_value);
+		//bool kmer_end_is_repeated = _ref_graph.contains(prefix_node);
+		bool kmer_end_is_repeated = ref_bloom->contains(min(prefix,prefix_rev));
+
+		// hetero site detection
+		if( !kmer_end_is_repeated && current_info.nb_in == 2 && !recent_hetero){
+		    //loop over putative repeat size (0=clean, >0 fuzzy), reports only the smallest repeat size found.
+		    for(int i=0; i<=_max_repeat;i++){
+			if(het_kmer_history[het_kmer_begin_index+i].nb_out == 2 && ! het_kmer_history[het_kmer_begin_index+i].is_repeated){
+			    //hetero breakpoint found
+			    string kmer_begin_str = model.toString (het_kmer_history[het_kmer_begin_index+i].kmer);
+			    string kmer_end_str = model.toString (current_info.kmer);
+			    writeBreakpoint(bkt_id,chrom_name,position-1+i,kmer_begin_str, kmer_end_str,i, STR_HET_TYPE);
+			    bkt_id++;
+			    if(i==0){
+				_nb_hetero_clean++;
+			    }
+			    else{
+				_nb_hetero_fuzzy++;
+			    }
+			    recent_hetero = _max_repeat; // we found a breakpoint, the next hetero one mus be at least _max_repeat apart from this one.
+			    break; //reports only the smallest repeat size found.
+			}
+		    }
+		}
+		recent_hetero = max(0,recent_hetero - 1); // when recent_hetero=0 : we are sufficiently far from the previous hetero-site
+	    }
+
+	    /** HOMOZYGOUS mode */ /*
+	    //Method : an homozyguous breakpoint is detected as a gap_stretch (ie. consecutive kmers on the sequence, that are not indexed in the graph) of particular sizes.
+	    //BUT there are some False Positives when we query the graph : when we ask the graph if a kmer is indexed (when starting from a previous not indexed kmer) it may wrongly answer yes
+	    //(the gatb dbg is exact only if the kmer we query is the neighbor of a truly solid kmer)
+	    //FP are likely to be isolated, ie. surrounded by not indexed kmers, therefore they can be detected as solid_stretches of size 1.
+
+	    if (_graph.contains(node)) //the kmer is indexed
+	    {
+#ifdef PRINT_DEBUG
+		deb01+= "1";
+#endif
+		nb_ref_solid++;
+		solid_stretch_size++;
+
+		if(solid_stretch_size > 1){ //to be sure the gap is finished, it must be followed by a solid stretch of size >1, otherwise it could be a false positive of the graph (likely isolated)
+		    if(gap_stretch_size == (_kmerSize-1)){
+			// clean insert site
+
+//						cout << "gap size k-1" << endl;
+//						cout << "position " << position -1 << endl;
+//						cout << "kmer begin " << model.toString (kmer_begin) << endl;
+//						cout << "kmer end " << model.toString (kmer_end) << endl;
+
+			string kmer_begin_str = model.toString (kmer_begin);
+			string kmer_end_str = model.toString (kmer_end);
+			writeBreakpoint(bkt_id,chrom_name,position-1,kmer_begin_str, kmer_end_str,0, STR_HOM_TYPE);
+			bkt_id++;
+			_nb_homo_clean++;
+		    }
+		    else if(gap_stretch_size < _kmerSize - 1 && gap_stretch_size >= _kmerSize -1 -_max_repeat){
+			// Fuzzy site, position and kmer_end are impacted by the repeat
+
+			int repeat_size = _kmerSize - 1 - gap_stretch_size;
+			string kmer_begin_str = model.toString (kmer_begin);
+			string kmer_end_str = string(&chrom_sequence[position-1+repeat_size], _kmerSize);
+			writeBreakpoint(bkt_id,chrom_name,position -1 + repeat_size,kmer_begin_str,kmer_end_str, repeat_size, STR_HOM_TYPE);
+			bkt_id++;
+			_nb_homo_fuzzy++;
+		    }
+		    else if(gap_stretch_size>0) {
+			//for debug
+			//cout << "gap_stretch_size = " << gap_stretch_size << " in sequence " << chrom_name << " position " << position -1 << endl;
+		    }
+
+		    gap_stretch_size = 0;// gap stretch size is re-set to 0 only when we are sure that the end of the gap is not due to an isolated solid kmer (likely FP)
+		}
+		if (solid_stretch_size==1) kmer_end = itKmer->forward(); // kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when solid_stretch_size=1)
+	    }
+	    else //kmer is not indexed, measure the size of the zone not covered by kmers of the reads (= a gap)
+	    {
+#ifdef PRINT_DEBUG
+		deb01+= "0";
+#endif
+		nb_ref_notsolid++;
+		if(solid_stretch_size==1) // it means that the previous position was an isolated solid kmer
+		{
+		    gap_stretch_size = gap_stretch_size + solid_stretch_size ; //if previous position was an isolated solid kmer, we need to add 1 to the gap_stretch_size (as if replacing the FP by a non indexed kmer)
+		}
+		if(solid_stretch_size > 1) // previous position was a solid kmer, but not an isolated one  => we are at the beginning of a gap
+		{
+		    kmer_begin = previous_kmer ;
+		}
+		gap_stretch_size ++;
+		solid_stretch_size =0;
+
+	    }
+	    previous_kmer = itKmer->forward();
+
+	}
+		
+#ifdef PRINT_DEBUG
+	cout << deb01 << endl;
+#endif
+		
+	// We increase the sequence counter.
+	nbSequences++;
+    }
+}
+*/
+template<size_t span>
+IBloom<typename gatb::core::kmer::impl::Kmer<span>::Type>*  Finder::fillRefBloom(){
+
+    typedef typename gatb::core::kmer::impl::Kmer<span>::Type       kmer_type;
+    typedef typename gatb::core::kmer::impl::Kmer<span>::Count       kmer_count;
+
+    //Bloom of the repeated (k-1)mers of the reference genome
+    IBloom<kmer_type>* ref_bloom = 0;
+
+    //solid kmers must be stored in a file
+    string tempFileName="trashme.h5";
+    Storage* solidStorage = StorageFactory(STORAGE_HDF5).create (tempFileName, true, false);
+    LOCAL (solidStorage);
+
+    /** We create a DSK (kmer counting) instance and execute it. */
+    SortingCountAlgorithm<span> sortingCount (
+	solidStorage,
+	_refBank,
+	_kmerSize-1,
+	make_pair(_het_max_occ+1,~0), //min and max abundances for a kmer to be solid
+	getInput()->getInt(STR_MAX_MEMORY),
+	getInput()->getInt(STR_MAX_DISK),
+	getInput()->getInt(STR_NB_CORES),
+	gatb::core::tools::misc::KMER_SOLIDITY_DEFAULT
+	);
+
+    sortingCount.getInput()->add (0, STR_VERBOSE, 0);//do not show progress bar
+    sortingCount.execute();
+
+    Storage* storage = StorageFactory(STORAGE_HDF5).load (tempFileName);
+    LOCAL (storage);
+
+    Partition<kmer_count> & solidCollection = storage->root().getGroup("dsk").getPartition<kmer_count> ("solid");
+    /** We get the number of solid kmers. */
+    u_int64_t nb_solid	= solidCollection.getNbItems();
+
+    /** parameters of the Bloom filter */
+    float NBITS_PER_KMER = 12;
+    u_int64_t estimatedBloomSize = (u_int64_t) ((double)nb_solid * NBITS_PER_KMER * 2); //TODO *3 ?
+    if (estimatedBloomSize ==0 ) { estimatedBloomSize = 1000; }
+    size_t    nbHash             = (int)floorf (0.7*NBITS_PER_KMER);
+
+    //iterator of kmer_counts
+    Iterator<kmer_count>* itKmers = createIterator<kmer_count> (
+	solidCollection.iterator(),
+	nb_solid
+	);
+    LOCAL (itKmers);
+
+    // building the bloom
+    BloomBuilder<span> builder (estimatedBloomSize, nbHash,_kmerSize-1,BLOOM_CACHE,getDispatcher()->getExecutionUnitsNumber(),_het_max_occ+1);
+    ref_bloom = builder.build (itKmers);
+    //cout << typeid(*ref_bloom).name() << endl;  // to verify the type of bloom
+
+    System::file().remove(tempFileName);
+
+    return ref_bloom;
 }

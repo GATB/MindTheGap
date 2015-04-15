@@ -195,10 +195,11 @@ template<size_t span>
 void FindBreakpoints<span>::operator()()
 {
     // We create an iterator over this bank
-    BankFasta::Iterator it_seq(*(finder->_refBank));
-
+    Iterator<Sequence>* it_seq = this->finder->_refBank->iterator();
+    LOCAL(it_seq);
+    
     // We loop over sequences
-    for (it_seq.first(); !it_seq.isDone(); it_seq.next())
+    for (it_seq->first(); !it_seq->isDone(); it_seq->next())
     {
 	//Reintialize stretch_size for each sequence
 	this->m_solid_stretch_size = 0;
@@ -212,9 +213,9 @@ void FindBreakpoints<span>::operator()()
 	
 	
 	// We set the data from which we want to extract kmers.
-	m_it_kmer.setData (it_seq->getData());
-	this->m_chrom_sequence = it_seq->getDataBuffer();
-	this->m_chrom_name = it_seq->getComment();
+	m_it_kmer.setData ((*it_seq)->getData());
+	this->m_chrom_sequence = (*it_seq)->getDataBuffer();
+	this->m_chrom_name = (*it_seq)->getComment();
 	this->m_position = 0;
 	
 	// We iterate the kmers.
