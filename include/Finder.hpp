@@ -42,7 +42,7 @@ public:
 
     // Constructor
     Finder ();
-    ~Finder (){ if(_refBank != 0) {_refBank->forget();} };
+    ~Finder ();
     
     size_t _kmerSize;
     Graph _graph;
