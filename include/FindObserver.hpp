@@ -158,7 +158,17 @@ FindBackup<span>::FindBackup(FindBreakpoints<span> * find) : IFindObserver<span>
 template<size_t span>
 bool FindBackup<span>::update()
 {
+    if(this->_find->gap_stretch_size() > (this->_find->kmer_size() / 2)) {
+	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin());
+	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end());
+	string chrom_name_bak = this->_find->chrom_name()+"_backup";
 
+	this->_find->writeBreakpoint(this->_find->breakpoint_id(), chrom_name_bak, this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0);
+
+	return true;
+    }
+
+    return false;
 }
 
 #endif /* _TOOL_FindObserver_HPP_ */
