@@ -126,11 +126,25 @@ bool FindSoloSNP<span>::update()
 {
     if(this->_find->gap_stretch_size() == this->_find->kmer_size())
     {
+	//for each nuc :
+	//    if in_graph(correct(kmer, nuc, kmer.length))
+	//        cor_nuc = nuc
+	//        counters[nuc]++
+	//
+	//for each counters :
+	//    if counter != kmer_size:
+	//        remove counter
+	//
+	//for each counter :
 	//for each kmer :
-	//    if cor_nuc != undef && in_graph(corect(kmer, cor_nuc))
+	//    if in_graph(corect(kmer, cor_nuc, kmer.length - loop_counter))
 	//         kmer_corrected++
-	//     else
-	//         
+	//
+	//if kmer_corrected == kmer_size :
+	//    write_kmer
+	//    return true
+	//
+	//return false
 	std::cout<<"Potential solo SNP"<<std::endl;
 	return true;
     }
