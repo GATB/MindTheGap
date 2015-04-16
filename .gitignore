@@ -1,6 +1,2 @@
 /build
-test/*.res
-test/*.insertions
-test/*.breakpoints
-test/*.h5
-test/contig*
+test/output
