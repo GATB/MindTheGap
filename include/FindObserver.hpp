@@ -51,7 +51,7 @@ bool FindCleanInsert<span>::update()
 	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin());
 	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end());
 
-	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0);
+	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0,STR_HOM_TYPE);
 
 	// iterate counter
 	this->_find->breakpoint_id_iterate();
@@ -92,7 +92,7 @@ bool FindFuzzyInsert<span>::update()
 	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin());
 	string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
 	    
-	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size);
+	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size, STR_HOM_TYPE);
 
 	//iterate counter
 	this->_find->breakpoint_id_iterate();
@@ -177,12 +177,67 @@ bool FindBackup<span>::update()
 	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end());
 	string chrom_name_bak = this->_find->chrom_name()+"_backup";
 
-	this->_find->writeBreakpoint(this->_find->breakpoint_id(), chrom_name_bak, this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0);
+	this->_find->writeBreakpoint(this->_find->breakpoint_id(), chrom_name_bak, this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0, STR_HOM_TYPE);
 
 	return true;
     }
 
     return false;
 }
+
+template<size_t span>
+class FindHeteroInsert : public IFindObserver<span>
+{
+public :
+
+    /** \copydoc IFindObserver::IFindObserver
+     */
+    FindHeteroInsert(FindBreakpoints<span> * find);
+
+    /** \copydoc IFindObserver::update
+     */
+    bool update();
+};
+
+template<size_t span>
+FindHeteroInsert<span>::FindHeteroInsert(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
+
+template<size_t span>
+bool FindHeteroInsert<span>::update()
+{
+    if(!this->_find->homo_only())
+    {
+	// hetero site detection
+	if(!this->_find->kmer_end_is_repeated() && this->_find->current_info().nb_in == 2 && !this->_find->recent_hetero())
+	{
+	    //loop over putative repeat size (0=clean, >0 fuzzy), reports only the smallest repeat size found.
+	    for(int i=0; i<=this->_find->max_repeat(); i++)
+	    {
+		if(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 && !this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated)
+		{
+		    //hetero breakpoint found
+		    string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer);
+		    string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
+		    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE);
+
+		    this->_find->breakpoint_id_iterate();
+
+		    if(i==0)
+		    {
+			this->_find->hetero_clean_iterate();
+		    }
+		    else
+		    {
+			this->_find->hetero_fuzzy_iterate();
+		    }
+		    
+		    this->_find->recent_hetero(this->_find->max_repeat()); // we found a breakpoint, the next hetero one mus be at least _max_repeat apart from this one.
+		    break; //reports only the smallest repeat size found.
+		}
+	    }
+	}
+    }
+}
+
 
 #endif /* _TOOL_FindObserver_HPP_ */

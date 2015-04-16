@@ -35,7 +35,6 @@ static const char* STR_HET_MAX_OCC = "-het-max-occ";
 static const char* STR_HOM_TYPE = "HOM";
 static const char* STR_HET_TYPE = "HET";
 
-
 class Finder : public Tool
 {
 public:
@@ -77,9 +76,6 @@ private:
      */
     template<size_t span>
     void runFindBreakpoints();
-
-    template<size_t span>
-    IBloom<typename gatb::core::kmer::impl::Kmer<span>::Type>* fillRefBloom();
 };
 
 /********************************************************************************/
