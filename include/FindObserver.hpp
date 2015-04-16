@@ -207,7 +207,7 @@ bool FindHeteroInsert<span>::update()
 {
     if(!this->_find->homo_only())
     {
-	// hetero site detection
+        // hetero site detection
 	if(!this->_find->kmer_end_is_repeated() && this->_find->current_info().nb_in == 2 && !this->_find->recent_hetero())
 	{
 	    //loop over putative repeat size (0=clean, >0 fuzzy), reports only the smallest repeat size found.

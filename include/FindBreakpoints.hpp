@@ -297,7 +297,7 @@ void FindBreakpoints<span>::operator()()
 	this->m_position = 0;
 	
 	// We iterate the kmers.
-	for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++)
+	for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++)
 	{
 	    //we need to convert the kmer in a node to query the graph.
 	    Node node(Node::Value(m_it_kmer->value()));
@@ -308,7 +308,6 @@ void FindBreakpoints<span>::operator()()
 	    //save actual kmer for potential False Positive
 	    m_previous_kmer = m_it_kmer->forward();
 	}
-	std::cout<<std::endl;
     }
 }
 
@@ -340,7 +339,7 @@ void FindBreakpoints<span>::notify(Node node)
 	KmerType prefix = (this->m_it_kmer->forward() >> 2) & this->m_kminus1_mask; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
 	KmerType prefix_rev = revcomp(prefix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
         this->m_kmer_end_is_repeated = this->m_ref_bloom->contains(min(prefix,prefix_rev));
-	
+
 	//filling the history array with the current kmer information
 	this->m_het_kmer_history[m_het_kmer_end_index] = m_current_info;
 	
