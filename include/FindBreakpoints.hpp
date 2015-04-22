@@ -299,7 +299,7 @@ void FindBreakpoints<span>::operator()()
 	for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++)
 	{
 	    //we need to convert the kmer in a node to query the graph.
-	    Node node(Node::Value(m_it_kmer->value()));
+	    Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
 
 	    //we notify all observer
 	    this->notify(node);
@@ -314,7 +314,6 @@ template<size_t span>
 void FindBreakpoints<span>::notify(Node node)
 {
     bool in_graph = this->graph_contains(node);
-    std::cout<<std::noboolalpha<<in_graph;
     this->store_kmer_info(node);
 
     if(!this->finder->_homo_only)

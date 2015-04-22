@@ -155,7 +155,6 @@ bool FindSoloSNP<span>::update()
 
 	for(typename std::map<KmerType, int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
 	{
-	    std::cout<<nuc_it->first<<" "<<nuc_it->second<<std::endl;
 	    if(nuc_it->second == this->_find->kmer_size())
 	    {
 		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin());
