@@ -24,7 +24,7 @@ run_test reads/master.fasta references/deleted.fasta truths/insertion.fasta k-1
 
 echo "Testing solo SNP"
 
-run_test reads/master.fasta references/sSNP.fasta truths/insertion.fasta sSNP
+run_test reads/master.fasta references/sSNP.fasta truths/sSNP.fasta sSNP
 
 echo "Testing heterozygote"
 

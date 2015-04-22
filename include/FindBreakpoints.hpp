@@ -168,6 +168,10 @@ public :
     /**
      */
     unsigned char het_kmer_begin_index();
+
+    /**
+     */
+    bool graph_contains(Node& kmer_node);
     
     /*Iterater*/
     /** Incremente the value of breakpoint_id counter
@@ -198,6 +202,7 @@ public :
 private :
 
     IBloom<KmerType>* fillRefBloom();
+    void store_kmer_info(Node node);
 
 private :
 
@@ -210,7 +215,7 @@ private :
     /*Write breakpoint*/
     uint64_t m_breakpoint_id;
     uint64_t m_position;
-    char * m_chrom_sequence;
+    char* m_chrom_sequence;
     string m_chrom_name;
 
     /*Kmer related object*/
@@ -227,14 +232,14 @@ private :
     uint64_t m_gap_stretch_size;
     
     /*Finder access*/
-    Finder * finder;
+    Finder* finder;
 
     /*Hetero mode*/
     info_type m_het_kmer_history[256]; 
     unsigned char m_het_kmer_end_index; // index in history, must remain an unsigned char = same limit as the history array
     unsigned char m_het_kmer_begin_index;
     info_type m_current_info;
-    KmerType m_one = 1;
+    KmerType m_one;
     KmerType m_kminus1_mask;
     int m_recent_hetero;
     bool m_kmer_end_is_repeated;
@@ -260,6 +265,7 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find, IFindObserver<span>* backu
 
     /*Heterozygote usage*/
     this->m_ref_bloom.reset(this->fillRefBloom());
+    this->m_one = 1;
     this->m_kminus1_mask = (m_one << ((this->finder->_kmerSize-1)*2)) - m_one;
 }
 
@@ -269,7 +275,7 @@ void FindBreakpoints<span>::operator()()
     // We create an iterator over this bank
     Iterator<Sequence>* it_seq = this->finder->_refBank->iterator();
     LOCAL(it_seq);
-    
+
     // We loop over sequences
     for (it_seq->first(); !it_seq->isDone(); it_seq->next())
     {
@@ -282,13 +288,6 @@ void FindBreakpoints<span>::operator()()
 	this->m_het_kmer_end_index = this->finder->_kmerSize +1;
 	this->m_het_kmer_begin_index = 1;
 	this->m_recent_hetero = 0;
-
-        //Method : an homozyguous breakpoint is detected as a gap_stretch (ie. consecutive kmers on the sequence, that are not indexed in the graph) of particular sizes.
-	//BUT there are some False Positives when we query the graph : when we ask the graph if a kmer is indexed (when starting from a previous not indexed kmer) it may wrongly answer yes
-	//(the gatb dbg is exact only if the kmer we query is the neighbor of a truly solid kmer)
-	//FP are likely to be isolated, ie. surrounded by not indexed kmers, therefore they can be detected as solid_stretches of size 1.
-	// See FindObserver for code
-	
 	
 	// We set the data from which we want to extract kmers.
 	m_it_kmer.setData ((*it_seq)->getData());
@@ -314,35 +313,12 @@ void FindBreakpoints<span>::operator()()
 template<size_t span>
 void FindBreakpoints<span>::notify(Node node)
 {
-    bool in_graph = this->finder->_graph.contains(node);
+    bool in_graph = this->graph_contains(node);
+    std::cout<<std::noboolalpha<<in_graph;
+    this->store_kmer_info(node);
+
     if(!this->finder->_homo_only)
     {
-	// computing the current kmer informations
-	this->m_current_info.kmer = this->m_it_kmer->forward();
-	if (this->finder->_graph.contains(node))
-	{
-	    this->m_current_info.nb_in = this->finder->_graph.indegree (node);
-	    this->m_current_info.nb_out = this->finder->_graph.outdegree (node);
-	}
-	else
-	{
-	    this->m_current_info.nb_in = 0;
-	    this->m_current_info.nb_out = 0;
-	}
-
-	//checking if the k-1 suffix is repeated
-	KmerType suffix = this->m_it_kmer->forward() & this->m_kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
-	KmerType suffix_rev = revcomp(suffix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
-        this->m_current_info.is_repeated = this->m_ref_bloom->contains(min(suffix,suffix_rev));
-
-	//checking if the k-1 prefix is repeated
-	KmerType prefix = (this->m_it_kmer->forward() >> 2) & this->m_kminus1_mask; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
-	KmerType prefix_rev = revcomp(prefix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
-        this->m_kmer_end_is_repeated = this->m_ref_bloom->contains(min(prefix,prefix_rev));
-
-	//filling the history array with the current kmer information
-	this->m_het_kmer_history[m_het_kmer_end_index] = m_current_info;
-	
 	for(auto it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
 	{
 	    (*it)->update();
@@ -526,7 +502,6 @@ bool FindBreakpoints<span>::kmer_end_is_repeated()
     return this->m_kmer_end_is_repeated;
 }
 
-
 template<size_t span>
 typename FindBreakpoints<span>::info_type& FindBreakpoints<span>::het_kmer_history(char index)
 {
@@ -537,6 +512,12 @@ template<size_t span>
 unsigned char FindBreakpoints<span>::het_kmer_begin_index()
 {
     return this->m_het_kmer_begin_index;
+}
+
+template<size_t span>
+bool FindBreakpoints<span>::graph_contains(Node& kmer_node)
+{
+    return this->finder->_graph.contains(kmer_node);
 }
 
 /*Iterater*/
@@ -637,6 +618,34 @@ IBloom<typename FindBreakpoints<span>::KmerType>* FindBreakpoints<span>::fillRef
     return ref_bloom;
 }
 
+template<size_t span>
+void FindBreakpoints<span>::store_kmer_info(Node node)
+{
+    this->m_current_info.kmer = this->m_it_kmer->forward();
+    if (this->finder->_graph.contains(node))
+    {
+	this->m_current_info.nb_in = this->finder->_graph.indegree (node);
+	this->m_current_info.nb_out = this->finder->_graph.outdegree (node);
+    }
+    else
+    {
+	this->m_current_info.nb_in = 0;
+	this->m_current_info.nb_out = 0;
+    }
+
+    //checking if the k-1 suffix is repeated
+    KmerType suffix = this->m_it_kmer->forward() & this->m_kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
+    KmerType suffix_rev = revcomp(suffix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
+    this->m_current_info.is_repeated = this->m_ref_bloom->contains(min(suffix,suffix_rev));
+
+    //checking if the k-1 prefix is repeated
+    KmerType prefix = (this->m_it_kmer->forward() >> 2) & this->m_kminus1_mask; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
+    KmerType prefix_rev = revcomp(prefix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
+    this->m_kmer_end_is_repeated = this->m_ref_bloom->contains(min(prefix,prefix_rev));
+
+    //filling the history array with the current kmer information
+    this->m_het_kmer_history[m_het_kmer_end_index] = m_current_info;
+}
 
 #endif /* _TOOL_FindBreakpoints_HPP_ */
 
