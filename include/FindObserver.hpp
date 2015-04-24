@@ -178,12 +178,7 @@ bool FindSoloSNP<span>::correct(KmerType& kmer, KmerType& nuc, size_t pos)
     mutate = min(mutate, revcomp(mutate, this->_find->kmer_size()));
 
     Node node = Node(Node::Value(mutate));
-    if(this->_find->graph_contains(node))
-    {
-	return true;
-    }
-
-    return false;
+    return this->_find->graph_contains(node);
 }
 
 //// mutate_kmer
@@ -259,7 +254,7 @@ bool FindHeteroInsert<span>::update()
 	if(!this->_find->kmer_end_is_repeated() && this->_find->current_info().nb_in == 2 && !this->_find->recent_hetero())
 	{
 	    //loop over putative repeat size (0=clean, >0 fuzzy), reports only the smallest repeat size found.
-	    for(int i=0; i<=this->_find->max_repeat(); i++)
+	    for(int i = 0; i <= this->_find->max_repeat(); i++)
 	    {
 		if(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 && !this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated)
 		{
