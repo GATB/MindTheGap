@@ -28,9 +28,18 @@
 #define _TOOL_FindBreakpoints_HPP_
 
 /********************************************************************************/
-#include <memory>
 #include <gatb/gatb_core.hpp>
 #include <Finder.hpp>
+
+//DONT_USE_TR1 variable defined in CMakeList.txt of gatb-core : depending on the compil version unordered_map is not in the same location...
+#ifdef DONT_USE_TR1
+    #include <memory>
+    #define NS_TR1_PREFIX std
+#else
+    #include <tr1/memory>
+    #define NS_TR1_PREFIX std::tr1
+#endif
+
 
 /********************************************************************************/
 
@@ -207,9 +216,9 @@ private :
 private :
 
     /*Observable membre*/
-    std::vector<std::unique_ptr<IFindObserver<span> > > gap_obs;
-    std::vector<std::unique_ptr<IFindObserver<span> > > kmer_obs;
-    std::unique_ptr<IFindObserver<span> > m_backup;
+    std::vector<NS_TR1_PREFIX::unique_ptr<IFindObserver<span> > > gap_obs;
+    std::vector<NS_TR1_PREFIX::unique_ptr<IFindObserver<span> > > kmer_obs;
+    NS_TR1_PREFIX::unique_ptr<IFindObserver<span> > m_backup;
 
     /*Find breakpoint membre*/
     /*Write breakpoint*/
@@ -244,7 +253,7 @@ private :
 
     /** Bloom of the repeated kmers of the reference genome 
      */
-    std::unique_ptr<IBloom<KmerType> > m_ref_bloom;
+    NS_TR1_PREFIX::unique_ptr<IBloom<KmerType> > m_ref_bloom;
 };
 
 template<size_t span>
@@ -377,14 +386,14 @@ template<size_t span>
 void FindBreakpoints<span>::addGapObserver(IFindObserver<span>* new_obs)
 {
     // Add observer in tables use unique_ptr for safety destruction
-    this->gap_obs.push_back(std::unique_ptr<IFindObserver<span> >(new_obs));
+    this->gap_obs.push_back(NS_TR1_PREFIX::unique_ptr<IFindObserver<span> >(new_obs));
 }
 
 template<size_t span>
 void FindBreakpoints<span>::addKmerObserver(IFindObserver<span>* new_obs)
 {
     // Add observer in tables use unique_ptr for safety destruction
-    this->kmer_obs.push_back(std::unique_ptr<IFindObserver<span> >(new_obs));
+    this->kmer_obs.push_back(NS_TR1_PREFIX::unique_ptr<IFindObserver<span> >(new_obs));
 }
 
 template<size_t span>
