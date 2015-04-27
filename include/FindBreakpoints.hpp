@@ -85,7 +85,7 @@ public :
     /** Notify gap observer
      * \param[in] If kmer is in graph in_graph is true else is false
      */
-    void notify(Node node);
+    void notify(Node node, bool is_valid);
 
     /** Add observer call after a gap detection
      */
@@ -317,21 +317,14 @@ void FindBreakpoints<span>::operator()()
 	// We iterate the kmers.
 	for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++)
 	{
-	    if((this->m_position > 39930 && this->m_position < 39970) || (this->m_position > 1691385 && this->m_position < 1691425) || (this->m_position > 3083006 && this->m_position < 3083046))
-	    {
-		std::cout<<"Pos "<<this->m_position<<" "<<this->m_model.toString(m_it_kmer->value())<<std::endl;
-	    }
-
-	    if(this->m_position == 39971 ||  this->m_position == 1691426 || this->m_position == 3083047)
-	    {
-		std::cout<<std::endl;
-	    }
-	    
             //we need to convert the kmer in a node to query the graph.
 	    Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
 
+	    KmerCanonical kmer_obj;
+	    kmer_obj.set(m_it_kmer->forward());
+
 	    //we notify all observer
-	    this->notify(node);
+	    this->notify(node, kmer_obj.isValid());
 
 	    //save actual kmer for potential False Positive
 	    m_previous_kmer.set(m_it_kmer->forward());
@@ -340,9 +333,10 @@ void FindBreakpoints<span>::operator()()
 }
 
 template<size_t span>
-void FindBreakpoints<span>::notify(Node node)
+void FindBreakpoints<span>::notify(Node node, bool is_valid)
 {
     bool in_graph = this->graph_contains(node);
+
     this->store_kmer_info(node);
 
     if(!this->finder->_homo_only)
@@ -356,7 +350,7 @@ void FindBreakpoints<span>::notify(Node node)
     }
 
     // Kmer is in graph incremente scretch size
-    if(in_graph)
+    if(in_graph && is_valid)
     {
 	m_solid_stretch_size++;
 
@@ -387,6 +381,11 @@ void FindBreakpoints<span>::notify(Node node)
 	    // kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when m_solid_stretch_size=1)
 	    this->m_kmer_end.set(this->m_it_kmer->forward());
 	}
+    }
+
+    if(!is_valid)
+    {
+	m_solid_stretch_size++;
     }
     
     // Kmer isn't in graph incremente gap size and reset solid size

@@ -45,6 +45,11 @@ FindCleanInsert<span>::FindCleanInsert(FindBreakpoints<span> * find) : IFindObse
 template<size_t span>
 bool FindCleanInsert<span>::update()
 {
+    if(this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid())
+    {
+	return false;
+    }
+
     if(this->_find->gap_stretch_size() == (this->_find->kmer_size()-1)) //Check size of gap 
     {
 	// obtains the kmer sequence
@@ -83,6 +88,11 @@ FindFuzzyInsert<span>::FindFuzzyInsert(FindBreakpoints<span> * find) : IFindObse
 template<size_t span>
 bool FindFuzzyInsert<span>::update()
 {
+    if(this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid())
+    {
+	return false;
+    }
+
     if(this->_find->gap_stretch_size() < this->_find->kmer_size() - 1 && this->_find->gap_stretch_size() >= this->_find->kmer_size() - 1 - this->_find->max_repeat())
     {
 	// Fuzzy site, position and kmer_end are impacted by the repeat
@@ -131,6 +141,11 @@ FindSoloSNP<span>::FindSoloSNP(FindBreakpoints<span> * find) : IFindObserver<spa
 template<size_t span>
 bool FindSoloSNP<span>::update()
 {
+    if(this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid())
+    {
+	return false;
+    }
+
     if(this->_find->gap_stretch_size() == this->_find->kmer_size())
     {
 	// Create map with all nuc A = 0, C = 1, T = 2, G = 3
@@ -215,6 +230,11 @@ FindBackup<span>::FindBackup(FindBreakpoints<span> * find) : IFindObserver<span>
 template<size_t span>
 bool FindBackup<span>::update()
 {
+    if(this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid())
+    {
+	return false;
+    }
+
     if(this->_find->gap_stretch_size() > (this->_find->kmer_size() / 2)) {
 	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
