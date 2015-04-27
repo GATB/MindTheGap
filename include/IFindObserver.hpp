@@ -40,7 +40,7 @@ class FindBreakpoints;
  * Implementation can be add in FindBreakpoints observer list and call by update.
  */
 template<size_t span>
-class IFindObserver
+class IFindObserver : public SmartPointer
 {
     
 public:

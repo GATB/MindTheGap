@@ -31,16 +31,6 @@
 #include <gatb/gatb_core.hpp>
 #include <Finder.hpp>
 
-//DONT_USE_TR1 variable defined in CMakeList.txt of gatb-core : depending on the compil version unordered_map is not in the same location...
-#ifdef DONT_USE_TR1
-    #include <memory>
-    #define NS_TR1_PREFIX std
-#else
-    #include <tr1/memory>
-    #define NS_TR1_PREFIX std::tr1
-#endif
-
-
 /********************************************************************************/
 
 template<size_t type>
@@ -80,7 +70,7 @@ public :
     FindBreakpoints(Finder * find, IFindObserver<span>* backup);
 
     /** Destructor. */
-    virtual ~FindBreakpoints() {}
+    virtual ~FindBreakpoints();
     
     //Functor
     /** overloading operator ()
@@ -216,9 +206,9 @@ private :
 private :
 
     /*Observable membre*/
-    std::vector<NS_TR1_PREFIX::unique_ptr<IFindObserver<span> > > gap_obs;
-    std::vector<NS_TR1_PREFIX::unique_ptr<IFindObserver<span> > > kmer_obs;
-    NS_TR1_PREFIX::unique_ptr<IFindObserver<span> > m_backup;
+    std::vector<IFindObserver<span>* > gap_obs;
+    std::vector<IFindObserver<span>* > kmer_obs;
+    IFindObserver<span>* m_backup;
 
     /*Find breakpoint membre*/
     /*Write breakpoint*/
@@ -253,7 +243,7 @@ private :
 
     /** Bloom of the repeated kmers of the reference genome 
      */
-    NS_TR1_PREFIX::unique_ptr<IBloom<KmerType> > m_ref_bloom;
+    IBloom<KmerType>* m_ref_bloom;
 };
 
 template<size_t span>
@@ -271,7 +261,28 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find, IFindObserver<span>* backu
     this->finder = find;
 
     /*Heterozygote usage*/
-    this->m_ref_bloom.reset(this->fillRefBloom());
+    this->m_ref_bloom = this->fillRefBloom();
+    this->m_ref_bloom->use();
+
+    this->m_backup->use();
+}
+
+template<size_t span>
+FindBreakpoints<span>::~FindBreakpoints()
+{
+    for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
+    {
+	(*it)->forget();
+    }
+
+    for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
+    {
+	(*it)->forget();
+    }
+
+    this->m_ref_bloom->forget();
+
+   this->m_backup->forget();
 }
 
 template<size_t span>
@@ -323,7 +334,7 @@ void FindBreakpoints<span>::notify(Node node)
 
     if(!this->finder->_homo_only)
     {
-	for(auto it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
+	for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
 	{
 	    (*it)->update();
 	}
@@ -340,7 +351,7 @@ void FindBreakpoints<span>::notify(Node node)
 	{
 	    bool one_observer_ret_true = false;
 	    // Call each readonly observer
-	    for(auto it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
+	    for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
 	    {
 		bool current_observer_ret = (*it)->update();
 		if(!one_observer_ret_true && current_observer_ret)
@@ -385,15 +396,17 @@ void FindBreakpoints<span>::notify(Node node)
 template<size_t span>
 void FindBreakpoints<span>::addGapObserver(IFindObserver<span>* new_obs)
 {
+    new_obs->use();
     // Add observer in tables use unique_ptr for safety destruction
-    this->gap_obs.push_back(NS_TR1_PREFIX::unique_ptr<IFindObserver<span> >(new_obs));
+    this->gap_obs.push_back(new_obs);
 }
 
 template<size_t span>
 void FindBreakpoints<span>::addKmerObserver(IFindObserver<span>* new_obs)
 {
+    new_obs->use();
     // Add observer in tables use unique_ptr for safety destruction
-    this->kmer_obs.push_back(NS_TR1_PREFIX::unique_ptr<IFindObserver<span> >(new_obs));
+    this->kmer_obs.push_back(new_obs);
 }
 
 template<size_t span>
