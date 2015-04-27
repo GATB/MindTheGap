@@ -46,11 +46,14 @@ class FindBreakpoints
 {
 public :
 
-    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical KmerModel;
-    typedef typename KmerModel::Iterator KmerIterator;
-    typedef typename gatb::core::kmer::impl::Kmer<span>::Type KmerType;
-    typedef typename gatb::core::kmer::impl::Kmer<span>::Count KmerCount;
+    typedef typename gatb::core::kmer::impl::Kmer<span> Kmer;
 
+    typedef typename Kmer::ModelCanonical KmerModel;
+    typedef typename Kmer::Type KmerType;
+    typedef typename Kmer::Count KmerCount;
+    typedef typename Kmer::KmerCanonical KmerCanonical;
+
+    typedef typename KmerModel::Iterator KmerIterator;
 
     /** Variables for the heterozyguous mode */
     // structure to store information about a kmer : kmer that will be treated as kmer_begin of a breakpoint
@@ -126,11 +129,11 @@ public :
 
     /** The last solid kmer before gap
      */
-    KmerType& kmer_begin();
+    KmerCanonical& kmer_begin();
 
     /** The first solid kmer after gap
      */
-    KmerType& kmer_end();
+    KmerCanonical& kmer_end();
 
     /** Size of current solid stretch
      */
@@ -219,12 +222,12 @@ private :
 
     /*Kmer related object*/
     KmerModel m_model;
-    KmerType m_previous_kmer;
+    KmerCanonical m_previous_kmer;
     KmerIterator m_it_kmer;
 
     /*Kmer related object*/
-    KmerType m_kmer_begin;
-    KmerType m_kmer_end;
+    KmerCanonical m_kmer_begin;
+    KmerCanonical m_kmer_end;
 
     /*Gap type detection*/
     uint64_t m_solid_stretch_size;
@@ -314,14 +317,24 @@ void FindBreakpoints<span>::operator()()
 	// We iterate the kmers.
 	for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++)
 	{
-	    //we need to convert the kmer in a node to query the graph.
+	    if((this->m_position > 39930 && this->m_position < 39970) || (this->m_position > 1691385 && this->m_position < 1691425) || (this->m_position > 3083006 && this->m_position < 3083046))
+	    {
+		std::cout<<"Pos "<<this->m_position<<" "<<this->m_model.toString(m_it_kmer->value())<<std::endl;
+	    }
+
+	    if(this->m_position == 39971 ||  this->m_position == 1691426 || this->m_position == 3083047)
+	    {
+		std::cout<<std::endl;
+	    }
+	    
+            //we need to convert the kmer in a node to query the graph.
 	    Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
 
 	    //we notify all observer
 	    this->notify(node);
 
 	    //save actual kmer for potential False Positive
-	    m_previous_kmer = m_it_kmer->forward();
+	    m_previous_kmer.set(m_it_kmer->forward());
 	}
     }
 }
@@ -341,7 +354,7 @@ void FindBreakpoints<span>::notify(Node node)
 
 	this->m_recent_hetero = max(0,this->m_recent_hetero - 1); // when recent_hetero=0 : we are sufficiently far from the previous hetero-site
     }
-    
+
     // Kmer is in graph incremente scretch size
     if(in_graph)
     {
@@ -372,7 +385,7 @@ void FindBreakpoints<span>::notify(Node node)
 	if (this->m_solid_stretch_size==1)
 	{
 	    // kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when m_solid_stretch_size=1)
-	    this->m_kmer_end = this->m_it_kmer->forward();
+	    this->m_kmer_end.set(this->m_it_kmer->forward());
 	}
     }
     
@@ -472,13 +485,13 @@ int FindBreakpoints<span>::max_repeat()
 
 /*Kmer related object*/
 template<size_t span>
-typename FindBreakpoints<span>::KmerType& FindBreakpoints<span>::kmer_begin()
+typename FindBreakpoints<span>::KmerCanonical& FindBreakpoints<span>::kmer_begin()
 {
     return this->m_kmer_begin;
 }
 
 template<size_t span>
-typename FindBreakpoints<span>::KmerType& FindBreakpoints<span>::kmer_end()
+typename FindBreakpoints<span>::KmerCanonical& FindBreakpoints<span>::kmer_end()
 {
     return this->m_kmer_end;
 }

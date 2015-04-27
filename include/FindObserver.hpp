@@ -48,8 +48,8 @@ bool FindCleanInsert<span>::update()
     if(this->_find->gap_stretch_size() == (this->_find->kmer_size()-1)) //Check size of gap 
     {
 	// obtains the kmer sequence
-	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin());
-	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end());
+	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
+	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 
 	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0,STR_HOM_TYPE);
 
@@ -89,7 +89,7 @@ bool FindFuzzyInsert<span>::update()
 	int repeat_size = this->_find->kmer_size() - 1 - this->_find->gap_stretch_size();
 	    
 	// obtains the kmer sequence
-	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin());
+	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
 	    
 	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size, STR_HOM_TYPE);
@@ -157,8 +157,8 @@ bool FindSoloSNP<span>::update()
 	{
 	    if(nuc_it->second == this->_find->kmer_size())
 	    {
-		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin());
-		string kmer_end_str = this->_find->model().toString(this->_find->kmer_end());
+		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
+		string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 
 		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0,STR_HOM_TYPE);
 		this->_find->breakpoint_id_iterate();
@@ -216,8 +216,8 @@ template<size_t span>
 bool FindBackup<span>::update()
 {
     if(this->_find->gap_stretch_size() > (this->_find->kmer_size() / 2)) {
-	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin());
-	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end());
+	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
+	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 	string chrom_name_bak = this->_find->chrom_name()+"_backup";
 
 	this->_find->writeBreakpoint(this->_find->breakpoint_id(), chrom_name_bak, this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0, STR_HOM_TYPE);
