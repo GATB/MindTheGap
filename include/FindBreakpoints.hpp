@@ -351,7 +351,7 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
     {
 	m_solid_stretch_size++;
 
-	if(m_solid_stretch_size > 1)
+	if(m_solid_stretch_size > 1 && m_gap_stretch_size > 0)
 	{
 	    bool one_observer_ret_true = false;
 	    // Call each readonly observer
