@@ -44,15 +44,15 @@ FindCleanInsert<span>::FindCleanInsert(FindBreakpoints<span> * find) : IFindObse
 
 template<size_t span>
 bool FindCleanInsert<span>::update()
-{
-    if(this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid())
+{   
+    if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
 	return false;
     }
-
+    
     if(this->_find->gap_stretch_size() == (this->_find->kmer_size()-1)) //Check size of gap 
     {
-	// obtains the kmer sequence
+        // obtains the kmer sequence
 	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 
@@ -88,7 +88,7 @@ FindFuzzyInsert<span>::FindFuzzyInsert(FindBreakpoints<span> * find) : IFindObse
 template<size_t span>
 bool FindFuzzyInsert<span>::update()
 {
-    if(this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid())
+    if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
 	return false;
     }
@@ -141,7 +141,7 @@ FindSoloSNP<span>::FindSoloSNP(FindBreakpoints<span> * find) : IFindObserver<spa
 template<size_t span>
 bool FindSoloSNP<span>::update()
 {
-    if(this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid())
+    if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
 	return false;
     }
@@ -230,7 +230,7 @@ FindBackup<span>::FindBackup(FindBreakpoints<span> * find) : IFindObserver<span>
 template<size_t span>
 bool FindBackup<span>::update()
 {
-    if(this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid())
+    if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
 	return false;
     }

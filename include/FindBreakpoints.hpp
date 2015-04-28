@@ -320,14 +320,11 @@ void FindBreakpoints<span>::operator()()
             //we need to convert the kmer in a node to query the graph.
 	    Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
 
-	    KmerCanonical kmer_obj;
-	    kmer_obj.set(m_it_kmer->forward());
-
 	    //we notify all observer
-	    this->notify(node, kmer_obj.isValid());
+	    this->notify(node, (*m_it_kmer).isValid());
 
 	    //save actual kmer for potential False Positive
-	    m_previous_kmer.set(m_it_kmer->forward());
+	    m_previous_kmer = *m_it_kmer;
 	}
     }
 }
@@ -336,7 +333,7 @@ template<size_t span>
 void FindBreakpoints<span>::notify(Node node, bool is_valid)
 {
     bool in_graph = this->graph_contains(node);
-
+    
     this->store_kmer_info(node);
 
     if(!this->finder->_homo_only)
@@ -379,23 +376,27 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 	if (this->m_solid_stretch_size==1)
 	{
 	    // kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when m_solid_stretch_size=1)
-	    this->m_kmer_end.set(this->m_it_kmer->forward());
+	    this->m_kmer_end = *this->m_it_kmer;
 	}
     }
 
     if(!is_valid)
     {
 	m_solid_stretch_size++;
+	if(this->m_previous_kmer.isValid() && in_graph)
+	{
+	    this->m_kmer_begin = this->m_previous_kmer;
+	}
     }
     
     // Kmer isn't in graph incremente gap size and reset solid size
-    if(!in_graph)
+    if(!in_graph && is_valid)
     {
 	if(this->m_solid_stretch_size==1)
 	{
 	    this->m_gap_stretch_size = this->m_gap_stretch_size + this->m_solid_stretch_size; //if previous position was an isolated solid kmer, we need to add 1 to the m_gap_stretch_size (as if replacing the FP by a non indexed kmer)
 	}
-	if(this->m_solid_stretch_size > 1) // begin of not indexed zone
+	if(this->m_solid_stretch_size > 1 && this->m_previous_kmer.isValid()) // begin of not indexed zone
 	{
 	    this->m_kmer_begin = this->m_previous_kmer;
 	}
