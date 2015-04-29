@@ -595,7 +595,7 @@ IBloom<typename FindBreakpoints<span>::KmerType>* FindBreakpoints<span>::fillRef
     IBloom<KmerType>* ref_bloom = 0;
 
     //solid kmers must be stored in a file
-    string tempFileName="trashme.h5";
+    string tempFileName = this->finder->getInput()->getStr(STR_URI_OUTPUT)+"_trashme.h5";
     Storage* solidStorage = StorageFactory(STORAGE_HDF5).create (tempFileName, true, false);
     LOCAL (solidStorage);
 
