@@ -149,8 +149,12 @@ bool FindSoloSNP<span>::update()
     if(this->_find->gap_stretch_size() == this->_find->kmer_size())
     {
 	// Create map with all nuc A = 0, C = 1, T = 2, G = 3
-	std::map<KmerType, int> nuc {{0, 0}, {1, 0}, {2, 0}, {3, 0}};
-
+	std::map<KmerType, int> nuc;
+	nuc[0] = 0;
+	nuc[1] = 0;
+	nuc[2] = 0;
+	nuc[3] = 0;
+	
 	//Get the mutate nuc and remove this in map
         KmerType snp_nuc = this->_find->het_kmer_history(this->_find->het_kmer_begin_index() - 1).kmer & 3; // obtain last 2 bit
 	nuc.erase(snp_nuc);
