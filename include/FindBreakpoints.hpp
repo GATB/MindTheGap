@@ -250,7 +250,7 @@ private :
 };
 
 template<size_t span>
-FindBreakpoints<span>::FindBreakpoints(Finder * find, IFindObserver<span>* backup) : gap_obs(), m_model(find->_kmerSize), m_it_kmer(m_model), m_backup(backup)
+FindBreakpoints<span>::FindBreakpoints(Finder * find, IFindObserver<span>* backup) : gap_obs(), m_backup(backup), m_model(find->_kmerSize), m_it_kmer(m_model)
 {
     this->m_breakpoint_id = 0;
     this->m_position = 0;
