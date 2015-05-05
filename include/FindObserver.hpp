@@ -122,7 +122,7 @@ public :
     typedef typename gatb::core::kmer::impl::Kmer<span>::Type KmerType;
 
 public :
-    
+
     /** \copydoc IFindObserver::IFindObserver
      */
     FindSNP(FindBreakpoints<span> * find);
@@ -132,22 +132,28 @@ public :
     virtual bool update() = 0;
 
 protected :
-    
-    bool correct(KmerType& kmer, KmerType& nuc, size_t pos);
+
+    bool contains(KmerType kmer);
+    KmerType correct(KmerType& kmer, KmerType& nuc, size_t pos);
     KmerType mutate_kmer(KmerType& kmer, KmerType& nuc, size_t pos);
+    void remove_nuc(std::map<KmerType, unsigned int>& nuc, size_t pos);
 };
 
 template<size_t span>
 FindSNP<span>::FindSNP(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
 
 template<size_t span>
-bool FindSNP<span>::correct(KmerType& kmer, KmerType& nuc, size_t pos)
+bool FindSNP<span>::contains(KmerType kmer)
+{
+    Node node = Node(Node::Value(kmer));
+    return this->_find->graph_contains(node);
+}
+
+template<size_t span>
+typename FindSNP<span>::KmerType FindSNP<span>::correct(KmerType& kmer, KmerType& nuc, size_t pos)
 {
     KmerType mutate = this->mutate_kmer(kmer, nuc, pos);
-    mutate = min(mutate, revcomp(mutate, this->_find->kmer_size()));
-
-    Node node = Node(Node::Value(mutate));
-    return this->_find->graph_contains(node);
+    return min(mutate, revcomp(mutate, this->_find->kmer_size()));
 }
 
 //// mutate_kmer
@@ -163,15 +169,27 @@ typename FindSNP<span>::KmerType FindSNP<span>::mutate_kmer(KmerType& kmer, Kmer
     KmerType set_mask = nuc << (pos*2);
     return (kmer & reset_mask ) | set_mask;
 }
-    
+
+template<size_t span>
+void FindSNP<span>::remove_nuc(std::map<KmerType, unsigned int>& nuc, size_t pos)
+{
+    // pos in history = integer part of pos / kmer_size + 1
+    unsigned int index_swip = (pos / this->_find->kmer_size()) + 1;
+    unsigned int bin_cache = 3 << (pos % this->_find->kmer_size());
+
+    //Get the mutate nuc and remove this in map
+    KmerType snp_nuc = this->_find->het_kmer_history(this->_find->het_kmer_begin_index() - index_swip).kmer & bin_cache >> (pos % this->_find->kmer_size()); // obtain the nuc
+
+    nuc.erase(snp_nuc);
+}
+
 template<size_t span>
 class FindSoloSNP : public FindSNP<span>
 {
 public :
 
     typedef typename FindSNP<span>::KmerType KmerType;
-    
-    
+
 public :
 
     /** \copydoc IFindObserver::IFindObserver
@@ -203,9 +221,7 @@ bool FindSoloSNP<span>::update()
 	nuc[2] = 0;
 	nuc[3] = 0;
 	
-	//Get the mutate nuc and remove this in map
-        KmerType snp_nuc = this->_find->het_kmer_history(this->_find->het_kmer_begin_index() - 1).kmer & 3; // obtain last 2 bit
-	nuc.erase(snp_nuc);
+	this->remove_nuc(nuc, this->_find->kmer_size());
 
 	// iterate one possible new value
 	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
@@ -213,7 +229,7 @@ bool FindSoloSNP<span>::update()
 	    for(size_t i = this->_find->het_kmer_begin_index() - 1, j = 0; i != this->_find->het_kmer_begin_index() + this->_find->kmer_size() - 1; i++, j++)
 	    {
 	        KmerType tmp = nuc_it->first;
-		if(this->correct(this->_find->het_kmer_history(i).kmer, tmp, j))
+		if(this->contains(this->correct(this->_find->het_kmer_history(i).kmer, tmp, j)))
 		{
 		    nuc_it->second++;
 		}
@@ -221,6 +237,86 @@ bool FindSoloSNP<span>::update()
 	}
 
 	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
+	{
+	    if(nuc_it->second == this->_find->kmer_size())
+	    {
+		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
+		string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
+
+		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0,STR_HOM_TYPE);
+		this->_find->breakpoint_id_iterate();
+
+		return true;
+	    }
+	}
+    }
+
+    return false;
+}
+
+template<size_t span>
+class FindDuoSNP : public FindSNP<span>
+{
+public :
+
+    typedef typename FindSNP<span>::KmerType KmerType;
+
+public :
+
+    /** \copydoc IFindObserver::IFindObserver
+     */
+    FindDuoSNP(FindBreakpoints<span> * find);
+
+    /** \copydoc IFindObserver::update
+     */
+    bool update();
+};
+
+template<size_t span>
+FindDuoSNP<span>::FindDuoSNP(FindBreakpoints<span> * find) : FindSNP<span>(find){}
+
+template<size_t span>
+bool FindDuoSNP<span>::update()
+{
+    if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
+    {
+	return false;
+    }
+
+    if(this->_find->gap_stretch_size() > this->_find->kmer_size())
+    {
+	unsigned int snp_dist = this->_find->gap_stretch_size() - this->_find->kmer_size();
+
+	// Create map with all nuc A = 0, C = 1, T = 2, G = 3
+	std::map<KmerType, unsigned int> nuc_first;
+	nuc_first[0] = 0;
+	nuc_first[1] = 0;
+	nuc_first[2] = 0;
+	nuc_first[3] = 0;
+
+	std::map<KmerType, unsigned int> nuc_second;
+	nuc_second[0] = 0;
+	nuc_second[1] = 0;
+	nuc_second[2] = 0;
+	nuc_second[3] = 0;
+
+	this->remove_nuc(nuc_first, this->_find->kmer_size());
+	this->remove_nuc(nuc_second, this->_find->kmer_size() + snp_dist);
+
+	// iterate one possible new value
+	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc_first.begin(); nuc_it != nuc_first.end(); nuc_it++)
+	{
+	    for(size_t i = this->_find->het_kmer_begin_index() - 1, j = 0; i != this->_find->het_kmer_begin_index() + this->_find->kmer_size() - 1; i++, j++)
+	    {
+		KmerType tmp = nuc_it->first;
+		if(this->contains(this->correct(this->correct(this->_find->het_kmer_history(i).kmer, tmp, j), tmp, j + snp_dist)))
+		{
+		    nuc_it->second++;
+		}
+	    }
+	}
+
+	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc_first.begin(); nuc_it != nuc_first.end(); nuc_it++)
 	{
 	    if(nuc_it->second == this->_find->kmer_size())
 	    {

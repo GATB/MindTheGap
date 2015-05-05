@@ -26,6 +26,10 @@ echo "Testing solo SNP"
 
 run_test reads/master.fasta references/sSNP.fasta truths/sSNP.fasta sSNP
 
+echo "Testing duo SNP"
+
+run_test reads/master.fasta references/dSNP.fasta truths/dSNP.fasta dSNP
+
 echo "Testing heterozygote"
 
 run_test reads/deleted.fasta,reads/master.fasta references/deleted.fasta truths/insertion.fasta hete
