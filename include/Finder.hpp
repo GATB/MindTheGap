@@ -34,6 +34,10 @@ static const char* STR_HET_MAX_OCC = "-het-max-occ";
 
 static const char* STR_HOM_TYPE = "HOM";
 static const char* STR_HET_TYPE = "HET";
+static const char* STR_SNP_TYPE = "SNP";
+static const char* STR_MSNP_TYPE = "MSNP";
+static const char* STR_DEL_TYPE = "DEL";
+static const char* STR_BKP_TYPE = "BAKCUP";
 
 class Finder : public Tool
 {
