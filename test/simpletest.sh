@@ -18,6 +18,8 @@ run_test()
     fi
 }
 
+mkdir output
+
 echo  "Testing canonical k-1 insert site"
 
 run_test reads/master.fasta references/deleted.fasta truths/insertion.fasta k-1
@@ -48,3 +50,4 @@ echo "    N after gap :"
 
 run_test reads/master.fasta references/n_after_gap.fasta truths/n_after_gap.fasta n_after_gap
 
+rm -rf output

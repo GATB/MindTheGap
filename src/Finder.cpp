@@ -79,9 +79,18 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
     finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
 
-    IOptionsParser* graphParser = new OptionsParser("Graph building");
-    graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
-    graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
+    IOptionsParser* graphParser = SortingCountAlgorithm<>::getOptionsParser(false);
+    graphParser->setName ("Graph building");
+
+    /** We hide some options. */
+    const char* optionNames[] = {
+        STR_URI_INPUT, STR_KMER_ABUNDANCE_MIN_THRESHOLD, STR_HISTOGRAM_MAX, STR_SOLIDITY_KIND,
+        STR_URI_SOLID_KMERS, STR_URI_OUTPUT, STR_URI_OUTPUT_DIR, STR_MINIMIZER_TYPE, STR_MINIMIZER_SIZE, STR_REPARTITION_TYPE
+    };
+    for (size_t i=0; i<sizeof(optionNames)/sizeof(optionNames[0]); i++)
+    {
+        if (IOptionsParser* p = graphParser->getParser(optionNames[i]))  { p->setVisible(false);  }
+    }
 
     getParser()->push_front(generalParser);
     getParser()->push_front(finderParser);

@@ -596,28 +596,22 @@ IBloom<typename FindBreakpoints<span>::KmerType>* FindBreakpoints<span>::fillRef
 
     //solid kmers must be stored in a file
     string tempFileName = this->finder->getInput()->getStr(STR_URI_OUTPUT)+"_trashme.h5";
-    Storage* solidStorage = StorageFactory(STORAGE_HDF5).create (tempFileName, true, false);
-    LOCAL (solidStorage);
+
+    IProperties* props = this->finder->getInput()->clone();
+    props->setStr (STR_URI_INPUT,          this->finder->_refBank->getId());
+    props->setInt (STR_KMER_ABUNDANCE_MIN, this->finder->_het_max_occ+1);
+    props->setInt (STR_KMER_SIZE,          this->finder->_kmerSize-1);
+    props->setStr (STR_URI_OUTPUT,         tempFileName);
 
     /** We create a DSK (kmer counting) instance and execute it. */
-    SortingCountAlgorithm<span> sortingCount (
-	solidStorage,
-	this->finder->_refBank,
-	this->finder->_kmerSize-1,
-	make_pair(this->finder->_het_max_occ+1,~0), //min and max abundances for a kmer to be solid
-	this->finder->getInput()->getInt(STR_MAX_MEMORY),
-	this->finder->getInput()->getInt(STR_MAX_DISK),
-	this->finder->getInput()->getInt(STR_NB_CORES),
-	gatb::core::tools::misc::KMER_SOLIDITY_DEFAULT
-	);
+    SortingCountAlgorithm<span> sortingCount (props);
 
     sortingCount.getInput()->add (0, STR_VERBOSE, 0);//do not show progress bar
     sortingCount.execute();
 
-    Storage* storage = StorageFactory(STORAGE_HDF5).load (tempFileName);
-    LOCAL (storage);
+    // OLD WAY : Partition<KmerCount> & solidCollection = storage->root().getGroup("dsk").getPartition<KmerCount> ("solid");
+    Partition<KmerCount> & solidCollection = * sortingCount.getSolidCounts();
 
-    Partition<KmerCount> & solidCollection = storage->root().getGroup("dsk").getPartition<KmerCount> ("solid");
     /** We get the number of solid kmers. */
     u_int64_t nb_solid = solidCollection.getNbItems();
 
