@@ -201,23 +201,35 @@ bool FindSNP<span>::snp_at_end(unsigned char beginpos, size_t limit, KmerType* r
     // iterate one possible new value
     for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
     {
-	for(unsigned char i = beginpos, j = 0; i != endpos; i++, j++)
+	bool end = false;
+	for(unsigned char i = beginpos, j = 0; end; i++, j++)
 	{
 	    KmerType tmp = nuc_it->first;
 	    if(this->contains(this->correct(this->_find->het_kmer_history(i).kmer, tmp, j)))
 	    {
 		nuc_it->second++;
 	    }
+	    else
+	    {
+		nuc_it = nuc.erase(nuc_it);
+		end = true;
+	    }
 	}
     }
 
+    KmerType max = nuc.begin()->first;
     for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
     {
-	if(nuc_it->second >= limit)
+	if(nuc_it->second > nuc[max])
 	{
-	    *ret_nuc = nuc_it->first;
-	    return true;
+	    max = nuc_it->first;
 	}
+    }
+
+    if(nuc[max] >= limit)
+    {
+	*ret_nuc = max;
+	return true;
     }
 
     return false;
@@ -255,7 +267,8 @@ bool FindSoloSNP<span>::update()
 
     if(this->_find->gap_stretch_size() == this->_find->kmer_size())
     {
-	if(this->snp_at_end((this->_find->position() - this->_find->gap_stretch_size()) % 256, this->_find->kmer_size()))
+	KmerType nuc;
+	if(this->snp_at_end((this->_find->position() - this->_find->gap_stretch_size()) % 256, this->_find->kmer_size(), &nuc))
 	{
 	    string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	    string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
