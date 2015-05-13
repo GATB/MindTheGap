@@ -70,7 +70,7 @@ public :
     /** Constructor
      * \param[in] find : A pointeur one Finder instance
      */
-    FindBreakpoints(Finder * find, IFindObserver<span>* backup);
+    FindBreakpoints(Finder * find);
 
     /** Destructor. */
     virtual ~FindBreakpoints();
@@ -211,7 +211,6 @@ private :
     /*Observable membre*/
     std::vector<IFindObserver<span>* > gap_obs;
     std::vector<IFindObserver<span>* > kmer_obs;
-    IFindObserver<span>* m_backup;
 
     /*Find breakpoint membre*/
     /*Write breakpoint*/
@@ -250,7 +249,7 @@ private :
 };
 
 template<size_t span>
-FindBreakpoints<span>::FindBreakpoints(Finder * find, IFindObserver<span>* backup) : gap_obs(), m_backup(backup), m_model(find->_kmerSize), m_it_kmer(m_model)
+FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find->_kmerSize), m_it_kmer(m_model)
 {
     this->m_breakpoint_id = 0;
     this->m_position = 0;
@@ -266,8 +265,6 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find, IFindObserver<span>* backu
     /*Heterozygote usage*/
     this->m_ref_bloom = this->fillRefBloom();
     this->m_ref_bloom->use();
-
-    this->m_backup->use();
 }
 
 template<size_t span>
@@ -284,8 +281,6 @@ FindBreakpoints<span>::~FindBreakpoints()
     }
 
     this->m_ref_bloom->forget();
-
-   this->m_backup->forget();
 }
 
 template<size_t span>
@@ -353,20 +348,13 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 
 	if(m_solid_stretch_size > 1 && m_gap_stretch_size > 0)
 	{
-	    bool one_observer_ret_true = false;
 	    // Call each readonly observer
 	    for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
 	    {
-		bool current_observer_ret = (*it)->update();
-		if(!one_observer_ret_true && current_observer_ret)
+		if((*it)->update())
 		{
-		    one_observer_ret_true = true;
+		    break;
 		}
-	    }
-
-	    if(!one_observer_ret_true)
-	    {
-		this->m_backup->update();
 	    }
 
 	    // gap stretch size is re-set to 0 only when we are sure that the end of the gap is not due to an isolated solid kmer (likely FP)

@@ -295,12 +295,13 @@ void Finder::resumeResults(){
 template<size_t span>
 void Finder::runFindBreakpoints()
 {
-    FindBreakpoints<span> findBreakpoints(this, new FindBackup<span>(&findBreakpoints));
+    FindBreakpoints<span> findBreakpoints(this);
 
     /* Add Gar observer */
     findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
     findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
     findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
+    findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
 
     /* Add kmer observer*/
     findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
