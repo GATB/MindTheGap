@@ -78,6 +78,9 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     //allow to find heterozyguous breakpoints in n-repeated regions of the reference genome
     finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
     finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
+    finderParser->push_front (new OptionNoParam (STR_INSERT_ONLY, "only search for insert breakpoints", false));
+    finderParser->push_front (new OptionNoParam (STR_SNP_ONLY, "only search for snp", false));
+    finderParser->push_front (new OptionNoParam (STR_NO_BACKUP, "didn't enable system for catch all breakpoint when size is upper kmer-size/2", false));
 
     IOptionsParser* graphParser = SortingCountAlgorithm<>::getOptionsParser(false);
     graphParser->setName ("Graph building");
@@ -204,6 +207,9 @@ void Finder::execute ()
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_repeat = getInput()->getInt(STR_MAX_REPEAT);
     _homo_only=getInput()->get(STR_HOMO_ONLY) !=0;
+    _insert_only = getInput()->get(STR_INSERT_ONLY) != 0;
+    _snp_only = getInput()->get(STR_SNP_ONLY) != 0;
+    _no_backup = getInput()->get(STR_NO_BACKUP) != 0;
     _het_max_occ=getInput()->getInt(STR_HET_MAX_OCC);
     if(_het_max_occ<1){
     	_het_max_occ=1;
@@ -276,6 +282,9 @@ void Finder::resumeParameters(){
     getInfo()->add(2,"max_repeat","%i", _max_repeat);
     getInfo()->add(2,"homo_only","%s", _homo_only ? "yes" : "no");
     getInfo()->add(2,"hetero_max_occ","%i", _het_max_occ);
+    getInfo()->add(2,"insert_only","%s", _insert_only ? "yes" : "no");
+    getInfo()->add(2,"snp_only","%s", _snp_only ? "yes" : "no");
+    getInfo()->add(2,"no_backup","%s", _no_backup ? "yes" : "no");
     
 }
 
@@ -298,13 +307,28 @@ void Finder::runFindBreakpoints()
     FindBreakpoints<span> findBreakpoints(this);
 
     /* Add Gar observer */
-    findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
-    findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
-    findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
-    findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
+    if(!this->_snp_only)
+    {
+	findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
+	findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
+    }
+
+    if(!this->_insert_only)
+    {
+	findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
+	findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
+    }
+
+    if(!this->_no_backup)
+    {
+	findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
+    }
 
     /* Add kmer observer*/
-    findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
+    if(!this->_homo_only)
+    {
+	findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
+    }
 
     /* Run */
     findBreakpoints();

@@ -3,7 +3,8 @@
 run_test()
 {
     # param : reads_file ref_file true_result prefix
-    ../build/MindTheGap find -in $1 -ref $2 -kmer-size 31 -out output/$4_find 1> output/$4_find.out 2> output/$4_find.err
+    echo "../build/MindTheGap find -in $1 -ref $2 -kmer-size 31 -out output/$4_find $5 1> output/$4_find.out 2> output/$4_find.err"
+    ../build/MindTheGap find -in $1 -ref $2 -kmer-size 31 -out output/$4_find $5 1> output/$4_find.out 2> output/$4_find.err
 
     ../build/MindTheGap fill -bkpt output/$4_find.breakpoints -graph output/$4_find.h5  -out output/$4_fill 1> output/$4_fill.out 2> output/$4_fill.err
 
@@ -22,19 +23,19 @@ mkdir -p output
 
 echo  "Testing canonical k-1 insert site"
 
-run_test reads/master.fasta references/deleted.fasta truths/insertion.fasta k-1
+run_test reads/master.fasta references/deleted.fasta truths/insertion.fasta k-1 "-insert-only -no-backup -homo-only"
 
 echo "Testing solo SNP"
 
-run_test reads/master.fasta references/sSNP.fasta truths/sSNP.fasta sSNP
+run_test reads/master.fasta references/sSNP.fasta truths/sSNP.fasta sSNP "-snp-only -no-backup"
 
 echo "Testing duo SNP"
 
-run_test reads/master.fasta references/dSNP.fasta truths/dSNP.fasta dSNP
+run_test reads/master.fasta references/dSNP.fasta truths/dSNP.fasta dSNP "-snp-only -no-backup"
 
 echo "Testing heterozygote"
 
-run_test reads/deleted.fasta,reads/master.fasta references/deleted.fasta truths/insertion.fasta hete
+run_test reads/deleted.fasta,reads/master.fasta references/deleted.fasta truths/insertion.fasta hete "-no-backup -max-rep 2"
 
 echo "Testing witht N in reference :"
 echo "    N in stretch :"

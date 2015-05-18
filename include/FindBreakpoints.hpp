@@ -331,14 +331,9 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
     
     this->store_kmer_info(node);
 
-    if(!this->finder->_homo_only)
+    for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
     {
-	for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
-	{
-	    (*it)->update();
-	}
-
-	this->m_recent_hetero = max(0,this->m_recent_hetero - 1); // when recent_hetero=0 : we are sufficiently far from the previous hetero-site
+	(*it)->update();
     }
 
     // Kmer is in graph incremente scretch size
