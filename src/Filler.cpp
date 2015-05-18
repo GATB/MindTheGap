@@ -433,8 +433,8 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 		int best_err = 100000000;
 		int curr_err = 0;
 		int   best_j = -1;
-		int bg, bm;
-        for (int j = 0; j < nodelen-targetSequence.size()+1; j++)
+		// int bg, bm; debug only
+        for (unsigned int j = 0; j < nodelen-targetSequence.size()+1; j++)
         {
             nbmatch=0;
 
@@ -446,7 +446,7 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 			{
 
 
-				std::string nodestring(nodeseq + j , min(anchor_size + nb_gaps_allowed, (int)nodelen-j));
+			    std::string nodestring(nodeseq + j , min(anchor_size + nb_gaps_allowed, (int)(nodelen-j)));
 				int deb = j==128;
 				needleman_wunsch(targetSequence,nodestring,&nw_match,&nw_mis, &nw_gaps);
 				curr_err = nw_mis + nw_gaps;
@@ -461,7 +461,7 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 				{
 					best_err = curr_err;
 					best_j  = j;
-					bg = nw_gaps; bm = nw_mis;
+					// bg = nw_gaps; bm = nw_mis;
 				//	printf("found correct pos %i nb mis %i nb gaps %i \n",j,nw_mis,nw_gaps);
 
 				}
