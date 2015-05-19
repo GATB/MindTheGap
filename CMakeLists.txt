@@ -53,7 +53,8 @@ include (GatbCore)
 # we get compilation definitions from the gatb-core part
 add_definitions (${gatb-core-flags})
 
-#SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -pg" )
+# SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra" )
+SET( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 
 # we give the headers directories from : 
 #       - from project source 

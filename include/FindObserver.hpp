@@ -133,7 +133,6 @@ public :
 protected :
 
     bool contains(KmerType kmer);
-    KmerType correct(KmerType& kmer, KmerType& nuc, size_t pos);
     KmerType mutate_kmer(KmerType& kmer, KmerType& nuc, size_t pos);
     void remove_nuc(std::map<KmerType, unsigned int>& nuc, size_t pos);
     bool snp_at_end(unsigned char beginpos, size_t limit, KmerType* ret_nuc);
@@ -145,15 +144,9 @@ FindSNP<span>::FindSNP(FindBreakpoints<span> * find) : IFindObserver<span>(find)
 template<size_t span>
 bool FindSNP<span>::contains(KmerType kmer)
 {
+    kmer = std::min(kmer, revcomp(kmer, this->_find->kmer_size()));
     Node node = Node(Node::Value(kmer));
     return this->_find->graph_contains(node);
-}
-
-template<size_t span>
-typename FindSNP<span>::KmerType FindSNP<span>::correct(KmerType& kmer, KmerType& nuc, size_t pos)
-{
-    KmerType mutate = this->mutate_kmer(kmer, nuc, pos);
-    return min(mutate, revcomp(mutate, this->_find->kmer_size()));
 }
 
 //// mutate_kmer
@@ -165,8 +158,10 @@ typename FindSNP<span>::KmerType FindSNP<span>::correct(KmerType& kmer, KmerType
 template<size_t span>
 typename FindSNP<span>::KmerType FindSNP<span>::mutate_kmer(KmerType& kmer, KmerType& nuc, size_t pos)
 {
-    KmerType reset_mask = ~((KmerType)3 << (pos*2));
-    KmerType set_mask = nuc << (pos*2);
+    size_t p = this->_find->kmer_size() - pos;
+    KmerType reset_mask = ~((KmerType)3 << (p*2));
+    KmerType set_mask = nuc << (p*2);
+
     return (kmer & reset_mask ) | set_mask;
 }
 
@@ -174,7 +169,7 @@ template<size_t span>
 void FindSNP<span>::remove_nuc(std::map<KmerType, unsigned int>& nuc, size_t pos)
 {
     // pos in history = integer part of pos / kmer_size + 1
-    unsigned int index_swip = (pos / this->_find->kmer_size()) + 1;
+    unsigned int index_swip = (pos / this->_find->kmer_size());
     unsigned int bin_cache = 3 << (pos % this->_find->kmer_size());
 
     //Get the mutate nuc and remove this in map
@@ -199,20 +194,25 @@ bool FindSNP<span>::snp_at_end(unsigned char beginpos, size_t limit, KmerType* r
     this->remove_nuc(nuc, this->_find->kmer_size());
 
     // iterate one possible new value
-    for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
+    bool end = false;
+
+    for(unsigned char i = beginpos, j = 0; !end && j != this->_find->kmer_size(); i++, j++)
     {
-	bool end = false;
-	for(unsigned char i = beginpos, j = 0; end; i++, j++)
+	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
 	{
 	    KmerType tmp = nuc_it->first;
-	    if(this->contains(this->correct(this->_find->het_kmer_history(i).kmer, tmp, j)))
+	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(i).kmer, tmp, this->_find->kmer_size() - j);
+	    if(this->contains(correct_kmer))
 	    {
 		nuc_it->second++;
 	    }
 	    else
 	    {
-		nuc_it = nuc.erase(nuc_it);
-		end = true;
+		if(nuc.size() == 1)
+		    end = true;
+		else
+		    nuc_it = nuc.erase(nuc_it);
+
 	    }
 	}
     }
@@ -234,7 +234,6 @@ bool FindSNP<span>::snp_at_end(unsigned char beginpos, size_t limit, KmerType* r
 
     return false;
 }
-
 
 template<size_t span>
 class FindSoloSNP : public FindSNP<span>
@@ -268,7 +267,8 @@ bool FindSoloSNP<span>::update()
     if(this->_find->gap_stretch_size() == this->_find->kmer_size())
     {
 	KmerType nuc;
-	if(this->snp_at_end((this->_find->position() - this->_find->gap_stretch_size()) % 256, this->_find->kmer_size(), &nuc))
+	unsigned char pos = this->_find->position() % 256;
+	if(this->snp_at_end(pos, this->_find->kmer_size(), &nuc))
 	{
 	    string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	    string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
@@ -314,7 +314,7 @@ bool FindMultiSNP<span>::update()
 	return false;
     }
 
-    // Not content 2 snp with specific distance
+    // Not content 2 snp with minimal distance
     if(this->_find->gap_stretch_size() > this->_find->kmer_size() + this->_find->max_repeat())
     {
 	int kmer_threshold = this->_find->max_repeat();
@@ -329,7 +329,7 @@ bool FindMultiSNP<span>::update()
 	for(; index_pos < index_pos_end; index_pos++)
 	{
 	    // if not present
-	    if(this->contains(this->het_kmer_history(index_pos)))
+	    if(this->contains(this->_find->het_kmer_history(index_pos).kmer))
 	    {
 		KmerType nuc;
 		// if detect snp at end
@@ -337,7 +337,7 @@ bool FindMultiSNP<span>::update()
 		{
 		    nb_snp++;
 		    this->correct_history(index_pos, nuc);
-		    index += kmer_threshold;
+		    index_pos += kmer_threshold;
 		}
 		// else return false
 		else
@@ -346,13 +346,21 @@ bool FindMultiSNP<span>::update()
 		}
 	    }
 	}
+
+	return true;
     }
+
+    return false;
 }
 
 template<size_t span>
 void FindMultiSNP<span>::correct_history(unsigned char pos, KmerType nuc)
 {
-
+    for(unsigned int i = 0; i != this->_find->kmer_size(); i++)
+    {
+	unsigned char index = pos - this->_find->kmer_size() % 256;
+	this->_find->het_kmer_history(index).kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, index);
+    }
 }
 
 template<size_t span>
@@ -444,6 +452,8 @@ bool FindHeteroInsert<span>::update()
 		}
 	    }
 	}
+
+	this->_find->recent_hetero(max(0, this->_find->recent_hetero() - 1));  // when recent_hetero=0 : we are sufficiently far from the previous hetero-site
     }
 
     return false;
