@@ -135,7 +135,7 @@ protected :
     bool contains(KmerType kmer);
     KmerType mutate_kmer(KmerType& kmer, KmerType& nuc, size_t pos);
     void remove_nuc(std::map<KmerType, unsigned int>& nuc, size_t pos);
-    bool snp_at_end(unsigned char beginpos, size_t limit, KmerType* ret_nuc);
+    bool snp_at_end(unsigned char* beginpos, size_t limit, KmerType* ret_nuc);
 };
 
 template<size_t span>
@@ -179,7 +179,7 @@ void FindSNP<span>::remove_nuc(std::map<KmerType, unsigned int>& nuc, size_t pos
 }
 
 template<size_t span>
-bool FindSNP<span>::snp_at_end(unsigned char beginpos, size_t limit, KmerType* ret_nuc)
+bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* ret_nuc)
 {
     // Create map with all nuc A = 0, C = 1, T = 2, G = 3
     std::map<KmerType, unsigned int> nuc;
@@ -189,19 +189,19 @@ bool FindSNP<span>::snp_at_end(unsigned char beginpos, size_t limit, KmerType* r
     nuc[3] = 0;
 
     // Compute index_begin and index_end
-    unsigned char endpos = (beginpos + limit) % 256;
+    unsigned char endpos = (*beginpos + limit) % 256;
 
     this->remove_nuc(nuc, this->_find->kmer_size());
 
     // iterate one possible new value
     bool end = false;
 
-    for(unsigned char i = beginpos, j = 0; !end && j != this->_find->kmer_size(); i++, j++)
+    for(unsigned char j = 0; !end && j != this->_find->kmer_size(); (*beginpos)++, j++)
     {
 	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
 	{
 	    KmerType tmp = nuc_it->first;
-	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(i).kmer, tmp, this->_find->kmer_size() - j);
+	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, tmp, this->_find->kmer_size() - j);
 	    if(this->contains(correct_kmer))
 	    {
 		nuc_it->second++;
@@ -209,10 +209,12 @@ bool FindSNP<span>::snp_at_end(unsigned char beginpos, size_t limit, KmerType* r
 	    else
 	    {
 		if(nuc.size() == 1)
+		{
 		    end = true;
+		    (*beginpos)-=2; // Last iteration didn't create valid kmer we need decrement value
+		}
 		else
 		    nuc_it = nuc.erase(nuc_it);
-
 	    }
 	}
     }
@@ -229,7 +231,7 @@ bool FindSNP<span>::snp_at_end(unsigned char beginpos, size_t limit, KmerType* r
     if(nuc[max] >= limit)
     {
 	*ret_nuc = max;
-	return true;
+        return true;
     }
 
     return false;
@@ -268,7 +270,7 @@ bool FindSoloSNP<span>::update()
     {
 	KmerType nuc;
 	unsigned char pos = this->_find->position() % 256;
-	if(this->snp_at_end(pos, this->_find->kmer_size(), &nuc))
+	if(this->snp_at_end(&pos, this->_find->kmer_size(), &nuc))
 	{
 	    string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	    string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
@@ -318,34 +320,35 @@ bool FindMultiSNP<span>::update()
     if(this->_find->gap_stretch_size() > this->_find->kmer_size() + this->_find->max_repeat())
     {
 	int kmer_threshold = this->_find->max_repeat();
-	int max_snp = (this->_find->gap_stretch_size() - this->_find->kmer_size()) / kmer_threshold;
-	int nb_snp;
+	int nb_snp = 0;
+	int delta = this->_find->gap_stretch_size() - this->_find->kmer_size();
 
 	// Compute index_begin and index_end 256 is the size of buffer
-	unsigned char index_pos = (this->_find->position() - this->_find->gap_stretch_size()) % 256;
-	unsigned char index_pos_end = this->_find->position() % 256;	
+	unsigned char index_pos = (this->_find->position() - delta) % 256;
+	unsigned char index_pos_end = this->_find->position() + 1 % 256;
 
 	// We read all kmer in gap
-	for(; index_pos < index_pos_end; index_pos++)
+	for(; index_pos <= index_pos_end; index_pos++)
 	{
-	    // if not present
-	    if(this->contains(this->_find->het_kmer_history(index_pos).kmer))
+	    KmerType nuc;
+	    unsigned char save_index = index_pos;
+            // if detect snp at end
+	    if(this->snp_at_end(&index_pos, kmer_threshold, &nuc))
 	    {
-		KmerType nuc;
-		// if detect snp at end
-		if(this->snp_at_end(index_pos, kmer_threshold, &nuc))
-		{
-		    nb_snp++;
-		    this->correct_history(index_pos, nuc);
-		    index_pos += kmer_threshold;
-		}
-		// else return false
-		else
-		{
-		    return false;
-		}
+		this->correct_history(save_index, nuc);
+		nb_snp++;
 	    }
-	}
+	    // else return false
+	    else
+	    {
+		return false;
+	    }
+        }
+	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
+	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
+
+	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0, STR_MSNP_TYPE);
+	this->_find->breakpoint_id_iterate();
 
 	return true;
     }
@@ -358,8 +361,8 @@ void FindMultiSNP<span>::correct_history(unsigned char pos, KmerType nuc)
 {
     for(unsigned int i = 0; i != this->_find->kmer_size(); i++)
     {
-	unsigned char index = pos - this->_find->kmer_size() % 256;
-	this->_find->het_kmer_history(index).kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, index);
+	unsigned char index = (i + pos) % 256;
+        this->_find->het_kmer_history(index).kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, this->_find->kmer_size() - i);
     }
 }
 
