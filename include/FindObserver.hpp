@@ -198,20 +198,20 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 
     for(unsigned char j = 0; !end && j != this->_find->kmer_size(); (*beginpos)++, j++)
     {
-	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
+	for(typename std::map<KmerType, unsigned int>::const_iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
 	{
 	    KmerType tmp = nuc_it->first;
 	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, tmp, this->_find->kmer_size() - j);
 	    if(this->contains(correct_kmer))
 	    {
-		nuc_it->second++;
+		nuc[nuc_it->first]++;
 	    }
 	    else
 	    {
 		if(nuc.size() == 1)
 		{
 		    end = true;
-		    (*beginpos)-=2; // Last iteration didn't create valid kmer we need decrement value
+		    (*beginpos) -= 2; // Last iteration didn't create valid kmer we need decrement value
 		}
 		else
 		    nuc_it = nuc.erase(nuc_it);
@@ -344,6 +344,7 @@ bool FindMultiSNP<span>::update()
 		return false;
 	    }
         }
+	
 	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 
