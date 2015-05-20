@@ -36,7 +36,7 @@ void displayVersion(std::ostream& os){
 	os << "* * * * * * * * * * * * * * * * * * * * * *" << endl;
 	os << "* MindTheGap version "<< MTG_VERSION << "                *" << endl; //<< " AGPL licence" <<endl;
 	os << "* Using gatb-core version "<< STR_LIBRARY_VERSION <<  "           *" << endl;
-	os << "* Supported kmer sizes <" << KSIZE_1 <<" <" << KSIZE_2<<" <" << KSIZE_3<<" <" << KSIZE_4  << "   *" << endl;
+	os << "* Supported kmer sizes <" << KSIZE_STRING << "   *" << endl;
 	os << "* * * * * * * * * * * * * * * * * * * * * *" << endl;
 }
 

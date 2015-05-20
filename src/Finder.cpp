@@ -239,12 +239,7 @@ void Finder::execute ()
     // Now do the job
 
     // According to the kmer size,  we call one fillBreakpoints method.
-    if (_kmerSize < KSIZE_1) { runFindBreakpoints<KSIZE_1>(); }
-    else if (_kmerSize < KSIZE_2) { runFindBreakpoints<KSIZE_2>(); }
-    else if (_kmerSize < KSIZE_3) { runFindBreakpoints<KSIZE_3>(); }
-    else if (_kmerSize < KSIZE_4) { runFindBreakpoints<KSIZE_4>(); }
-    else  { throw Exception ("unsupported kmer size %d", _kmerSize);  }
-
+    Integer::apply<runFindBreakpoints,Finder*> (_kmerSize, this);
 
     //cout << "in MTG" <<endl;
     // We gather some statistics.
@@ -302,30 +297,30 @@ void Finder::resumeResults(){
 }
 
 template<size_t span>
-void Finder::runFindBreakpoints()
+void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 {
-    FindBreakpoints<span> findBreakpoints(this);
+    FindBreakpoints<span> findBreakpoints(object);
 
     /* Add Gar observer */
-    if(!this->_snp_only)
+    if(!object->_snp_only)
     {
 	findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
 	findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
     }
 
-    if(!this->_insert_only)
+    if(!object->_insert_only)
     {
 	findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
 	findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
     }
 
-    if(!this->_no_backup)
+    if(!object->_no_backup)
     {
 	findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
     }
 
     /* Add kmer observer*/
-    if(!this->_homo_only)
+    if(!object->_homo_only)
     {
 	findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
     }

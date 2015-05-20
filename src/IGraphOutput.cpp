@@ -175,9 +175,12 @@ void IGraphOutput<span>::print_edges (const ModelKmer& kmer, size_t seqLen, Left
     }
 }
 
-template class IGraphOutput <KSIZE_1>;
-template class IGraphOutput <KSIZE_2>;
-template class IGraphOutput <KSIZE_3>;
-template class IGraphOutput <KSIZE_4>;
+// WARNING !!! The following code is not generic !!!
+// It is designed to cope with 4 values of supported kmer size.
+
+template class IGraphOutput <KMER_SPAN(0)>;
+template class IGraphOutput <KMER_SPAN(1)>;
+template class IGraphOutput <KMER_SPAN(2)>;
+template class IGraphOutput <KMER_SPAN(3)>;
 
 

@@ -163,9 +163,12 @@ void GraphOutputDot<span>::print_edge (long index, long id, long id2, const stri
 
 }
 
-template class GraphOutputDot <KSIZE_1>;
-template class GraphOutputDot <KSIZE_2>;
-template class GraphOutputDot <KSIZE_3>;
-template class GraphOutputDot <KSIZE_4>;
+// WARNING !!! The following code is not generic !!!
+// It is designed to cope with 4 values of supported kmer size.
+
+template class GraphOutputDot <KMER_SPAN(0)>;
+template class GraphOutputDot <KMER_SPAN(1)>;
+template class GraphOutputDot <KMER_SPAN(2)>;
+template class GraphOutputDot <KMER_SPAN(3)>;
 
 

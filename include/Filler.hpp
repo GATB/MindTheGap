@@ -70,7 +70,7 @@ private:
     /** Main function to fill the gaps of all breakpoints
          */
     template<size_t span>
-    void fillBreakpoints();
+    struct fillBreakpoints {  void operator ()  (Filler* object); };
 
     /** Fill one gap
             */

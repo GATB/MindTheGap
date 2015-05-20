@@ -54,24 +54,27 @@ struct id_els
 /********************************************************************************/
 
 // hash functions for unordered_map with various kmer_type's
+
+// WARNING !!! The following code is not generic !!!
+// It is designed to cope with 4 values of supported kmer size.
 namespace std
 {
 NS_TR1_BEGIN
-template <>  struct hash<Kmer<KSIZE_1>::Type> : public unary_function<Kmer<KSIZE_1>::Type, size_t>
+template <>  struct hash<Kmer<KMER_SPAN(0)>::Type> : public unary_function<Kmer<KMER_SPAN(0)>::Type, size_t>
 {
-    size_t operator()(const Kmer<KSIZE_1>::Type& elem) const  {  return hash1(elem);  }
+    size_t operator()(const Kmer<KMER_SPAN(0)>::Type& elem) const  {  return hash1(elem);  }
 };
-template <>  struct hash<Kmer<KSIZE_2>::Type> : public unary_function<Kmer<KSIZE_2>::Type, size_t>
+template <>  struct hash<Kmer<KMER_SPAN(1)>::Type> : public unary_function<Kmer<KMER_SPAN(1)>::Type, size_t>
 {
-    size_t operator()(const Kmer<KSIZE_2>::Type& elem) const  {  return hash1(elem);  }
+    size_t operator()(const Kmer<KMER_SPAN(1)>::Type& elem) const  {  return hash1(elem);  }
 };
-template <>  struct hash<Kmer<KSIZE_3>::Type> : public unary_function<Kmer<KSIZE_3>::Type, size_t>
+template <>  struct hash<Kmer<KMER_SPAN(2)>::Type> : public unary_function<Kmer<KMER_SPAN(2)>::Type, size_t>
 {
-    size_t operator()(const Kmer<KSIZE_3>::Type& elem) const  {  return hash1(elem);  }
+    size_t operator()(const Kmer<KMER_SPAN(2)>::Type& elem) const  {  return hash1(elem);  }
 };
-template <>  struct hash<Kmer<KSIZE_4>::Type> : public unary_function<Kmer<KSIZE_4>::Type, size_t>
+template <>  struct hash<Kmer<KMER_SPAN(3)>::Type> : public unary_function<Kmer<KMER_SPAN(3)>::Type, size_t>
 {
-    size_t operator()(const Kmer<KSIZE_4>::Type& elem) const  {  return hash1(elem);  }
+    size_t operator()(const Kmer<KMER_SPAN(3)>::Type& elem) const  {  return hash1(elem);  }
 };
 NS_TR1_END
 }

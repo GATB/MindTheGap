@@ -180,12 +180,8 @@ void Filler::execute ()
     _max_nodes = getInput()->getInt(STR_MAX_NODES);
     
     // Now do the job
-    // According to the kmer size, we call one fillBreakpoints method.
-    if (_kmerSize < KSIZE_1)  { fillBreakpoints<KSIZE_1>  ();  }
-    else if (_kmerSize < KSIZE_2)  { fillBreakpoints<KSIZE_2>  ();  }
-    else if (_kmerSize < KSIZE_3)  { fillBreakpoints<KSIZE_3>  ();  }
-    else if (_kmerSize < KSIZE_4)  { fillBreakpoints<KSIZE_4> ();  }
-    else  { throw Exception ("unsupported kmer size %d", _kmerSize);  }
+    // According to the kmer size,  we call one fillBreakpoints method.
+    Integer::apply<fillBreakpoints,Filler*> (_kmerSize, this);
 
     //cout << "in MTG Fill" <<endl;
     // We gather some statistics.
@@ -240,12 +236,12 @@ void Filler::resumeResults(){
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
-void Filler::fillBreakpoints(){
-
+void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
+{
 	//TODO count the number of filled insertions (in an attribute of class Filler), to output results in resumeResults()
 
 	// We create an iterator over the breakpoint bank.
-	BankFasta::Iterator itSeq (*_breakpointBank);
+	BankFasta::Iterator itSeq (*object->_breakpointBank);
 
 	int nbBreakpoints=0;
 
@@ -269,20 +265,20 @@ void Filler::fillBreakpoints(){
 		set<string> filledSequences;
 
 		// Resize to kmer-size :
-		if(sourceSequence.size()>_kmerSize){
-			sourceSequence.substr(sourceSequence.size()-_kmerSize,_kmerSize); //suffix of size _kmerSize
+		if(sourceSequence.size()>object->_kmerSize){
+			sourceSequence.substr(sourceSequence.size()-object->_kmerSize,object->_kmerSize); //suffix of size _kmerSize
 		}
-		if(targetSequence.size()>_kmerSize){
-			targetSequence.substr(0,_kmerSize); //prefix of size _kmerSize
+		if(targetSequence.size()>object->_kmerSize){
+			targetSequence.substr(0,object->_kmerSize); //prefix of size _kmerSize
 		}
 
-		gapFill<span>(sourceSequence,targetSequence,filledSequences);
+		object->gapFill<span>(sourceSequence,targetSequence,filledSequences);
 
 		//Can be modified : could do in reverse mode even if filledSequences is not empty (new filled sequences are inserted into the set : to verify)
 		if(filledSequences.size()==0){
 			string sourceSequence2 = revcomp_sequence(targetSequence);
 			string targetSequence2 = revcomp_sequence(sourceSequence);
-			gapFill<span>(sourceSequence2,targetSequence2,filledSequences);
+			object->gapFill<span>(sourceSequence2,targetSequence2,filledSequences);
 		}
 
 		//Checks if all sequences are roughly the same :
@@ -297,7 +293,7 @@ void Filler::fillBreakpoints(){
 			//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 
 		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
-		writeFilledBreakpoint(filledSequences);
+		object->writeFilledBreakpoint(filledSequences);
 
 		// We increase the breakpoint counter.
 		nbBreakpoints++;
