@@ -30,6 +30,7 @@
 /********************************************************************************/
 #include <gatb/gatb_core.hpp>
 #include <Finder.hpp>
+#include <FindObserver.hpp>
 
 /********************************************************************************/
 
@@ -246,6 +247,9 @@ private :
     /** Bloom of the repeated kmers of the reference genome 
      */
     IBloom<KmerType>* m_ref_bloom;
+
+    //Please didn't add other friends please
+    friend bool FindMultiSNP<span>::update();
 };
 
 template<size_t span>
@@ -328,7 +332,6 @@ template<size_t span>
 void FindBreakpoints<span>::notify(Node node, bool is_valid)
 {
     bool in_graph = this->graph_contains(node);
-    
     this->store_kmer_info(node);
 
     for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)

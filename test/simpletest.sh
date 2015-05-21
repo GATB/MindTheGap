@@ -32,6 +32,10 @@ echo "Testing duo SNP"
 
 run_test reads/master.fasta references/dSNP.fasta truths/dSNP.fasta dSNP "-snp-only -no-backup"
 
+echo "Testing SNP before k-1 insert site"
+
+run_test reads/master.fasta references/deleted_before_SNP.fasta truths/insertion.fasta k-1_before_SNP "-no-backup -homo-only"
+
 echo "Testing heterozygote"
 
 run_test reads/deleted.fasta,reads/master.fasta references/deleted.fasta truths/insertion.fasta hete "-no-backup -max-rep 2"

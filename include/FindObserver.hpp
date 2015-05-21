@@ -198,13 +198,14 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 
     for(unsigned char j = 0; !end && j != this->_find->kmer_size(); (*beginpos)++, j++)
     {
-	for(typename std::map<KmerType, unsigned int>::const_iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
+	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end();)
 	{
-	    KmerType tmp = nuc_it->first;
-	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, tmp, this->_find->kmer_size() - j);
+	    KmerType const_fix = nuc_it->first;
+	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, const_fix, this->_find->kmer_size() - j);
 	    if(this->contains(correct_kmer))
 	    {
 		nuc[nuc_it->first]++;
+		++nuc_it;
 	    }
 	    else
 	    {
@@ -212,9 +213,9 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 		{
 		    end = true;
 		    (*beginpos) -= 2; // Last iteration didn't create valid kmer we need decrement value
+		    break;
 		}
-		else
-		    nuc_it = nuc.erase(nuc_it);
+		nuc.erase(nuc_it++);
 	    }
 	}
     }
@@ -228,10 +229,10 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 	}
     }
 
-    if(nuc[max] >= limit)
+    if((unsigned int)nuc[max] >= limit)
     {
 	*ret_nuc = max;
-        return true;
+	return true;
     }
 
     return false;
@@ -316,10 +317,10 @@ bool FindMultiSNP<span>::update()
 	return false;
     }
 
+    int kmer_threshold = 5;
     // Not content 2 snp with minimal distance
-    if(this->_find->gap_stretch_size() > this->_find->kmer_size() + this->_find->max_repeat())
+    if(this->_find->gap_stretch_size() > this->_find->kmer_size() + kmer_threshold)
     {
-	int kmer_threshold = this->_find->max_repeat();
 	int nb_snp = 0;
 	int delta = this->_find->gap_stretch_size() - this->_find->kmer_size();
 
@@ -327,30 +328,45 @@ bool FindMultiSNP<span>::update()
 	unsigned char index_pos = (this->_find->position() - delta) % 256;
 	unsigned char index_pos_end = this->_find->position() + 1 % 256;
 
+	unsigned char save_index = index_pos;
+        int delta_with_future = index_pos - save_index;
+
 	// We read all kmer in gap
 	for(; index_pos <= index_pos_end; index_pos++)
 	{
+	    delta_with_future = index_pos - save_index;
+	    save_index = index_pos;
 	    KmerType nuc;
-	    unsigned char save_index = index_pos;
-            // if detect snp at end
+	    // if detect snp at end
 	    if(this->snp_at_end(&index_pos, kmer_threshold, &nuc))
 	    {
 		this->correct_history(save_index, nuc);
 		nb_snp++;
+		string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(save_index-1).kmer);
+		string kmer_end_str = this->_find->model().toString(this->_find->het_kmer_history(save_index+this->_find->kmer_size()).kmer);
+
+		int position = this->_find->position() - delta - 1 + delta_with_future;
+
+		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), position, kmer_begin_str, kmer_end_str, 0, STR_MSNP_TYPE);
+		this->_find->breakpoint_id_iterate();
 	    }
 	    // else return false
 	    else
 	    {
-		return false;
+		break;
 	    }
         }
-	
-	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
-	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 
-	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0, STR_MSNP_TYPE);
-	this->_find->breakpoint_id_iterate();
+	//Set value for future detection
+	int iteration_before_end = index_pos_end - index_pos;
+	if(iteration_before_end > 0)
+	{
+	    this->_find->m_gap_stretch_size -= iteration_before_end;
+	    this->_find->m_solid_stretch_size += iteration_before_end;
+	    this->_find->m_kmer_begin.set(this->_find->het_kmer_history(index_pos).kmer, revcomp(this->_find->het_kmer_history(index_pos).kmer, this->_find->kmer_size()));
 
+	    return false;
+	}
 	return true;
     }
 
