@@ -302,16 +302,16 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
     FindBreakpoints<span> findBreakpoints(object);
 
     /* Add Gar observer */
-    if(!object->_snp_only)
-    {
-	findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
-	findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
-    }
-
     if(!object->_insert_only)
     {
 	findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
 	findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
+    }
+    
+    if(!object->_snp_only)
+    {
+	findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
+	findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
     }
 
     if(!object->_no_backup)
