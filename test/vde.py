@@ -138,7 +138,8 @@ def breakpoints2eva(filename):
                "HET": "hete",
                "SNP": "snp",
                "MSNP": "multi_snp",
-               "DEL": "deletion"}
+               "DEL": "deletion",
+               "BACKUP": "backup"}
 
     findpos = re.compile(r'pos_(\d+)')
     findtype = re.compile(r'_([a-zA-Z]+)$')
