@@ -267,8 +267,11 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find-
     this->finder = find;
 
     /*Heterozygote usage*/
-    this->m_ref_bloom = this->fillRefBloom();
-    this->m_ref_bloom->use();
+    if(!this->finder->_homo_only)
+    {
+	this->m_ref_bloom = this->fillRefBloom();
+	this->m_ref_bloom->use();
+    }
 }
 
 template<size_t span>
@@ -650,7 +653,8 @@ void FindBreakpoints<span>::store_kmer_info(Node node)
     KmerType suffix = this->m_it_kmer->forward() & kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
     KmerType suffix_rev = revcomp(suffix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
 
-    this->m_current_info.is_repeated = this->m_ref_bloom->contains(min(suffix,suffix_rev));
+    if(!this->finder->_homo_only)
+	this->m_current_info.is_repeated = this->m_ref_bloom->contains(min(suffix,suffix_rev));
 
     //filling the history array with the current kmer information
     this->m_het_kmer_history[m_het_kmer_end_index] = m_current_info;
@@ -662,6 +666,11 @@ void FindBreakpoints<span>::store_kmer_info(Node node)
 }
 
 #endif /* _TOOL_FindBreakpoints_HPP_ */
+
+
+
+
+
 
 
 
