@@ -26,15 +26,15 @@ run_test reads/master.fasta references/deleted.fasta truths/insertion.fasta k-1 
 
 echo "Testing solo SNP"
 
-run_test reads/master.fasta references/sSNP.fasta truths/sSNP.fasta sSNP "-snp-only -no-backup"
+run_test reads/master.fasta references/sSNP.fasta truths/sSNP.fasta sSNP "-snp-only -no-backup -homo-only"
 
-echo "Testing duo SNP"
+echo "Testing multi SNP"
 
-run_test reads/master.fasta references/dSNP.fasta truths/dSNP.fasta dSNP "-snp-only -no-backup"
+run_test reads/master.fasta references/multiSNP.fasta truths/multiSNP.fasta multiSNP "-snp-only -no-backup -homo-only"
 
 echo "Testing SNP before k-1 insert site"
 
-run_test reads/master.fasta references/deleted_before_SNP.fasta truths/insertion.fasta k-1_before_SNP "-no-backup -homo-only"
+run_test reads/master.fasta references/deleted_before_SNP.fasta truths/insertion_before_SNP.fasta k-1_before_SNP "-no-backup -homo-only"
 
 echo "Testing heterozygote"
 

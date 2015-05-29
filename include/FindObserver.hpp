@@ -202,17 +202,17 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 	{
 	    KmerType const_fix = nuc_it->first;
 	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, const_fix, this->_find->kmer_size() - j);
-	    if(this->contains(correct_kmer))
+            if(this->contains(correct_kmer))
 	    {
 		nuc[nuc_it->first]++;
 		++nuc_it;
-	    }
+            }
 	    else
 	    {
-		if(nuc.size() == 1)
+        	if(nuc.size() == 1)
 		{
 		    end = true;
-		    (*beginpos) -= 2; // Last iteration didn't create valid kmer we need decrement value
+		    (*beginpos) -= 1; // Last iteration didn't create valid kmer we need decrement value
 		    break;
 		}
 		nuc.erase(nuc_it++);
@@ -317,38 +317,37 @@ bool FindMultiSNP<span>::update()
 	return false;
     }
 
-    int kmer_threshold = 5;
+    int kmer_threshold = 2;
     // Not content 2 snp with minimal distance
     if(this->_find->gap_stretch_size() > this->_find->kmer_size() + kmer_threshold)
     {
 	int nb_snp = 0;
-	int delta = this->_find->gap_stretch_size() - this->_find->kmer_size();
+	// - 1 because pos is upper 1 at the end of gap
+	size_t begin_pos = this->_find->position() - this->_find->gap_stretch_size() + this->_find->kmer_size() - 1;
+	size_t end_pos = this->_find->position() - 1;
 
-	// Compute index_begin and index_end 256 is the size of buffer
-	unsigned char index_pos = (this->_find->position() - delta) % 256;
-	unsigned char index_pos_end = this->_find->position() + 1 % 256;
-
-	unsigned char save_index = index_pos;
-        int delta_with_future = index_pos - save_index;
+	// % 256 because buffer history size is equale to 256 
+	unsigned char index_end = this->_find->het_kmer_begin_index() + this->_find->kmer_size() - 1;
+	unsigned char index_pos = index_end - this->_find->gap_stretch_size();
 
 	// We read all kmer in gap
-	for(; index_pos <= index_pos_end; index_pos++)
+	while(index_pos <= index_end)
 	{
-	    delta_with_future = index_pos - save_index;
-	    save_index = index_pos;
+	    unsigned char save_index = index_pos;
 	    KmerType nuc;
-	    // if detect snp at end
+	    
+            // if detect snp at end
 	    if(this->snp_at_end(&index_pos, kmer_threshold, &nuc))
 	    {
 		this->correct_history(save_index, nuc);
 		nb_snp++;
 		string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(save_index-1).kmer);
 		string kmer_end_str = this->_find->model().toString(this->_find->het_kmer_history(save_index+this->_find->kmer_size()).kmer);
-
-		int position = this->_find->position() - delta - 1 + delta_with_future;
-
-		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), position, kmer_begin_str, kmer_end_str, 0, STR_MSNP_TYPE);
+       
+		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), begin_pos - 1, kmer_begin_str, kmer_end_str, 0, STR_MSNP_TYPE);
 		this->_find->breakpoint_id_iterate();
+
+	        begin_pos += (index_pos - save_index);
 	    }
 	    // else return false
 	    else
@@ -358,15 +357,16 @@ bool FindMultiSNP<span>::update()
         }
 
 	//Set value for future detection
-	int iteration_before_end = index_pos_end - index_pos;
-	if(iteration_before_end > 0)
+	int dist_to_end = end_pos - begin_pos;
+	if(dist_to_end > 0)
 	{
-	    this->_find->m_gap_stretch_size -= iteration_before_end;
-	    this->_find->m_solid_stretch_size += iteration_before_end;
+	    this->_find->m_gap_stretch_size -= dist_to_end;
+	    this->_find->m_solid_stretch_size += dist_to_end;
 	    this->_find->m_kmer_begin.set(this->_find->het_kmer_history(index_pos).kmer, revcomp(this->_find->het_kmer_history(index_pos).kmer, this->_find->kmer_size()));
 
 	    return false;
 	}
+
 	return true;
     }
 
