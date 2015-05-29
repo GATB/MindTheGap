@@ -287,7 +287,8 @@ FindBreakpoints<span>::~FindBreakpoints()
 	(*it)->forget();
     }
 
-    this->m_ref_bloom->forget();
+    if(!this->finder->_homo_only)
+	this->m_ref_bloom->forget();
 }
 
 template<size_t span>
@@ -662,7 +663,9 @@ void FindBreakpoints<span>::store_kmer_info(Node node)
     //checking if the k-1 prefix is repeated
     KmerType prefix = (this->m_it_kmer->forward() >> 2) & kminus1_mask; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
     KmerType prefix_rev = revcomp(prefix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
-    this->m_kmer_end_is_repeated = this->m_ref_bloom->contains(min(prefix,prefix_rev));
+
+    if(!this->finder->_homo_only)
+	this->m_kmer_end_is_repeated = this->m_ref_bloom->contains(min(prefix,prefix_rev));
 }
 
 #endif /* _TOOL_FindBreakpoints_HPP_ */
