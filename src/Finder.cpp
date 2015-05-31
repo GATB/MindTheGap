@@ -82,18 +82,23 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     finderParser->push_front (new OptionNoParam (STR_SNP_ONLY, "only search for snp", false));
     finderParser->push_front (new OptionNoParam (STR_NO_BACKUP, "didn't enable system for catch all breakpoint when size is upper kmer-size/2", false));
 
-    IOptionsParser* graphParser = SortingCountAlgorithm<>::getOptionsParser(false);
-    graphParser->setName ("Graph building");
+	IOptionsParser* graphParser = new OptionsParser("Graph building");
+	string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max()); //to be sure in case CountNumber definition changes
+	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, abundanceMax));
+	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
+	graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
+	//IOptionsParser* graphParser = SortingCountAlgorithm<>::getOptionsParser(false);
+    //graphParser->setName ("Graph building");
 
     /** We hide some options. */
-    const char* optionNames[] = {
-        STR_URI_INPUT, STR_KMER_ABUNDANCE_MIN_THRESHOLD, STR_HISTOGRAM_MAX, STR_SOLIDITY_KIND,
-        STR_URI_SOLID_KMERS, STR_URI_OUTPUT, STR_URI_OUTPUT_DIR, STR_MINIMIZER_TYPE, STR_MINIMIZER_SIZE, STR_REPARTITION_TYPE
-    };
-    for (size_t i=0; i<sizeof(optionNames)/sizeof(optionNames[0]); i++)
-    {
-        if (IOptionsParser* p = graphParser->getParser(optionNames[i]))  { p->setVisible(false);  }
-    }
+//    const char* optionNames[] = {
+//        STR_URI_INPUT, STR_KMER_ABUNDANCE_MIN_THRESHOLD, STR_HISTOGRAM_MAX, STR_SOLIDITY_KIND,
+//        STR_URI_SOLID_KMERS, STR_URI_OUTPUT, STR_URI_OUTPUT_DIR, STR_MINIMIZER_TYPE, STR_MINIMIZER_SIZE, STR_REPARTITION_TYPE
+//    };
+//    for (size_t i=0; i<sizeof(optionNames)/sizeof(optionNames[0]); i++)
+//    {
+//        if (IOptionsParser* p = graphParser->getParser(optionNames[i]))  { p->setVisible(false);  }
+//    }
 
     getParser()->push_front(generalParser);
     getParser()->push_front(finderParser);
@@ -154,7 +159,6 @@ void Finder::execute ()
         
         // We need to add the options of dbgh5/Graph that were masked to the user
     	getInput()->add(0,STR_SOLIDITY_KIND, "sum"); //way to consider a solid kmer with several datasets (sum, min or max)
-    	getInput()->add(0,STR_KMER_ABUNDANCE_MAX, "4294967295"); //maximal abundance threshold for solid kmers
 
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
@@ -164,6 +168,12 @@ void Finder::execute ()
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_INTEGER_PRECISION, "0");
         getInput()->add(0,STR_MPHF_TYPE, "none");
+        getInput()->add(0,STR_BRANCHING_TYPE, "stored");
+        getInput()->add(0,STR_MINIMIZER_SIZE, "8");
+        getInput()->add(0,STR_REPARTITION_TYPE, "0");
+        getInput()->add(0,STR_MINIMIZER_TYPE, "0");
+        getInput()->add(0,STR_HISTOGRAM_MAX, "10000");
+        getInput()->add(0,STR_KMER_ABUNDANCE_MIN_THRESHOLD,"3");
         //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //DONOT uncomment this line, otherwise solid kmers are stored in file ./.h5 outside from the considered graph h5 file.
         
         //Warning if kmer size >128 cascading debloom does not work
@@ -182,7 +192,6 @@ void Finder::execute ()
     if (getInput()->get(STR_URI_GRAPH) != 0)
     {
         //fprintf(log,"Loading the graph from file %s\n",getInput()->getStr(STR_URI_GRAPH).c_str());
-        
         _graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
         _kmerSize = _graph.getKmerSize();
     }
@@ -235,7 +244,6 @@ void Finder::execute ()
 //    }
 
 
-
     // Now do the job
 
     // According to the kmer size,  we call one fillBreakpoints method.
@@ -244,6 +252,7 @@ void Finder::execute ()
     //cout << "in MTG" <<endl;
     // We gather some statistics.
     fclose(_breakpoint_file);
+
 
     // Printing result informations (ie. add info to getInfo(), in Tool Info is printed automatically after end of execute() method
     //getInfo()->add(1,"version",getVersion());

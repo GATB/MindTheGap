@@ -587,8 +587,13 @@ IBloom<typename FindBreakpoints<span>::KmerType>* FindBreakpoints<span>::fillRef
     //solid kmers must be stored in a file
     string tempFileName = this->finder->getInput()->getStr(STR_URI_OUTPUT)+"_trashme.h5";
 
+    // TO MODIFY : does not work if -graph option
+    // TODO : new IProperty (not clone), with ->add() (because the option may not exists with -graph)
+    // warning if not a new object, not sure the options are modified (or the good one is used) if ->add()
+    // needs minimizer-size, etc.
     IProperties* props = this->finder->getInput()->clone();
     props->setStr (STR_URI_INPUT,          this->finder->_refBank->getId());
+    //props->add(0,STR_URI_INPUT,          this->finder->_refBank->getId());
     props->setInt (STR_KMER_ABUNDANCE_MIN, this->finder->_het_max_occ+1);
     props->setInt (STR_KMER_SIZE,          this->finder->_kmerSize-1);
     props->setStr (STR_URI_OUTPUT,         tempFileName);

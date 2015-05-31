@@ -66,8 +66,10 @@ Filler::Filler ()  : Tool ("MindTheGap fill")
 	fillerParser->push_front (new OptionOneParam (STR_MAX_NODES, "maximum number of nodes in contig graph (nt)", false, "100"));
     
 	IOptionsParser* graphParser = new OptionsParser("Graph building");
+	string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max()); //to be sure in case CountNumber definition changes
+	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, abundanceMax));
 	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
-  	graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
+	graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
 
 
 	getParser()->push_front(generalParser);
@@ -131,7 +133,6 @@ void Filler::execute ()
         
         // We need to add the options of dbgh5/Graph that were masked to the user (or we could create a new Properties object)
     	getInput()->add(0,STR_SOLIDITY_KIND, "sum"); //way to consider a solid kmer with several datasets (sum, min or max)
-    	getInput()->add(0,STR_KMER_ABUNDANCE_MAX, "4294967295"); //maximal abundance threshold for solid kmers
 
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
@@ -141,6 +142,12 @@ void Filler::execute ()
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_INTEGER_PRECISION, "0");
         getInput()->add(0,STR_MPHF_TYPE, "none");
+        getInput()->add(0,STR_BRANCHING_TYPE, "stored");
+        getInput()->add(0,STR_MINIMIZER_SIZE, "8");
+        getInput()->add(0,STR_REPARTITION_TYPE, "0");
+        getInput()->add(0,STR_MINIMIZER_TYPE, "0");
+        getInput()->add(0,STR_HISTOGRAM_MAX, "10000");
+        getInput()->add(0,STR_KMER_ABUNDANCE_MIN_THRESHOLD,"3");
         //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //surtout ne pas decommenter cette ligne, sinon les kmers solids sont stockes dans le fichier ./.h5 et les infos ne sont plus dans le output.h5
         
         //Warning if kmer size >128 cascading debloom does not work
