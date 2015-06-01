@@ -587,19 +587,16 @@ IBloom<typename FindBreakpoints<span>::KmerType>* FindBreakpoints<span>::fillRef
     //solid kmers must be stored in a file
     string tempFileName = this->finder->getInput()->getStr(STR_URI_OUTPUT)+"_trashme.h5";
 
-    // TO MODIFY : does not work if -graph option
-    // TODO : new IProperty (not clone), with ->add() (because the option may not exists with -graph)
-    // warning if not a new object, not sure the options are modified (or the good one is used) if ->add()
-    // needs minimizer-size, etc.
-    IProperties* props = this->finder->getInput()->clone();
-    props->setStr (STR_URI_INPUT,          this->finder->_refBank->getId());
-    //props->add(0,STR_URI_INPUT,          this->finder->_refBank->getId());
+    // Parameters for SortingCountAlgorithm // all defaults
+    IProperties* props = SortingCountAlgorithm<>::getDefaultProperties();
     props->setInt (STR_KMER_ABUNDANCE_MIN, this->finder->_het_max_occ+1);
     props->setInt (STR_KMER_SIZE,          this->finder->_kmerSize-1);
     props->setStr (STR_URI_OUTPUT,         tempFileName);
+    //Remark : could re-use MAX_DISK or others from Finder options ? not necessary here, small counting in theory
+    //props->setStr (STR_MAX_DISK, this->finder->getInput()->getStr(STR_MAX_DISK));
 
     /** We create a DSK (kmer counting) instance and execute it. */
-    SortingCountAlgorithm<span> sortingCount (props);
+    SortingCountAlgorithm<span> sortingCount (this->finder->_refBank,props);
 
     sortingCount.getInput()->add (0, STR_VERBOSE, 0);//do not show progress bar
     sortingCount.execute();

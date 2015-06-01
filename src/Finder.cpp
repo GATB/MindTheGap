@@ -85,6 +85,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
 	IOptionsParser* graphParser = new OptionsParser("Graph building");
 	string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max()); //to be sure in case CountNumber definition changes
 	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, abundanceMax));
+	//TODO for release : change 3 -> auto
 	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
 	graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
 	//IOptionsParser* graphParser = SortingCountAlgorithm<>::getOptionsParser(false);
@@ -245,9 +246,11 @@ void Finder::execute ()
 
 
     // Now do the job
-
+    time_t start_time = time(0);
     // According to the kmer size,  we call one fillBreakpoints method.
     Integer::apply<runFindBreakpoints,Finder*> (_kmerSize, this);
+    time_t end_time = time(0);
+    double seconds=difftime(end_time,start_time);
 
     //cout << "in MTG" <<endl;
     // We gather some statistics.
@@ -258,7 +261,7 @@ void Finder::execute ()
     //getInfo()->add(1,"version",getVersion());
     getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
-    resumeResults();
+    resumeResults(seconds);
 }
 
 void Finder::resumeParameters(){
@@ -274,12 +277,36 @@ void Finder::resumeParameters(){
     getInfo()->add(2,"Reference",getInput()->getStr(STR_URI_REF).c_str());
     getInfo()->add(1,"Graph");
     getInfo()->add(2,"kmer-size","%i", _kmerSize);
+
+    //In MindTheGap, solidity-kind always at "sum" (not tunable)
+    //getInfo()->add(2,"solidity_kind",_graph.getInfo().getStr("solidity_kind").c_str());
     try { // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
-	getInfo()->add(2,"abundance_min",_graph.getInfo().getStr("abundance_min").c_str());
-	getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
-	getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
+    	getInfo()->add(2,"abundance_min (auto inferred)",_graph.getInfo().getStr("cutoffs_auto.values").c_str());
     } catch (Exception e) {
-	// doing nothing
+    	// doing nothing
+    }
+    string min_abundance;
+    //if(_graph.getInfo().getStr("solidity_kind")=="sum"){
+    int thre = _graph.getInfo().getInt("thresholds"); //with getInt obtains the first number (if sum : threshold = 4 4 if -in had 2 input files, less confusing for the user if only one value shown)
+    stringstream ss;
+    ss << thre;
+    min_abundance = ss.str();
+    //    }
+    //    else{
+    //    	min_abundance = _graph.getInfo().getStr("thresholds").c_str();
+    //    }
+    getInfo()->add(2,"abundance_min (used)",min_abundance);
+
+    try { // version actuelle info manquante si -graph
+    	getInfo()->add(2,"abundance_max",_graph.getInfo().getStr("abundance_max").c_str());
+    } catch (Exception e) {
+    	// doing nothing
+    }
+    try { // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
+    	getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
+    	getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
+    } catch (Exception e) {
+    	// doing nothing
     }
 
     getInfo()->add(1,"Breakpoint detection options");
@@ -292,7 +319,7 @@ void Finder::resumeParameters(){
     
 }
 
-void Finder::resumeResults(){
+void Finder::resumeResults(double seconds){
     getInfo()->add(0,"Results");
     getInfo()->add(1,"Breakpoints");
     getInfo()->add(2,"homozygous","%i", _nb_homo_clean+_nb_homo_fuzzy);
@@ -301,7 +328,13 @@ void Finder::resumeResults(){
     getInfo()->add(2,"heterozygous","%i", _nb_hetero_clean+_nb_hetero_fuzzy);
     getInfo()->add(3,"clean","%i", _nb_hetero_clean);
     getInfo()->add(3,"fuzzy","%i", _nb_hetero_fuzzy);
-    getInfo()->add(1,"output file","%s",_breakpoint_file_name.c_str());
+    getInfo()->add(1,"Time", "%.1f s",seconds);
+    getInfo()->add(1,"Output files");
+    if(getInput()->get(STR_URI_INPUT) != 0){
+            getInfo()->add(2,"graph_file", "%s.h5",getInput()->getStr(STR_URI_OUTPUT).c_str());
+        }
+    getInfo()->add(2,"breakpoint_file","%s",_breakpoint_file_name.c_str());
+
 
 }
 
