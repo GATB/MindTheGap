@@ -79,8 +79,9 @@ private:
     void resumeParameters();
 
     /** fills getInfo() with results informations
+     * arg seconds running time
      */
-    void resumeResults();
+    void resumeResults(double seconds);
 
     /** Create and use FindBreakpoints class to find gaps in the reference genome
      */
