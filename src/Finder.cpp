@@ -22,6 +22,7 @@
 #include <FindBreakpoints.hpp>
 #include <FindObserver.hpp>
 #include <IFindObserver.hpp>
+#include <limits> //for std::numeric_limits
 
 //#define PRINT_DEBUG
 /********************************************************************************/
