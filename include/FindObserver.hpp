@@ -334,7 +334,7 @@ bool FindMultiSNP<span>::update()
 	unsigned char index_pos = index_end - this->_find->gap_stretch_size();
 
 	// We read all kmer in gap
-	while(index_pos <= index_end)
+	while(index_pos != index_end)
 	{
 	    unsigned char save_index = index_pos;
 	    KmerType nuc;
