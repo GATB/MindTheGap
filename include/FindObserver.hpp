@@ -202,16 +202,13 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 	{
 	    KmerType const_fix = nuc_it->first;
 	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, const_fix, this->_find->kmer_size() - j);
-	    std::cout<<this->_find->model().toString(correct_kmer)<<" pos "<<(int)(*beginpos)<<" find ";
 	    if(this->contains(correct_kmer))
 	    {
 		nuc[nuc_it->first]++;
 		++nuc_it;
-		std::cout<<true<<std::endl;
 	    }
 	    else
 	    {
-		std::cout<<false<<std::endl;
         	if(nuc.size() == 1)
 		{
 		    end = true;
@@ -339,10 +336,7 @@ bool FindMultiSNP<span>::update()
 	    unsigned char save_index = index_pos;
 	    KmerType nuc;
 
-	    std::cout<<"begin_pos "<<begin_pos<<std::endl;
-	    std::cout<<"index_pos "<<(int)index_pos<<std::endl;
-	    std::cout<<"save_index "<<(int)save_index<<std::endl;
-            // if detect snp at end
+	    // if detect snp at end
 	    if(this->snp_at_end(&index_pos, kmer_threshold, &nuc))
 	    {
 		this->correct_history(save_index, nuc);
