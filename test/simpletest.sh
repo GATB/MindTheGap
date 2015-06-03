@@ -12,45 +12,38 @@ run_test()
     var=$?
     if [ $var -eq 0 ]
     then
-	echo  PASSED
+	echo "passed"
     else
-	echo  FAILED
+	echo "FAILED"
     fi
 }
 
 mkdir -p output
+output=""
 
-echo  "Testing canonical k-1 insert site"
+output=$output"clean-insert : "
+output=$output$(run_test reads/master.fasta references/deleted.fasta truths/insertion.fasta k-1 "-insert-only -no-backup -homo-only")
 
-run_test reads/master.fasta references/deleted.fasta truths/insertion.fasta k-1 "-insert-only -no-backup -homo-only"
+output=$output"\n1-SNP : "
+output=$output$(run_test reads/master.fasta references/sSNP.fasta truths/sSNP.fasta sSNP "-snp-only -no-backup -homo-only")
 
-echo "Testing solo SNP"
+output=$output"\n3-SNP*2 : "
+output=$output$(run_test reads/master.fasta references/multiSNP.fasta truths/multiSNP.fasta multiSNP "-snp-only -no-backup -homo-only")
 
-run_test reads/master.fasta references/sSNP.fasta truths/sSNP.fasta sSNP "-snp-only -no-backup -homo-only"
+output=$output"\nsnp-before-clean-insert : "
+output=$output$(run_test reads/master.fasta references/deleted_before_SNP.fasta truths/insertion_before_SNP.fasta k-1_before_SNP "-no-backup -homo-only")
 
-echo "Testing multi SNP"
+output=$output"\nhetero-insert : "
+output=$output$(run_test reads/deleted.fasta,reads/master.fasta references/deleted.fasta truths/insertion.fasta hete "-no-backup -max-rep 2")
 
-run_test reads/master.fasta references/multiSNP.fasta truths/multiSNP.fasta multiSNP "-snp-only -no-backup -homo-only"
+output=$output"\nn-in-solid-stretch : "
+output=$output$(run_test reads/master.fasta references/n_in_stretch.fasta truths/n_in_stretch.fasta n_in_stretch)
 
-echo "Testing SNP before k-1 insert site"
+output=$output"\nn-in-before-clean-insert : "
+output=$output$(run_test reads/master.fasta references/n_before_gap.fasta truths/n_before_gap.fasta n_before_gap)
 
-run_test reads/master.fasta references/deleted_before_SNP.fasta truths/insertion_before_SNP.fasta k-1_before_SNP "-no-backup -homo-only"
-
-echo "Testing heterozygote"
-
-run_test reads/deleted.fasta,reads/master.fasta references/deleted.fasta truths/insertion.fasta hete "-no-backup -max-rep 2"
-
-echo "Testing witht N in reference :"
-echo "    N in stretch :"
-
-run_test reads/master.fasta references/n_in_stretch.fasta truths/n_in_stretch.fasta n_in_stretch
-
-echo "    N in before gap :"
-
-run_test reads/master.fasta references/n_before_gap.fasta truths/n_before_gap.fasta n_before_gap
+output=$output"\nn-after-clean-insert : "
+output=$output$(run_test reads/master.fasta references/n_after_gap.fasta truths/n_after_gap.fasta n_after_gap)
 
 
-echo "    N after gap :"
-
-run_test reads/master.fasta references/n_after_gap.fasta truths/n_after_gap.fasta n_after_gap
-
+echo -e $output | column -t
