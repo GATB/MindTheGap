@@ -168,12 +168,8 @@ typename FindSNP<span>::KmerType FindSNP<span>::mutate_kmer(KmerType& kmer, Kmer
 template<size_t span>
 void FindSNP<span>::remove_nuc(std::map<KmerType, unsigned int>& nuc, size_t pos)
 {
-    // pos in history = integer part of pos / kmer_size + 1
-    unsigned int index_swip = (pos / this->_find->kmer_size());
-    unsigned int bin_cache = 3 << (pos % this->_find->kmer_size());
-
     //Get the mutate nuc and remove this in map
-    KmerType snp_nuc = this->_find->het_kmer_history(this->_find->het_kmer_begin_index() - index_swip).kmer & bin_cache >> (pos % this->_find->kmer_size()); // obtain the nuc
+    KmerType snp_nuc = this->_find->het_kmer_history(pos).kmer & 3; // obtain the nuc
 
     nuc.erase(snp_nuc);
 }
@@ -191,7 +187,7 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
     // Compute index_begin and index_end
     unsigned char endpos = (*beginpos + limit) % 256;
 
-    this->remove_nuc(nuc, this->_find->kmer_size());
+    this->remove_nuc(nuc, *beginpos);
 
     // iterate one possible new value
     bool end = false;
@@ -202,6 +198,7 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 	{
 	    KmerType const_fix = nuc_it->first;
 	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, const_fix, this->_find->kmer_size() - j);
+	    std::cout<<this->_find->model().toString(correct_kmer)<<" "<<std::boolalpha<<this->contains(correct_kmer)<<std::endl;
 	    if(this->contains(correct_kmer))
 	    {
 		nuc[nuc_it->first]++;
