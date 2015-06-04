@@ -198,7 +198,6 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 	{
 	    KmerType const_fix = nuc_it->first;
 	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, const_fix, this->_find->kmer_size() - j);
-	    std::cout<<this->_find->model().toString(correct_kmer)<<" "<<std::boolalpha<<this->contains(correct_kmer)<<std::endl;
 	    if(this->contains(correct_kmer))
 	    {
 		nuc[nuc_it->first]++;
@@ -321,7 +320,7 @@ bool FindMultiSNP<span>::update()
 	int nb_snp = 0;
 	// - 1 because pos is upper 1 at the end of gap
 	size_t begin_pos = this->_find->position() - this->_find->gap_stretch_size() + this->_find->kmer_size() - 1;
-	size_t end_pos = this->_find->position() - 1;
+	size_t begin_pos_init = begin_pos;
 
 	// % 256 because buffer history size is equale to 256 
 	unsigned char index_end = this->_find->het_kmer_begin_index() + this->_find->kmer_size() - 1;
@@ -354,11 +353,11 @@ bool FindMultiSNP<span>::update()
         }
 
 	//Set value for future detection
-	int dist_to_end = end_pos - begin_pos;
-	if(dist_to_end > 0)
+	unsigned int nb_kmer_correct = begin_pos - begin_pos_init;
+	if(nb_kmer_correct != this->_find->gap_stretch_size())
 	{
-	    this->_find->m_gap_stretch_size -= dist_to_end;
-	    this->_find->m_solid_stretch_size += dist_to_end;
+	    this->_find->m_gap_stretch_size -= nb_kmer_correct;
+	    this->_find->m_solid_stretch_size += nb_kmer_correct;
 	    this->_find->m_kmer_begin.set(this->_find->het_kmer_history(index_pos).kmer, revcomp(this->_find->het_kmer_history(index_pos).kmer, this->_find->kmer_size()));
 
 	    return false;
