@@ -66,8 +66,8 @@ def result_printing(result, count):
     for gap in result.keys():
         total = result[gap]["TP"] + result[gap]["FP"]
 
-        recall = 1 if total == 0 else result[gap]["TP"]/float(total)
-        prec = 1 if count[gap] == 0 else result[gap]["TP"]/float(count[gap])
+        prec = 1 if total == 0 else result[gap]["TP"]/float(total)
+        recall = 1 if count[gap] == 0 else result[gap]["TP"]/float(count[gap])
 
         print(",".join((str(gap),
                         str(result[gap]["TP"]),
