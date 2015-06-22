@@ -9,6 +9,31 @@ import os.path
 from collections import defaultdict
 import csv
 import re
+import math
+
+
+class Variant:
+
+    def __init__(self, pos, type, comment, delta):
+        self.pos = pos
+        self.type = type
+        self.comment = comment
+        self.delta = delta
+
+    def __eq__(self, other):
+        if self.type != other.type:
+            return False
+
+        if self.comment != other.comment:
+            return False
+
+        if abs(int(self.pos) - int(other.pos)) > self.delta:
+            return False
+
+        return True
+
+    def __str__(self):
+        return "%s,%s,%s" % (str(self.pos), str(self.type), str(self.comment))
 
 
 def main():
@@ -50,10 +75,10 @@ def main():
     expfunc = globals()[argument["experiment_format"]+"2eva"]
     truthfunc = globals()[argument["truth_format"]+"2eva"]
 
-    experiment, count = expfunc(argument["experiment"])
-    truth, count = truthfunc(argument["truth"])
+    experiment, count = expfunc(argument["experiment"], argument["delta"])
+    truth, count = truthfunc(argument["truth"], argument["delta"])
 
-    result = compare(experiment, truth, argument["delta"])
+    result = compare(experiment, truth)
 
     result_printing(result, count)
 
@@ -76,62 +101,54 @@ def result_printing(result, count):
                         str(prec))))
 
 
-def compare(exp, truth, delta):
+def compare(exp, truth):
     """ Compare experimente and truth return TP FP precision and recall
     for each type """
 
     result = defaultdict(lambda: defaultdict(int))
-
+    print truth
+    print exp
     for exp_pos in exp.keys():
-        for type_gap in exp[exp_pos]:
-            find = False
-            if exp_pos in truth and type_gap in truth[exp_pos]:
-                __iterate_result(result, type_gap, "TP")
-                find = True
-            else:
-                for i in range(1, delta+1):
-                    prev_pos = str(int(exp_pos) - i)
-                    next_pos = str(int(exp_pos) + i)
-
-                    if prev_pos in truth and type_gap in truth[prev_pos]:
-                        __iterate_result(result, type_gap, "TP")
-                        find = True
-                        break
-                    if next_pos in truth and type_gap in truth[next_pos]:
-                        __iterate_result(result, type_gap, "TP")
-                        find = True
-                        break
-
-            if not find:
-                __iterate_result(result, type_gap, "FP")
+        find = False
+        for pos in range(exp_pos-5, exp_pos+6):
+            if pos in truth.keys():
+                print str(exp[exp_pos])
+                print str(truth[pos])
+                if exp[exp_pos] == truth[pos]:
+                    __iterate_result(result, exp[exp_pos].type, "TP")
+                    find = True
+                    break
+        if not find:
+            __iterate_result(result, exp[exp_pos].type, "FP")
 
     return result
 
 
-def eva2eva(filename):
+def eva2eva(filename, delta):
     """ Read eva file and return value in dict
     position is key and type is value """
 
     __check_file_exist(filename)
 
-    data = defaultdict(set)
+    data = defaultdict(Variant)
     count = defaultdict(int)
 
     with open(filename) as csvfile:
         linereader = csv.reader(csvfile)
-        {__add_in_data_count(val[0], val[1], data, count)
-         for val in linereader}
+        for val in linereader:
+            data[int(val[0])] = Variant(val[0], val[1], val[2], delta)
+            count[val[1]] += 1
 
     return data, count
 
 
-def breakpoints2eva(filename):
+def breakpoints2eva(filename, delta):
     """ Read breakpoint file and return value in dict
     position is key  and type is value """
 
     __check_file_exist(filename)
 
-    data = defaultdict(set)
+    data = defaultdict(Variant)
     count = defaultdict(int)
 
     mtg2eva = {"HOM": "homo",
@@ -143,14 +160,17 @@ def breakpoints2eva(filename):
 
     findpos = re.compile(r'pos_(\d+)')
     findtype = re.compile(r'_([a-zA-Z]+)$')
+    findcomment = re.compile(r'contig_\d+_(.+)_pos')
 
     with open(filename) as filehand:
         for line in filehand:
             line = line.strip()
-            if line.startswith(">"):
-                __add_in_data_count(findpos.search(line).group(1),
-                                    mtg2eva[findtype.search(line).group(1)],
-                                    data, count)
+            if line.startswith(">left_contig_"):
+                data[int(findpos.search(line).group(1))] = Variant(
+                    findpos.search(line).group(1),
+                    mtg2eva[findtype.search(line).group(1)],
+                    findcomment.search(line).group(1), delta)
+                count[mtg2eva[findtype.search(line).group(1)]] += 1
 
     return data, count
 
