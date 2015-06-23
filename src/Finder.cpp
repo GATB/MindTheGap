@@ -348,6 +348,7 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
     if(!object->_insert_only)
     {
 	findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
+	findBreakpoints.addGapObserver(new FindFuzzySNP<span>(&findBreakpoints));
 	findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
     }
     

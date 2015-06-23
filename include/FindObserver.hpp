@@ -283,6 +283,55 @@ bool FindSoloSNP<span>::update()
 }
 
 template<size_t span>
+class FindFuzzySNP : public FindSNP<span>
+{
+public :
+
+    typedef typename FindSNP<span>::KmerType KmerType;
+
+public :
+
+    /** \copydoc IFindObserver::IFindObserver
+     */
+    FindFuzzySNP(FindBreakpoints<span> * find);
+
+    /** \copydoc IFindObserver::update
+     */
+    bool update();
+};
+
+template<size_t span>
+FindFuzzySNP<span>::FindFuzzySNP(FindBreakpoints<span> * find) : FindSNP<span>(find){}
+
+template<size_t span>
+bool FindFuzzySNP<span>::update()
+{
+    if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
+    {
+	return false;
+    }
+
+    if(this->_find->gap_stretch_size() >= this->_find->kmer_size() - this->_find->max_repeat())
+    {
+	int delta = this->_find->kmer_size() - this->_find->gap_stretch_size();
+	KmerType nuc;
+	unsigned char pos = this->_find->het_kmer_begin_index() - 1;
+	if(this->snp_at_end(&pos, this->_find->kmer_size(), &nuc))
+	{
+	    string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index() - delta - 1).kmer);
+	    string kmer_end_str = this->_find->model().toString(this->_find->het_kmer_history(pos).kmer);
+
+	    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - delta, kmer_begin_str, kmer_end_str, 0, STR_SNP_TYPE);
+	    this->_find->breakpoint_id_iterate();
+
+	    return true;
+	}
+    }
+
+    return false;
+}
+
+template<size_t span>
 class FindMultiSNP : public FindSNP<span>
 {
 public :

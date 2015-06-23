@@ -33,6 +33,9 @@ output=$output$(run_test reads/master.fasta references/multiSNP.fasta truths/mul
 output=$output"\nsnp-before-clean-insert : "
 output=$output$(run_test reads/master.fasta references/deleted_before_SNP.fasta truths/insertion_before_SNP.fasta k-1_before_SNP "-no-backup -homo-only")
 
+output=$output"\nsnp-begin-fuzzy : "
+output=$output$(run_test reads/beginfuzzySNP.fasta references/beginfuzzySNP.fasta truths/beginfuzzySNP.fasta beginfuzzySNP "-no-backup -homo-only")
+
 output=$output"\nhetero-insert : "
 output=$output$(run_test reads/deleted.fasta,reads/master.fasta references/deleted.fasta truths/insertion.fasta hete "-no-backup -max-rep 2")
 
