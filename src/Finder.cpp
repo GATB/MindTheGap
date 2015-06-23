@@ -363,7 +363,7 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
     }
 
     /* Add kmer observer*/
-    if(!object->_homo_only)
+    if(!object->_homo_only && !object->_snp_only)
     {
 	findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
     }
