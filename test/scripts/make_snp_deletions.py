@@ -53,7 +53,7 @@ def unsigned_int(numbre):
 def file_with_extension_exist(filename):
     """ Check if file with vde or fasta doesn't exist """
 
-    for ext in ["vde", "fasta"]:
+    for ext in ["eva", "fasta"]:
         if os.path.isfile(str(filename)+"."+str(ext)):
             raise argparse.ArgumentTypeError(
                 "we need %s.%s file not exist" % str(filename), str(ext))
