@@ -132,7 +132,6 @@ public :
 
 protected :
 
-    bool contains(KmerType kmer);
     KmerType mutate_kmer(KmerType& kmer, KmerType& nuc, size_t pos);
     void remove_nuc(std::map<KmerType, unsigned int>& nuc, size_t pos);
     bool snp_at_end(unsigned char* beginpos, size_t limit, KmerType* ret_nuc);
@@ -140,14 +139,6 @@ protected :
 
 template<size_t span>
 FindSNP<span>::FindSNP(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
-
-template<size_t span>
-bool FindSNP<span>::contains(KmerType kmer)
-{
-    kmer = std::min(kmer, revcomp(kmer, this->_find->kmer_size()));
-    Node node = Node(Node::Value(kmer));
-    return this->_find->graph_contains(node);
-}
 
 //// mutate_kmer
 // fonction to mutate kmer : takes kmer, pos (de la fin ,0-based), and nt (nt = 0,1,2ou 3)
@@ -426,6 +417,64 @@ void FindMultiSNP<span>::correct_history(unsigned char pos, KmerType nuc)
 	unsigned char index = (i + pos) % 256;
         this->_find->het_kmer_history(index).kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, this->_find->kmer_size() - i);
     }
+}
+
+template<size_t span>
+class FindDeletion : public IFindObserver<span>
+{
+public :
+    typedef typename gatb::core::kmer::impl::Kmer<span> Kmer;
+
+    typedef typename Kmer::ModelCanonical KmerModel;
+    typedef typename KmerModel::Iterator KmerIterator;
+    
+public :
+
+    /** \copydoc IFindObserver<span>
+     */
+    FindDeletion(FindBreakpoints<span> * find);
+
+    /** \copydoc IFindObserver::IFindObserver
+     */
+    bool update();
+};
+
+template<size_t span>
+FindDeletion<span>::FindDeletion(FindBreakpoints<span> * find) : IFindObserver<span>(find){}    
+
+template<size_t span>
+bool FindDeletion<span>::update()
+{
+    if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
+    {
+	return false;
+    }
+
+    unsigned int del_size = this->_find->gap_stretch_size() - this->_find->kmer_size();
+    
+    std::string seq = this->_find->model().toString(this->_find->kmer_begin().forward());
+    seq += this->_find->model().toString(this->_find->kmer_end().forward());
+
+    KmerModel local_m(this->_find->kmer_size());
+    KmerIterator local_it(local_m);
+    Data local_d(const_cast<char*>(seq.c_str()));
+    local_d.setRef(const_cast<char*>(seq.c_str()), (size_t)seq.length());
+    local_it.setData(local_d);
+
+    for(local_it.first(); !local_it.isDone(); local_it.next())
+    {
+        if(!this->contains(local_it->forward()))
+    	{
+    	    return false;
+    	}
+    }
+    
+    // obtains the kmer sequence
+    string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
+    string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
+
+    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 2, kmer_begin_str, kmer_end_str, 0, STR_DEL_TYPE);
+    return true;
 }
 
 template<size_t span>

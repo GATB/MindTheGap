@@ -39,6 +39,9 @@ output=$output$(run_test reads/beginfuzzySNP.fasta references/beginfuzzySNP.fast
 output=$output"\nhetero-insert : "
 output=$output$(run_test reads/deleted.fasta,reads/master.fasta references/deleted.fasta truths/insertion.fasta hete "-no-backup -max-rep 2")
 
+output=$output"\ndeletion : "
+output=$output$(run_test reads/deleted.fasta references/master.fasta truths/deletion.fasta deletion "-no-backup")
+
 output=$output"\nn-in-solid-stretch : "
 output=$output$(run_test reads/master.fasta references/n_in_stretch.fasta truths/n_in_stretch.fasta n_in_stretch)
 

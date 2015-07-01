@@ -344,11 +344,13 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 {
     FindBreakpoints<span> findBreakpoints(object);
 
+    findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
+    
     /* Add Gar observer */
     if(!object->_insert_only)
     {
 	findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
-	findBreakpoints.addGapObserver(new FindFuzzySNP<span>(&findBreakpoints));
+	//findBreakpoints.addGapObserver(new FindFuzzySNP<span>(&findBreakpoints));
 	findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
     }
     
@@ -357,7 +359,7 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 	findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
 	findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
     }
-
+    
     if(!object->_no_backup)
     {
 	findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
@@ -368,7 +370,7 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
     {
 	findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
     }
-
+    
     /* Run */
     findBreakpoints();
 }

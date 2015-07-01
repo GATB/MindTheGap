@@ -297,7 +297,7 @@ void FindBreakpoints<span>::operator()()
     // We create an iterator over this bank
     Iterator<Sequence>* it_seq = this->finder->_refBank->iterator();
     LOCAL(it_seq);
-
+    
     // We loop over sequences
     for (it_seq->first(); !it_seq->isDone(); it_seq->next())
     {
@@ -337,7 +337,7 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 {
     bool in_graph = this->graph_contains(node);
     this->store_kmer_info(node);
-    std::cout<<std::noboolalpha<<in_graph;
+    
     for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
     {
 	(*it)->update();

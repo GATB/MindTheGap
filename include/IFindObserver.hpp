@@ -42,6 +42,10 @@ class FindBreakpoints;
 template<size_t span>
 class IFindObserver : public SmartPointer
 {
+public:
+    typedef typename gatb::core::kmer::impl::Kmer<span> Kmer;
+
+    typedef typename Kmer::Type KmerType;
     
 public:
 
@@ -65,6 +69,7 @@ protected :
     /** Pointer one FindBreakpoints instance
      */
     FindBreakpoints<span>* _find;
+    bool contains(KmerType kmer);
 };
 
 template<size_t span>
@@ -73,9 +78,13 @@ IFindObserver<span>::IFindObserver(FindBreakpoints<span>* find)
     this->_find = find;
 }
 
+template<size_t span>
+bool IFindObserver<span>::contains(KmerType kmer)
+{
+    kmer = std::min(kmer, revcomp(kmer, this->_find->kmer_size()));
+    Node node = Node(Node::Value(kmer));
+    return this->_find->graph_contains(node);
+}
+
 #endif /* _TOOL_IFindObserver_HPP_ */
-
-
-
-
 
