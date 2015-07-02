@@ -106,14 +106,10 @@ def compare(exp, truth):
     for each type """
 
     result = defaultdict(lambda: defaultdict(int))
-    print truth
-    print exp
     for exp_pos in exp.keys():
         find = False
         for pos in range(exp_pos-5, exp_pos+6):
             if pos in truth.keys():
-                print str(exp[exp_pos])
-                print str(truth[pos])
                 if exp[exp_pos] == truth[pos]:
                     __iterate_result(result, exp[exp_pos].type, "TP")
                     find = True
