@@ -101,6 +101,8 @@ def generate_snp_del(seq, pos_del, pos_snp, del_size):
 
     seq = seq[:pos_del] + seq[pos_del+del_size:]
 
+    return seq
+
 
 def write_vde(file_handler, pos, type, comment):
     """ Write information in vde format """
@@ -197,9 +199,10 @@ def main():
             snp_pos = del_pos - random.randint(dist_snp_min,
                                                dist_snp_max)
 
-            generate_snp_del(comment2seq[comment], del_pos, snp_pos,
-                             random.randint(del_size_min,
-                                            del_size_max))
+            comment2seq[comment] = generate_snp_del(
+                comment2seq[comment], del_pos, snp_pos, random.randint(
+                    del_size_min,
+                    del_size_max))
 
             write_vde(vde_file, snp_pos, "snp", comment)
             write_vde(vde_file, del_pos, "homo", comment)
