@@ -177,7 +177,7 @@ def main():
     nuc_per_del = genome_size / arg["number_del"]
 
     # output file openning
-    vde_file = open(arg["output"]+".vde", "a")
+    vde_file = open(arg["output"]+".eva", "a")
     output_file = open(arg["output"]+".fasta", "a")
 
     # generate snp and deletion
