@@ -347,8 +347,6 @@ template<size_t span>
 void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 {
     FindBreakpoints<span> findBreakpoints(object);
-
-    findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
     
     /* Add Gar observer */
     if(!object->_insert_only)
@@ -357,6 +355,8 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 	//findBreakpoints.addGapObserver(new FindFuzzySNP<span>(&findBreakpoints));
 	findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
     }
+
+    findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
     
     if(!object->_snp_only)
     {
