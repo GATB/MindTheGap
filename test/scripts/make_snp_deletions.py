@@ -82,13 +82,13 @@ def check_interval(first, second):
 
 
 # specific function
-def pos_near(base_list, pos, min_dist):
-    """ Check if pos isn't near a pos in base_list """
-    for base_pos in base_list:
-        if abs(base_pos - pos) < min_dist:
-            return True
+# def pos_near(base_list, pos, min_dist):
+#     """ Check if pos isn't near a pos in base_list """
+#     for base_pos in base_list:
+#         if abs(base_pos - pos) < min_dist:
+#             return True
 
-    return False
+#     return False
 
 
 def generate_snp_del(seq, pos_del, pos_snp, del_size):
@@ -138,7 +138,7 @@ def main():
                         default=100)
     parser.add_argument("-M", "--max-size-del", type=unsigned_int,
                         help="maximal size of the deletions (in bp)",
-                        default=200)
+                        default=150)
     parser.add_argument("-s", "--min-dist-snp", type=unsigned_int,
                         help="minimal distance between snp and deletion (in bp)",
                         default=5)
@@ -160,7 +160,7 @@ def main():
 
     # Check variant distance
     if arg["variant_dist"] <= (arg["max_size_del"] + arg["max_dist_snp"]):
-        logging.getLogger().warning(
+        logger().warning(
             "variant distance is minus possible variant max size.")
 
     comment = ""
@@ -185,25 +185,26 @@ def main():
     del_cpt = 0
     list_pos = list()
     for comment in comment2seq.keys():
+        del_pos = 0
         while seq_del_cpt < (len(comment2seq[comment]) / nuc_per_del):
 
             del_cpt += 1
             seq_del_cpt += 1
 
-            del_pos = random.randint(0, len(comment2seq[comment]))
-
-            while pos_near(list_pos, del_pos, arg["variant_dist"]):
-                del_pos = random.randint(0, len(comment2seq[comment]))
-            list_pos.append(del_pos)
-
+            del_pos_max = del_pos + arg["variant_dist"] * 2
+            del_pos = random.randint(del_pos+arg["variant_dist"], del_pos_max)
             snp_pos = del_pos - random.randint(dist_snp_min,
                                                dist_snp_max)
 
+            del_size = random.randint(del_size_min, del_size_max);
+            if (del_pos + del_size) > len(comment2seq[comment]):
+                logger.warning("""We can't create another deletion in this 
+                sequence we create %d deletion""" % seq_del_cpt)
+                break
+            
             comment2seq[comment] = generate_snp_del(
-                comment2seq[comment], del_pos, snp_pos, random.randint(
-                    del_size_min,
-                    del_size_max))
-
+                comment2seq[comment], del_pos, snp_pos, del_size)
+            
             write_vde(vde_file, snp_pos, "snp", comment)
             write_vde(vde_file, del_pos, "homo", comment)
 
