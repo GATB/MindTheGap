@@ -30,7 +30,7 @@
 /********************************************************************************/
 #include <gatb/gatb_core.hpp>
 #include <Finder.hpp>
-#include <FindObserver.hpp>
+#include <FindSNP.hpp>
 
 /********************************************************************************/
 
@@ -358,7 +358,7 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 		    break;
 		}
 	    }
-
+	    std::cout<<"Find gap, gap size : "<<this->m_gap_stretch_size<<std::endl;
 	    // gap stretch size is re-set to 0 only when we are sure that the end of the gap is not due to an isolated solid kmer (likely FP)
 	    this->m_gap_stretch_size = 0; 
 	}

@@ -20,8 +20,12 @@
 
 #include <Finder.hpp>
 #include <FindBreakpoints.hpp>
-#include <FindObserver.hpp>
 #include <IFindObserver.hpp>
+#include <FindBackup.hpp>
+#include <FindDeletion.hpp>
+#include <FindHetero.hpp>
+#include <FindInsert.hpp>
+#include <FindSNP.hpp>
 #include <limits> //for std::numeric_limits
 
 //#define PRINT_DEBUG
