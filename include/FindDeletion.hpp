@@ -57,11 +57,24 @@ bool FindDeletion<span>::update()
 	return false;
     }
 
+    std::string begin = this->_find->model().toString(this->_find->kmer_begin().forward());
+    std::string end = this->_find->model().toString(this->_find->kmer_end().forward());
+
+    // Detect if deletion is a fuzzy deletion
+    unsigned int repeat_size;
+    for(repeat_size = 0; begin.substr(begin.length() - repeat_size, 1) == end.substr(repeat_size, 1); repeat_size++);
+    if(repeat_size != 0)
+    {
+	unsigned char hist_end_pos = this->_find->position() - 2 - repeat_size % 256;
+	unsigned char hist_begin_pos = hist_end_pos - this->_find->gap_stretch_size() + repeat_size;
+	begin = this->_find->model().toString(this->_find->het_kmer_history(hist_begin_pos).kmer);
+	end = this->_find->model().toString(this->_find->het_kmer_history(hist_end_pos).kmer);
+    }
+    
     unsigned int del_size = this->_find->gap_stretch_size() - this->_find->kmer_size();
     
-    std::string seq = this->_find->model().toString(this->_find->kmer_begin().forward());
-    seq += this->_find->model().toString(this->_find->kmer_end().forward());
-
+    std::string seq = begin + end;
+    
     KmerModel local_m(this->_find->kmer_size());
     KmerIterator local_it(local_m);
     Data local_d(const_cast<char*>(seq.c_str()));
@@ -80,7 +93,7 @@ bool FindDeletion<span>::update()
     string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
     string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 
-    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 2, kmer_begin_str, kmer_end_str, 0, STR_DEL_TYPE);
+    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 2 + repeat_size, kmer_begin_str, kmer_end_str, 0, STR_DEL_TYPE);
     return true;
 }
 
