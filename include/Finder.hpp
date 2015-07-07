@@ -28,12 +28,19 @@ using namespace std;
 /********************************************************************************/
 
 static const char* STR_URI_REF = "-ref";
-static const char* STR_MAX_REPEAT = "-max-rep";
-static const char* STR_HOMO_ONLY = "-homo-only";
+static const char* STR_MAX_REPEAT = "-max-rep";;
 static const char* STR_HET_MAX_OCC = "-het-max-occ";
+
+static const char* STR_HOMO_ONLY = "-homo-only";
 static const char* STR_INSERT_ONLY = "-insert-only";
 static const char* STR_SNP_ONLY = "-snp-only";
+static const char* STR_DELETION_ONLY = "-deletion-only";
+static const char* STR_HETERO_ONLY = "-hete-only";
 static const char* STR_NO_BACKUP = "-no-backup";
+static const char* STR_NO_SNP = "-no-snp";
+static const char* STR_NO_INSERT = "-no-insert";
+static const char* STR_NO_DELETION = "-no-deletion";
+static const char* STR_NO_HETERO = "-no-hetero";
 
 static const char* STR_HOM_TYPE = "HOM";
 static const char* STR_HET_TYPE = "HET";
@@ -57,9 +64,11 @@ public:
     int _het_max_occ;
     int _nbCores;
     bool _homo_only;
-    bool _insert_only;
-    bool _snp_only;
-    bool _no_backup;
+    bool _homo_insert;
+    bool _hete_insert;
+    bool _snp;
+    bool _backup;
+    bool _deletion;
     IBank* _refBank;
     string _breakpoint_file_name;
     FILE * _breakpoint_file;

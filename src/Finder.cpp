@@ -53,14 +53,19 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _max_repeat=0;
     _het_max_occ=1;
     _nbCores=0;
-    _homo_only=true;
     _breakpoint_file_name="";
     _nb_homo_clean=0;
     _nb_homo_fuzzy=0;
     _nb_hetero_clean=0;
     _nb_hetero_fuzzy=0;
-    
 
+    _homo_only = true;
+    _homo_insert = true;
+    _hete_insert = true;
+    _snp = true;
+    _backup = true;
+    _deletion = true;
+    
     // Option parser, with several sub-parsers
     setParser (new OptionsParser ("MindTheGap find"));
 
@@ -85,14 +90,20 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
     finderParser->push_front (new OptionNoParam (STR_INSERT_ONLY, "only search for insert breakpoints", false));
     finderParser->push_front (new OptionNoParam (STR_SNP_ONLY, "only search for snp", false));
+    finderParser->push_front (new OptionNoParam (STR_DELETION_ONLY, "only search for deletion breakpoints", false));
+    finderParser->push_front (new OptionNoParam (STR_HETERO_ONLY, "only search for heterozygote insert", false));
     finderParser->push_front (new OptionNoParam (STR_NO_BACKUP, "didn't enable system for catch all breakpoint when size is upper kmer-size/2", false));
-
-	IOptionsParser* graphParser = new OptionsParser("Graph building");
-	string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max()); //to be sure in case CountNumber definition changes
-	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, abundanceMax));
-	//TODO for release : change 3 -> auto
-	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
-	graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
+    finderParser->push_front (new OptionNoParam (STR_NO_SNP, "didn't catch SNP breakpoint", false));
+    finderParser->push_front (new OptionNoParam (STR_NO_INSERT, "didn't catch insert breakpoint", false));
+    finderParser->push_front (new OptionNoParam (STR_NO_DELETION, "didn't catch deletion breakpoint", false));
+    finderParser->push_front (new OptionNoParam (STR_NO_HETERO, "didn't search heterozygote insert", false));
+    
+    IOptionsParser* graphParser = new OptionsParser("Graph building");
+    string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max()); //to be sure in case CountNumber definition changes
+    graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, abundanceMax));
+    //TODO for release : change 3 -> auto
+    graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
+    graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
 	//IOptionsParser* graphParser = SortingCountAlgorithm<>::getOptionsParser(false);
     //graphParser->setName ("Graph building");
 
@@ -221,34 +232,85 @@ void Finder::execute ()
     //Getting other parameters
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_repeat = getInput()->getInt(STR_MAX_REPEAT);
-    _homo_only=getInput()->get(STR_HOMO_ONLY) !=0;
-    _insert_only = getInput()->get(STR_INSERT_ONLY) != 0;
-    _snp_only = getInput()->get(STR_SNP_ONLY) != 0;
-    _no_backup = getInput()->get(STR_NO_BACKUP) != 0;
     _het_max_occ=getInput()->getInt(STR_HET_MAX_OCC);
     if(_het_max_occ<1){
     	_het_max_occ=1;
     }
 
-    //no longer used
-//    if(!_homo_only){
-//    	// Building the index of reference (k-1)-mers occurring more than _het_max_occ + 1 times
-//    	string tempFileName="trashme";
-//    	stringstream commandLine;
-//    	commandLine << //STR_URI_INPUT << " " << getInput()->getStr(STR_URI_REF) << " " <<  //start from fasta file (and not from Bank : can not be used several times)
-//    			STR_KMER_ABUNDANCE_MIN << " " << _het_max_occ + 1 << " " <<
-//    			STR_KMER_SIZE << " " << _kmerSize-1 << " " <<
-//    			STR_DEBLOOM_TYPE << " none " <<
-//    			STR_BLOOM_TYPE << " cache " <<
-//    			STR_URI_OUTPUT << " " << tempFileName << " ";
-//
-//    	//cout << commandLine.str() << endl;
-//
-//    	_ref_graph = Graph::create(_refBank,commandLine.str().c_str()); // PB :  we can not modify the Bloom size
-//
-//    	System::file().remove(tempFileName+".h5");
-//    }
+    if(getInput()->get(STR_HOMO_ONLY) != 0)
+    {
+	_homo_only = true;
+	_homo_insert = true;
+	_hete_insert = false;
+	_snp = true;
+	_backup = true;
+	_deletion = true;
+    }
+    
+    if(getInput()->get(STR_INSERT_ONLY) != 0)
+    {
+	_homo_only = false;
+	_homo_insert = true;
+	_hete_insert = true;
+	_snp = false;
+	_backup = false;
+	_deletion = false;
+    }
 
+    if(getInput()->get(STR_SNP_ONLY) != 0)
+    {
+	_homo_only = true;
+	_homo_insert = false;
+	_hete_insert = false;
+	_snp = true;
+	_backup = false;
+	_deletion = false;
+    }
+
+    if(getInput()->get(STR_DELETION_ONLY) != 0)
+    {
+	_homo_only = true;
+	_homo_insert = false;
+	_hete_insert = false;
+	_snp = false;
+	_backup = false;
+	_deletion = true;
+    }
+
+    if(getInput()->get(STR_HETERO_ONLY) != 0)
+    {
+	_homo_only = false;
+	_homo_insert = false;
+	_hete_insert = true;
+	_snp = false;
+	_backup = false;
+	_deletion = false;
+    }
+
+    if(getInput()->get(STR_NO_BACKUP) != 0)
+    {
+	_backup = false;
+    }
+
+    if(getInput()->get(STR_NO_SNP) != 0)
+    {
+	_snp = false;
+    }
+
+    if(getInput()->get(STR_NO_INSERT) != 0)
+    {
+	_homo_insert = false;
+    }
+
+    if(getInput()->get(STR_NO_DELETION) != 0)
+    {
+	_deletion = false;
+    }
+
+    if(getInput()->get(STR_NO_HETERO) != 0)
+    {
+	_hete_insert = false;
+    }
 
     // Now do the job
     time_t start_time = time(0);
@@ -316,12 +378,12 @@ void Finder::resumeParameters(){
 
     getInfo()->add(1,"Breakpoint detection options");
     getInfo()->add(2,"max_repeat","%i", _max_repeat);
-    getInfo()->add(2,"homo_only","%s", _homo_only ? "yes" : "no");
     getInfo()->add(2,"hetero_max_occ","%i", _het_max_occ);
-    getInfo()->add(2,"insert_only","%s", _insert_only ? "yes" : "no");
-    getInfo()->add(2,"snp_only","%s", _snp_only ? "yes" : "no");
-    getInfo()->add(2,"no_backup","%s", _no_backup ? "yes" : "no");
-    
+    getInfo()->add(2,"homo_insert","%s", _homo_insert ? "yes" : "no");
+    getInfo()->add(2,"hete_insert","%s", _hete_insert ? "yes" : "no");
+    getInfo()->add(2,"snp","%s", _snp ? "yes" : "no");
+    getInfo()->add(2,"backup","%s", _backup ? "yes" : "no");
+    getInfo()->add(2,"deletion","%s", _deletion ? "yes" : "no");    
 }
 
 void Finder::resumeResults(double seconds){
@@ -349,28 +411,31 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
     FindBreakpoints<span> findBreakpoints(object);
     
     /* Add Gar observer */
-    if(!object->_insert_only)
+    if(object->_snp)
     {
 	findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
 	//findBreakpoints.addGapObserver(new FindFuzzySNP<span>(&findBreakpoints));
 	findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
     }
 
-    findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
+    if(object->_deletion)
+    {
+	findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
+    }
     
-    if(!object->_snp_only)
+    if(object->_homo_insert)
     {
 	findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
 	findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
     }
     
-    if(!object->_no_backup)
+    if(object->_backup)
     {
 	findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
     }
 
     /* Add kmer observer*/
-    if(!object->_homo_only && !object->_snp_only)
+    if(object->_hete_insert)
     {
 	findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
     }
