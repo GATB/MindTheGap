@@ -48,16 +48,20 @@ Finder::~Finder()
  *********************************************************************/
 Finder::Finder ()  : Tool ("MindTheGap find")
 {
-    _refBank=0;
-    _kmerSize=31;
-    _max_repeat=0;
-    _het_max_occ=1;
-    _nbCores=0;
-    _breakpoint_file_name="";
-    _nb_homo_clean=0;
-    _nb_homo_fuzzy=0;
-    _nb_hetero_clean=0;
-    _nb_hetero_fuzzy=0;
+    _refBank = 0;
+    _kmerSize = 31;
+    _max_repeat = 0;
+    _het_max_occ = 1;
+    _nbCores = 0;
+    _breakpoint_file_name = "";
+    _nb_homo_clean = 0;
+    _nb_homo_fuzzy = 0;
+    _nb_hetero_clean = 0;
+    _nb_hetero_fuzzy = 0;
+    _nb_fuzzy_deletion = 0;
+    _nb_clean_deletion = 0;
+    _nb_solo_snp = 0;
+     _nb_multi_snp = 0;
 
     _homo_only = true;
     _homo_insert = true;
@@ -395,6 +399,12 @@ void Finder::resumeResults(double seconds){
     getInfo()->add(2,"heterozygous","%i", _nb_hetero_clean+_nb_hetero_fuzzy);
     getInfo()->add(3,"clean","%i", _nb_hetero_clean);
     getInfo()->add(3,"fuzzy","%i", _nb_hetero_fuzzy);
+    getInfo()->add(2,"deletion","%i", _nb_clean_deletion+_nb_fuzzy_deletion);
+    getInfo()->add(3,"clean", "%i", _nb_clean_deletion);
+    getInfo()->add(3,"fuzzy", "%i", _nb_fuzzy_deletion);
+    getInfo()->add(2,"snp","%i", _nb_solo_snp+_nb_multi_snp);
+    getInfo()->add(3,"solo", "%i", _nb_solo_snp);
+    getInfo()->add(3,"multi", "%i", _nb_multi_snp);
     getInfo()->add(1,"Time", "%.1f s",seconds);
     getInfo()->add(1,"Output files");
     if(getInput()->get(STR_URI_INPUT) != 0){

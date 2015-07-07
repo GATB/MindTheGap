@@ -77,6 +77,10 @@ public:
     int _nb_homo_fuzzy;
     int _nb_hetero_clean;
     int _nb_hetero_fuzzy;
+    int _nb_fuzzy_deletion;
+    int _nb_clean_deletion;
+    int _nb_solo_snp;
+    int _nb_multi_snp;
 
     // Actual job done by the tool is here
     void execute ();

@@ -197,6 +197,22 @@ public :
      */
     int hetero_clean_iterate();
 
+    /** Incremente the value of fuzzy_deletion_iterate
+     */
+    int fuzzy_deletion_iterate();
+
+    /** Incremente the value of fuzzy_deletion_iterate
+     */
+    int clean_deletion_iterate();
+
+    /** Incremente the value of solo_snp_iterate
+     */
+    int solo_snp_iterate();
+
+    /** Incremente the value of multi_snp_iterate
+     */
+    int multi_snp_iterate();
+    
     /*Setter*/
     /** Set value of recent_hetero
      */
@@ -569,6 +585,30 @@ template<size_t span>
 int FindBreakpoints<span>::hetero_clean_iterate()
 {
     return this->finder->_nb_hetero_clean++;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::fuzzy_deletion_iterate()
+{
+    return this->finder->_nb_fuzzy_deletion++;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::clean_deletion_iterate()
+{
+    return this->finder->_nb_clean_deletion++;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::solo_snp_iterate()
+{
+    return this->finder->_nb_solo_snp++;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::multi_snp_iterate()
+{
+    return this->finder->_nb_multi_snp++;
 }
 
 /*Setter*/

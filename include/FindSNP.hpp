@@ -177,7 +177,7 @@ bool FindSoloSNP<span>::update()
 
 	    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0, STR_SNP_TYPE);
 	    this->_find->breakpoint_id_iterate();
-
+	    this->_find->solo_snp_iterate();
 	    return true;
 	}
     }
@@ -294,7 +294,8 @@ bool FindMultiSNP<span>::update()
        
 		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), begin_pos - 1, kmer_begin_str, kmer_end_str, 0, STR_MSNP_TYPE);
 		this->_find->breakpoint_id_iterate();
-
+		this->_find->multi_snp_iterate();
+		
 	        begin_pos += (index_pos - save_index);
 	    }
 	    // else return false

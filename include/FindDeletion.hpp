@@ -94,6 +94,13 @@ bool FindDeletion<span>::update()
     string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 
     this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 2 + repeat_size, kmer_begin_str, kmer_end_str, 0, STR_DEL_TYPE);
+    this->_find->breakpoint_id_iterate();
+
+    if(repeat_size != 0)
+	this->_find->fuzzy_deletion_iterate();
+    else
+	this->_find->clean_deletion_iterate();
+
     return true;
 }
 
