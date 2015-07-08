@@ -42,6 +42,9 @@ output=$output$(run_test reads/deleted.fasta,reads/master.fasta references/delet
 output=$output"\ndeletion : "
 output=$output$(run_test reads/deleted.fasta references/master.fasta truths/deletion.fasta deletion "-deletion-only")
 
+output=$output"\nfuzzy-deletion : "
+output=$output$(run_test reads/deletionfuzzy.fasta references/deletionfuzzy.fasta truths/deletionfuzzy.fasta deletionfuzzy "-deletion-only")
+
 output=$output"\nn-in-solid-stretch : "
 output=$output$(run_test reads/master.fasta references/n_in_stretch.fasta truths/n_in_stretch.fasta n_in_stretch "-insert-only")
 

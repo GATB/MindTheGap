@@ -366,7 +366,7 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 
 	if(m_solid_stretch_size > 1 && m_gap_stretch_size > 0)
 	{
-	    // Call each readonly observer
+            // Call each readonly observer
 	    for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
 	    {
 		if((*it)->update())
