@@ -330,7 +330,7 @@ void FindBreakpoints<span>::operator()()
 	// We set the data from which we want to extract kmers.
 	m_it_kmer.setData ((*it_seq)->getData());
 	this->m_chrom_sequence = (*it_seq)->getDataBuffer();
-	this->m_chrom_name = (*it_seq)->getComment();
+	this->m_chrom_name = (*it_seq)->getCommentShort();
 	this->m_position = 0;
 	
 	// We iterate the kmers.
