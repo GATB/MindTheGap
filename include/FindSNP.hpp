@@ -307,11 +307,16 @@ bool FindMultiSNP<span>::update()
 
 	//Set value for future detection
 	unsigned int nb_kmer_correct = begin_pos - begin_pos_init;
+	if(nb_kmer_correct == 0)
+	{
+	    return false;
+	}
+
 	if(nb_kmer_correct != this->_find->gap_stretch_size())
 	{
 	    this->_find->m_gap_stretch_size -= nb_kmer_correct;
 	    this->_find->m_solid_stretch_size += nb_kmer_correct;
-	    this->_find->m_kmer_begin.set(this->_find->het_kmer_history(index_pos).kmer, revcomp(this->_find->het_kmer_history(index_pos).kmer, this->_find->kmer_size()));
+	    this->_find->m_kmer_begin.set(this->_find->het_kmer_history(index_pos-2).kmer, revcomp(this->_find->het_kmer_history(index_pos-2).kmer, this->_find->kmer_size()));
 
 	    return false;
 	}
