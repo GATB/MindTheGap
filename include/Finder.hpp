@@ -81,6 +81,7 @@ public:
     int _nb_clean_deletion;
     int _nb_solo_snp;
     int _nb_multi_snp;
+    int _nb_backup;
 
     // Actual job done by the tool is here
     void execute ();

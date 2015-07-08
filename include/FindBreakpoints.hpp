@@ -212,6 +212,10 @@ public :
     /** Incremente the value of multi_snp_iterate
      */
     int multi_snp_iterate();
+
+    /** Incremente the value of backup_iterate
+     */
+    int backup_iterate();
     
     /*Setter*/
     /** Set value of recent_hetero
@@ -609,6 +613,12 @@ template<size_t span>
 int FindBreakpoints<span>::multi_snp_iterate()
 {
     return this->finder->_nb_multi_snp++;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::backup_iterate()
+{
+    return this->finder->_nb_backup++;
 }
 
 /*Setter*/

@@ -61,8 +61,9 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _nb_fuzzy_deletion = 0;
     _nb_clean_deletion = 0;
     _nb_solo_snp = 0;
-     _nb_multi_snp = 0;
-
+    _nb_multi_snp = 0;
+    _nb_backup = 0;
+    
     _homo_only = true;
     _homo_insert = true;
     _hete_insert = true;
@@ -405,6 +406,7 @@ void Finder::resumeResults(double seconds){
     getInfo()->add(2,"snp","%i", _nb_solo_snp+_nb_multi_snp);
     getInfo()->add(3,"solo", "%i", _nb_solo_snp);
     getInfo()->add(3,"multi", "%i", _nb_multi_snp);
+    getInfo()->add(2,"backup","%i", _nb_backup);
     getInfo()->add(1,"Time", "%.1f s",seconds);
     getInfo()->add(1,"Output files");
     if(getInput()->get(STR_URI_INPUT) != 0){
