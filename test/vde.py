@@ -14,11 +14,9 @@ import math
 
 class Variant:
 
-    def __init__(self, pos, type, comment, delta):
-        self.pos = pos
+    def __init__(self, type, comment):
         self.type = type
         self.comment = comment
-        self.delta = delta
 
     def __eq__(self, other):
         if self.type != other.type:
@@ -27,13 +25,10 @@ class Variant:
         if self.comment != other.comment:
             return False
 
-        if abs(int(self.pos) - int(other.pos)) > self.delta:
-            return False
-
         return True
 
     def __str__(self):
-        return "%s,%s,%s" % (str(self.pos), str(self.type), str(self.comment))
+        return "%s_%s" % (str(self.type), str(self.comment))
 
 
 def main():
@@ -75,8 +70,8 @@ def main():
     expfunc = globals()[argument["experiment_format"]+"2eva"]
     truthfunc = globals()[argument["truth_format"]+"2eva"]
 
-    experiment, count = expfunc(argument["experiment"], argument["delta"])
-    truth, count = truthfunc(argument["truth"], argument["delta"])
+    experiment, count = expfunc(argument["experiment"])
+    truth, count = truthfunc(argument["truth"])
 
     result = compare(experiment, truth)
 
@@ -110,41 +105,41 @@ def compare(exp, truth):
         find = False
         for pos in range(exp_pos-5, exp_pos+6):
             if pos in truth.keys():
-                if exp[exp_pos] == truth[pos]:
-                    __iterate_result(result, exp[exp_pos].type, "TP")
-                    find = True
-                    break
+                for variant in exp[pos]:
+                    if variant in truth[pos]:
+                        __iterate_result(result, variant.type, "TP")
+                        find = True
         if not find:
             __iterate_result(result, exp[exp_pos].type, "FP")
 
     return result
 
 
-def eva2eva(filename, delta):
+def eva2eva(filename):
     """ Read eva file and return value in dict
     position is key and type is value """
 
     __check_file_exist(filename)
 
-    data = defaultdict(Variant)
+    data = defaultdict(list)
     count = defaultdict(int)
 
     with open(filename) as csvfile:
         linereader = csv.reader(csvfile)
         for val in linereader:
-            data[int(val[0])] = Variant(val[0], val[1], val[2], delta)
+            data[int(val[0])].append(Variant(val[1], val[2]))
             count[val[1]] += 1
 
     return data, count
 
 
-def breakpoints2eva(filename, delta):
+def breakpoints2eva(filename):
     """ Read breakpoint file and return value in dict
     position is key  and type is value """
 
     __check_file_exist(filename)
 
-    data = defaultdict(Variant)
+    data = defaultdict(list)
     count = defaultdict(int)
 
     mtg2eva = {"HOM": "homo",
@@ -162,10 +157,10 @@ def breakpoints2eva(filename, delta):
         for line in filehand:
             line = line.strip()
             if line.startswith(">left_contig_"):
-                data[int(findpos.search(line).group(1))] = Variant(
-                    findpos.search(line).group(1),
+                data[int(findpos.search(line).group(1))].append(Variant(
                     mtg2eva[findtype.search(line).group(1)],
-                    findcomment.search(line).group(1), delta)
+                    findcomment.search(line).group(1)))
+
                 count[mtg2eva[findtype.search(line).group(1)]] += 1
 
     return data, count
