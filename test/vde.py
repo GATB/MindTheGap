@@ -12,7 +12,7 @@ import re
 import math
 
 
-class Variant:
+class Variant(object):
 
     def __init__(self, type, comment):
         self.type = type
@@ -30,6 +30,11 @@ class Variant:
     def __str__(self):
         return "%s_%s" % (str(self.type), str(self.comment))
 
+    def __repr__(self):
+        return "<%s - %s>" % (self.type, self.comment)
+
+    def __hash__(self):
+        return hash(self.type + self.comment)
 
 def main():
     """ The main function of vde no argument """
@@ -73,7 +78,7 @@ def main():
     experiment, count = expfunc(argument["experiment"])
     truth, count = truthfunc(argument["truth"])
 
-    result = compare(experiment, truth)
+    result = compare(experiment, truth, argument["delta"])
 
     result_printing(result, count)
 
@@ -96,21 +101,18 @@ def result_printing(result, count):
                         str(prec))))
 
 
-def compare(exp, truth):
+def compare(exp, truth, delta):
     """ Compare experimente and truth return TP FP precision and recall
     for each type """
 
     result = defaultdict(lambda: defaultdict(int))
     for exp_pos in exp.keys():
-        find = False
-        for pos in range(exp_pos-5, exp_pos+6):
-            if pos in truth.keys():
-                for variant in exp[pos]:
-                    if variant in truth[pos]:
-                        __iterate_result(result, variant.type, "TP")
-                        find = True
-        if not find:
-            __iterate_result(result, exp[exp_pos].type, "FP")
+        if not __pos_in_truth(exp_pos, truth, exp, result):
+            for swift in range(delta):
+                if __pos_in_truth(exp_pos + swift, truth, exp, result):
+                    break
+                if __pos_in_truth(exp_pos - swift, truth, exp, result):
+                    break
 
     return result
 
@@ -164,6 +166,22 @@ def breakpoints2eva(filename):
                 count[mtg2eva[findtype.search(line).group(1)]] += 1
 
     return data, count
+
+def __pos_in_truth(pos, truth, exp, result):
+    """If pos is in truth add in result, exp variant with good value"""
+    print("Begin function"+str(len(result)))
+    if pos in truth.keys():
+        print(str(pos)+" is in truth")
+        set_exp = set(exp[pos])
+        set_tru = set(truth[pos])
+        for variant in set_exp & set_tru:
+            __iterate_result(result, variant.type, "TP")
+        for variant in set_exp & set_exp - set_tru:
+            __iterate_result(result, variant.type, "FP")
+
+        return True
+
+    return False
 
 
 def __iterate_result(result, type_gap, tpofp):
