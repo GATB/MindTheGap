@@ -169,9 +169,7 @@ def breakpoints2eva(filename):
 
 def __pos_in_truth(pos, truth, exp, result):
     """If pos is in truth add in result, exp variant with good value"""
-    print("Begin function"+str(len(result)))
     if pos in truth.keys():
-        print(str(pos)+" is in truth")
         set_exp = set(exp[pos])
         set_tru = set(truth[pos])
         for variant in set_exp & set_tru:
