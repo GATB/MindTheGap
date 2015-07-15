@@ -79,7 +79,7 @@ private:
 
     /** writes a given breakpoint in the output file
          */
-    void writeFilledBreakpoint(set<string>& filledSequences);
+    void writeFilledBreakpoint(set<string>& filledSequences, string breakpointName);
 
     /**
      * returns the nodes containing the targetSequence

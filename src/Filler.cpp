@@ -258,7 +258,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 		//iterate by pair of sequences (WARNING : no verification same breakpoint id)
 		string sourceSequence =  string(itSeq->getDataBuffer());//previously L
-
+		string breakpointName = string(itSeq->getComment());
 		
 		itSeq.next();
 		if(itSeq.isDone()){
@@ -292,15 +292,19 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if (all_consensuses_almost_identical(filledSequences,90))
 		{
 			//if(verb)     printf(" [SUCCESS]\n");
-			if (filledSequences.size() > 1)
+			if (filledSequences.size() > 1) {
+//				stringstream ss;
+//				ss << "cons" <<filledSequences.size();
+//				breakpointName=breakpointName+ss.str();
 				filledSequences.erase(++(filledSequences.begin()),filledSequences.end()); // keep only one consensus sequence
+			}
 		}
 		else
 			;
 			//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 
 		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
-		object->writeFilledBreakpoint(filledSequences);
+		object->writeFilledBreakpoint(filledSequences,breakpointName);
 
 		// We increase the breakpoint counter.
 		nbBreakpoints++;
@@ -368,13 +372,13 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 
 }
 
-void Filler::writeFilledBreakpoint(set<string>& filledSequences){
+void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpointName){
 	
 	//printf("-- writeFilledBreakpoint --\n");
 	
 	//printf("found %zu seq \n",filledSequences.size());
 	
-	int nbContig = 0;
+	int nbInsertions = 0;
 
 	for (set<string>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 	{
@@ -389,10 +393,11 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences){
 		// save sequences to results file
 		if(llen > 0)
 		{
-			fprintf(_insert_file,"> insertion %d ( len= %d ) for breakpoint \"%s\"\n",nbContig++,llen, "todo add header here");
+			fprintf(_insert_file,"> insertion %d ( len= %d ) for breakpoint \"%s\"\n",nbInsertions,llen, breakpointName.c_str());
 			//todo check  revcomp here
 			fprintf(_insert_file,"%.*s\n",(int)llen,insertion.c_str() );
 		}
+		nbInsertions++;
 	}
 	
 
