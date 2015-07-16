@@ -65,6 +65,11 @@ bool FindDeletion<span>::update()
 
     for(repeat_size = 0; begin.substr(begin.length() - 1 - repeat_size, 1) == end.substr(repeat_size, 1); repeat_size++);
 
+    if(repeat_size > this->_find->max_repeat())
+    {
+	return false;
+    }
+
     // Compute del_size
     unsigned int del_size = this->_find->gap_stretch_size() - this->_find->kmer_size() + repeat_size + 1;
     
