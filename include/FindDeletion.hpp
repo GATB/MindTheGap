@@ -66,12 +66,11 @@ bool FindDeletion<span>::update()
     for(repeat_size = 0; begin.substr(begin.length() - 1 - repeat_size, 1) == end.substr(repeat_size, 1); repeat_size++);
 
     // Compute del_size
-    unsigned int del_size = this->_find->gap_stretch_size() - this->_find->kmer_size() + repeat_size;
+    unsigned int del_size = this->_find->gap_stretch_size() - this->_find->kmer_size() + repeat_size + 1;
     
     if(repeat_size != 0)
-    {
-	unsigned char hist_begin_pos = this->_find->position() - del_size - 1 % 256;
-	begin = this->_find->model().toString(this->_find->het_kmer_history(hist_begin_pos).kmer);
+    {	
+	begin = begin.substr(0, begin.length() - repeat_size)
     }
 
     // Check gap is a deletion
@@ -92,7 +91,7 @@ bool FindDeletion<span>::update()
     }
     
     // Write the breakpoint
-    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 2, begin, end, repeat_size, STR_DEL_TYPE);
+    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 1, begin, end, repeat_size, STR_DEL_TYPE);
     this->_find->breakpoint_id_iterate();
 
     if(repeat_size != 0)
