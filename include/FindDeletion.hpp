@@ -65,7 +65,7 @@ bool FindDeletion<span>::update()
 
     for(repeat_size = 0; begin.substr(begin.length() - 1 - repeat_size, 1) == end.substr(repeat_size, 1); repeat_size++);
 
-    if(repeat_size > this->_find->max_repeat())
+    if(repeat_size > (unsigned)this->_find->max_repeat())
     {
 	return false;
     }
@@ -75,7 +75,7 @@ bool FindDeletion<span>::update()
     
     if(repeat_size != 0)
     {	
-	begin = begin.substr(0, begin.length() - repeat_size)
+	begin = begin.substr(0, begin.length() - repeat_size);
     }
 
     // Check gap is a deletion
