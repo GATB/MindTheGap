@@ -186,7 +186,7 @@ def __pos_in_truth(pos, truth, exp, result):
         set_tru = set(truth[pos])
         for variant in set_exp & set_tru:
             # SNP exception hardcode
-            if variant not in ["snp", "multi_snp"]:
+            if variant.type not in ["snp", "multi_snp"]:
                 # Normal variant
                 __iterate_result(result, variant.type, "TP")
             elif pos in exp.keys():

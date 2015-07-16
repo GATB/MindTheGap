@@ -128,6 +128,11 @@ public :
      */
     int max_repeat();
 
+    /** Return the number of minimal kmer required to validate snp
+     */
+    int snp_min_val();
+
+    
     /** The last solid kmer before gap
      */
     KmerCanonical& kmer_begin();
@@ -491,6 +496,12 @@ template<size_t span>
 int FindBreakpoints<span>::max_repeat()
 {
     return this->finder->_max_repeat;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::snp_min_val()
+{
+    return this->finder->_snp_min_val;
 }
 
 /*Kmer related object*/

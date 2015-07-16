@@ -265,7 +265,7 @@ bool FindMultiSNP<span>::update()
 	return false;
     }
 
-    int kmer_threshold = 2;
+    int kmer_threshold = this->_find->snp_min_val();
     // Not content 2 snp with minimal distance
     if(this->_find->gap_stretch_size() > this->_find->kmer_size() + kmer_threshold)
     {

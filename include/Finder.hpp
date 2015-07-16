@@ -30,6 +30,7 @@ using namespace std;
 static const char* STR_URI_REF = "-ref";
 static const char* STR_MAX_REPEAT = "-max-rep";;
 static const char* STR_HET_MAX_OCC = "-het-max-occ";
+static const char* STR_SNP_MIN_VAL = "-snp-min-val";
 
 static const char* STR_HOMO_ONLY = "-homo-only";
 static const char* STR_INSERT_ONLY = "-insert-only";
@@ -62,6 +63,7 @@ public:
     //Graph _ref_graph; // no longer used
     int _max_repeat;
     int _het_max_occ;
+    int _snp_min_val;
     int _nbCores;
     bool _homo_only;
     bool _homo_insert;
