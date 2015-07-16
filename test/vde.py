@@ -36,6 +36,7 @@ class Variant(object):
     def __hash__(self):
         return hash(self.type + self.comment)
 
+
 def main():
     """ The main function of vde no argument """
 
@@ -107,12 +108,22 @@ def compare(exp, truth, delta):
 
     result = defaultdict(lambda: defaultdict(int))
     for exp_pos in exp.keys():
+        find = False
         if not __pos_in_truth(exp_pos, truth, exp, result):
             for swift in range(delta):
                 if __pos_in_truth(exp_pos + swift, truth, exp, result):
+                    find = True
                     break
                 if __pos_in_truth(exp_pos - swift, truth, exp, result):
+                    find = True
                     break
+        else:
+            find = True
+
+        if not find:
+            find = False
+            for variant in exp[exp_pos]:
+                __iterate_result(result, variant.type, "FP")
 
     return result
 
@@ -151,7 +162,7 @@ def breakpoints2eva(filename):
                "DEL": "deletion",
                "BACKUP": "backup"}
 
-    findpos = re.compile(r'pos_(\d+)')
+    findpos = re.compile(r'pos_([-\d]+)')
     findtype = re.compile(r'_([a-zA-Z]+)$')
     findcomment = re.compile(r'contig_\d+_(.+)_pos')
 
@@ -166,6 +177,7 @@ def breakpoints2eva(filename):
                 count[mtg2eva[findtype.search(line).group(1)]] += 1
 
     return data, count
+
 
 def __pos_in_truth(pos, truth, exp, result):
     """If pos is in truth add in result, exp variant with good value"""
