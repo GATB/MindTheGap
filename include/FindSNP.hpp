@@ -175,7 +175,7 @@ bool FindSoloSNP<span>::update()
 	    string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	    string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 
-	    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0, STR_SNP_TYPE);
+	    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, kmer_begin_str, kmer_end_str, 0, STR_SNP_TYPE);
 	    this->_find->breakpoint_id_iterate();
 	    this->_find->solo_snp_iterate();
 	    return true;
