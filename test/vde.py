@@ -89,7 +89,7 @@ def result_printing(result, count):
 
     head = ",".join(("type", "TP", "FP", "recall", "precision"))
     print(head)
-    for gap in result.keys():
+    for gap in result.keys(): 
         total = result[gap]["TP"] + result[gap]["FP"]
 
         prec = 1 if total == 0 else result[gap]["TP"]/float(total)
@@ -107,23 +107,37 @@ def compare(exp, truth, delta):
     for each type """
 
     result = defaultdict(lambda: defaultdict(int))
-    for exp_pos in exp.keys():
-        find = False
-        if not __pos_in_truth(exp_pos, truth, exp, result):
-            for swift in range(delta):
-                if __pos_in_truth(exp_pos + swift, truth, exp, result):
-                    find = True
-                    break
-                if __pos_in_truth(exp_pos - swift, truth, exp, result):
-                    find = True
-                    break
-        else:
-            find = True
+    
+    exp_pos = set(exp.keys())
+    tru_pos = set(truth.keys())
 
-        if not find:
-            find = False
-            for variant in exp[exp_pos]:
-                __iterate_result(result, variant.type, "FP")
+    for exact_pos in (exp_pos & tru_pos):
+        for variant in exp[exact_pos]:
+            if variant in truth[exact_pos]:
+                result[variant.type]["TP"] += 1
+            else: 
+                result[variant.type]["FP"] += 1
+
+    not_found = list(exp_pos - (exp_pos & tru_pos))
+    for fuzzy_pos in (exp_pos - (exp_pos & tru_pos)):
+	for pos in range(fuzzy_pos - delta, fuzzy_pos + delta + 1):
+            for variant in exp[pos]:
+                if variant.type in ("snp", "multi_snp"):
+                    result[variant.type]["FP"] += 1
+                    try:
+                        not_found.remove(fuzzy_pos)
+                    except ValueError:
+                        pass
+                if variant in truth[exact_pos]:
+                    result[variant.type]["TP"] += 1
+                    try:
+                        not_found.remove(fuzzy_pos)
+                    except ValueError:
+                        pass
+
+    for pos in not_found:
+        for variant in exp[pos]:
+            result[variant.type]["FP"] += 1
 
     return result
 
@@ -177,39 +191,6 @@ def breakpoints2eva(filename):
                 count[mtg2eva[findtype.search(line).group(1)]] += 1
 
     return data, count
-
-
-def __pos_in_truth(pos, truth, exp, result):
-    """If pos is in truth add in result, exp variant with good value"""
-    if pos in truth.keys():
-        set_exp = set(exp[pos])
-        set_tru = set(truth[pos])
-        for variant in set_exp & set_tru:
-            # SNP exception hardcode
-            if variant.type not in ["snp", "multi_snp"]:
-                # Normal variant
-                __iterate_result(result, variant.type, "TP")
-            elif pos in exp.keys():
-                # SNP variant in good pos
-                __iterate_result(result, variant.type, "TP")
-            else:
-                # SNP variant not in good pos
-                __iterate_result(result, variant.type, "FP")
-            for variant in set_exp & set_exp - set_tru:
-                __iterate_result(result, variant.type, "FP")
-
-        return True
-
-    return False
-
-
-def __iterate_result(result, type_gap, tpofp):
-    """ If key is in dict iterate this else init this. """
-
-    if type_gap in result.keys():
-        result[type_gap][tpofp] += 1
-    else:
-        result[type_gap][tpofp] = 1
 
 
 def __add_in_data_count(pos, type_gap, data, counter):
