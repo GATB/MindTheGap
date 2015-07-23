@@ -86,13 +86,52 @@ bool FindDeletion<span>::update()
     Data local_d(const_cast<char*>(seq.c_str()));
     local_d.setRef(const_cast<char*>(seq.c_str()), (size_t)seq.length());
     local_it.setData(local_d);
-
-    for(local_it.first(); !local_it.isDone(); local_it.next())
+    unsigned int valid_kmer_cpt;
+    for(local_it.first(), valid_kmer_cpt = 0; !local_it.isDone(); local_it.next())
     {
-        if(!this->contains(local_it->forward()))
+        if(this->contains(local_it->forward()))
     	{
-    	    return false;
+    	    valid_kmer_cpt++;
     	}
+	else
+	{
+	    break;
+	}
+    }
+
+    if(valid_kmer_cpt < seq.length() - this->_find->kmer_size() - 1)
+    {
+	if(repeat_size == 0)
+	{
+	    return false;
+	}
+	else
+	{
+	    seq = this->_find->model().toString(this->_find->kmer_begin().forward()) + end;
+	    local_d.setRef(const_cast<char*>(seq.c_str()), (size_t)seq.length());
+	    local_it.setData(local_d);
+	    for(local_it.first(), valid_kmer_cpt = 0; !local_it.isDone(); local_it.next())
+	    {
+		if(this->contains(local_it->forward()))
+		{
+		    valid_kmer_cpt++;
+		}
+		else
+		{
+		    break;
+		}
+	    }
+	    
+	    if(valid_kmer_cpt < seq.length() - this->_find->kmer_size() - 1)
+	    {
+		return false;
+	    }
+	    else
+	    {
+		del_size -= repeat_size;
+		repeat_size = 0;
+	    }
+	}
     }
     
     // Write the breakpoint
@@ -108,3 +147,7 @@ bool FindDeletion<span>::update()
 }
 
 #endif /* _TOOL_FindDeletion_HPP_ */
+
+
+
+
