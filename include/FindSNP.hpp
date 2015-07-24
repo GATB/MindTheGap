@@ -44,8 +44,25 @@ public :
 
 protected :
 
+    /** Change nucleotide at position in kmer with new nucleotide
+     * \param[in] kmer The kmer you want modificate
+     * \param[in] nuc The new nucleotide
+     * \param[in] pos The position where you want place the new nucleotide
+     * \return The new kmer
+     */
     KmerType mutate_kmer(KmerType& kmer, KmerType& nuc, size_t pos);
+
+    /** Find the last nucleotide of a kmer in history and remove this nucleotide in the hash map
+     * \param[in] nuc nucleotide hash map
+     * \param[in] pos position of kmer in history
+     */
     void remove_nuc(std::map<KmerType, unsigned int>& nuc, size_t pos);
+
+    /** Find if we can find a snp at the end of kmer at a position in history
+     * \param[in] The position of the first kmer in history
+     * \param[in] The number of kmer need to be validate
+     * \param[out] The nucleotide in reads
+     */
     bool snp_at_end(unsigned char* beginpos, size_t limit, KmerType* ret_nuc);
 };
 
@@ -87,19 +104,18 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
     nuc[2] = 0;
     nuc[3] = 0;
 
-    // Compute index_begin and index_end
     unsigned char endpos = (*beginpos + limit) % 256;
 
     this->remove_nuc(nuc, *beginpos);
 
-    // iterate one possible new value
+    // if end is false or if didn't read all kmer loop
     bool end = false;
-
     for(unsigned char j = 0; !end && j != this->_find->kmer_size(); (*beginpos)++, j++)
     {
+	// for each nucleotide of nuc map
 	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end();)
 	{
-	    KmerType const_fix = nuc_it->first;
+	    KmerType const_fix = nuc_it->first; // fix conversion error
 	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, const_fix, this->_find->kmer_size() - j);
 	    if(this->contains(correct_kmer))
 	    {
@@ -108,17 +124,18 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 	    }
 	    else
 	    {
-        	if(nuc.size() == 1)
+        	if(nuc.size() == 1) //Is the last nucleotide and the last iteration
 		{
 		    end = true;
 		    (*beginpos) -= 1; // Last iteration didn't create valid kmer we need decrement value
 		    break;
 		}
-		nuc.erase(nuc_it++);
+		nuc.erase(nuc_it++); // This nucleotide didn't valid kmer we remove it
 	    }
 	}
     }
 
+    //Find the max nucleotide correct most kmer
     KmerType max = nuc.begin()->first;
     for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
     {
@@ -128,6 +145,7 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 	}
     }
 
+    // If nuc max is upper or equale limit we find a snp
     if((unsigned int)nuc[max] >= limit)
     {
 	*ret_nuc = max;
