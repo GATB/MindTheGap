@@ -35,7 +35,7 @@ public :
     typedef typename Kmer::ModelCanonical KmerModel;
     typedef typename KmerModel::Iterator KmerIterator;
     
-public :
+public:
 
     /** \copydoc IFindObserver<span>
      */
@@ -44,6 +44,15 @@ public :
     /** \copydoc IFindObserver::IFindObserver
      */
     bool update();
+
+private:
+
+    /** Detect if the end of a kmer is equal to the begin of other
+     * \param[in] begin first kmer
+     * \param[in] end the other kmer
+     * \return The size of repetition						
+     */
+    unsigned int fuzzy_site(std::string begin, std::string end);
 };
 
 template<size_t span>
@@ -61,76 +70,66 @@ bool FindDeletion<span>::update()
     std::string begin = this->_find->model().toString(this->_find->kmer_begin().forward());
     std::string end = this->_find->model().toString(this->_find->kmer_end().forward());
 
-    unsigned int repeat_size = 0;
-
-    for(repeat_size = 0; begin.substr(begin.length() - 1 - repeat_size, 1) == end.substr(repeat_size, 1); repeat_size++);
+    unsigned int repeat_size = this->fuzzy_site(begin, end);
 
     if(repeat_size > (unsigned)this->_find->max_repeat())
     {
 	return false;
     }
-
-    // Compute del_size
-    unsigned int del_size = this->_find->gap_stretch_size() - this->_find->kmer_size() + repeat_size + 1;
     
     if(repeat_size != 0)
     {	
 	begin = begin.substr(0, begin.length() - repeat_size);
     }
 
-    // Check gap is a deletion
+    // Compute del_size
+    unsigned int del_size = this->_find->gap_stretch_size() - this->_find->kmer_size() + repeat_size + 1;
+
+    // Create a sequence maybe is in graphe
     std::string seq = begin + end;
 
+    // Create variable required for iterate on kmer
     KmerModel local_m(this->_find->kmer_size());
     KmerIterator local_it(local_m);
     Data local_d(const_cast<char*>(seq.c_str()));
+
+    // Init this variable
     local_d.setRef(const_cast<char*>(seq.c_str()), (size_t)seq.length());
     local_it.setData(local_d);
-    unsigned int valid_kmer_cpt;
-    for(local_it.first(), valid_kmer_cpt = 0; !local_it.isDone(); local_it.next())
+
+    bool is_deletion = true;
+    for(local_it.first(); !local_it.isDone(); local_it.next())
     {
-        if(this->contains(local_it->forward()))
+	std::cout<<std::boolalpha<<this->contains(local_it->forward())<<" "<<this->_find->model().toString(local_it->forward())<<std::endl;
+        if(!this->contains(local_it->forward()))
     	{
-    	    valid_kmer_cpt++;
-    	}
-	else
-	{
+    	    is_deletion = false;
 	    break;
 	}
     }
 
-    if(valid_kmer_cpt < seq.length() - this->_find->kmer_size() - 1)
+    if(is_deletion == false)
     {
 	if(repeat_size == 0)
 	{
 	    return false;
 	}
-	else
+	else // Maybee isn't a fuzzy deletion
 	{
 	    seq = this->_find->model().toString(this->_find->kmer_begin().forward()) + end;
 	    local_d.setRef(const_cast<char*>(seq.c_str()), (size_t)seq.length());
 	    local_it.setData(local_d);
-	    for(local_it.first(), valid_kmer_cpt = 0; !local_it.isDone(); local_it.next())
+
+	    for(local_it.first(); !local_it.isDone(); local_it.next())
 	    {
-		if(this->contains(local_it->forward()))
+		if(!this->contains(local_it->forward()))
 		{
-		    valid_kmer_cpt++;
-		}
-		else
-		{
-		    break;
+		    return false;
 		}
 	    }
-	    
-	    if(valid_kmer_cpt < seq.length() - this->_find->kmer_size() - 1)
-	    {
-		return false;
-	    }
-	    else
-	    {
-		del_size -= repeat_size;
-		repeat_size = 0;
-	    }
+	    std::cout<<"Is a false fuzzy deletion"<<std::endl;
+	    del_size -= repeat_size;
+	    repeat_size = 0;
 	}
     }
     
@@ -146,7 +145,32 @@ bool FindDeletion<span>::update()
     return true;
 }
 
+/*
+  with max_repeat = 5
+  good case 1 + 5 + 1 = 6 operation exemple AAAAATTCGG TTCGGCCCCC
+*/
+template<size_t span>
+unsigned int FindDeletion<span>::fuzzy_site(std::string begin, std::string end)
+{
+    for(unsigned int i = this->_find->max_repeat(); i != 0; i--)
+	for(unsigned int j = 1; begin.substr(begin.length() - i, j) == end.substr(0, j); j++)
+	    if(i == j)
+		return j;
+	    
+    return 0;
+}
+
 #endif /* _TOOL_FindDeletion_HPP_ */
+
+
+
+
+
+
+
+
+
+
 
 
 
