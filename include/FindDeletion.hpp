@@ -100,7 +100,6 @@ bool FindDeletion<span>::update()
     bool is_deletion = true;
     for(local_it.first(); !local_it.isDone(); local_it.next())
     {
-	std::cout<<std::boolalpha<<this->contains(local_it->forward())<<" "<<this->_find->model().toString(local_it->forward())<<std::endl;
         if(!this->contains(local_it->forward()))
     	{
     	    is_deletion = false;
