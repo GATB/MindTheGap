@@ -175,7 +175,8 @@ void Finder::execute ()
     
 
     // Getting the graph
-    
+	
+
     // Case 1 : -in option, we create the graph from read files
     if (getInput()->get(STR_URI_INPUT) != 0)
     {
@@ -186,7 +187,7 @@ void Finder::execute ()
 
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
-	getInput()->add(0,STR_URI_OUTPUT_TMP, ".");
+		getInput()->add(0,STR_URI_OUTPUT_TMP, ".");
         getInput()->add(0,STR_BLOOM_TYPE, "basic"); //neighbor basic cache
         getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //DO NOT use cascading : generates too many FP inside  pas bien car bcp plus de FP non critique au milieur trou
         getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
@@ -209,6 +210,7 @@ void Finder::execute ()
         //de Bruijn graph building
         _graph = Graph::create (getInput());
 
+		
         _kmerSize = getInput()->getInt(STR_KMER_SIZE);
         
     }
@@ -425,38 +427,40 @@ void Finder::resumeResults(double seconds){
 template<size_t span>
 void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 {
-    FindBreakpoints<span> findBreakpoints(object);
-    
-    /* Add Gar observer */
-    if(object->_snp)
-    {
-	findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
-	//findBreakpoints.addGapObserver(new FindFuzzySNP<span>(&findBreakpoints));
-	findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
-    }
+	FindBreakpoints<span> findBreakpoints(object);
+	
+	/* Add Gap observer */
+	if(object->_snp)
+	{
+		findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
+		//findBreakpoints.addGapObserver(new FindFuzzySNP<span>(&findBreakpoints));
+		findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
+		findBreakpoints.addGapObserver(new FindMultiSNPrev<span>(&findBreakpoints));
 
-    if(object->_deletion)
-    {
-	findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
-    }
-    
-    if(object->_homo_insert)
-    {
-	findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
-	findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
-    }
-    
-    if(object->_backup)
-    {
-	findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
-    }
-
-    /* Add kmer observer*/
-    if(object->_hete_insert)
-    {
-	findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
-    }
-    
-    /* Run */
-    findBreakpoints();
+	}
+	
+	if(object->_deletion)
+	{
+		findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
+	}
+	
+	if(object->_homo_insert)
+	{
+		findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
+		findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
+	}
+	
+	if(object->_backup)
+	{
+		findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
+	}
+	
+	/* Add kmer observer*/
+	if(object->_hete_insert)
+	{
+		findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
+	}
+	
+	/* Run */
+	findBreakpoints();
 }
