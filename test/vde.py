@@ -111,32 +111,32 @@ def compare(exp, truth, delta):
     exp_pos = set(exp.keys())
     tru_pos = set(truth.keys())
 
-    for exact_pos in (exp_pos & tru_pos):
+    for exact_pos in set(exp_pos & tru_pos):
         for variant in exp[exact_pos]:
             if variant in truth[exact_pos]:
                 result[variant.type]["TP"] += 1
             else: 
                 result[variant.type]["FP"] += 1
 
-    not_found = list(exp_pos - (exp_pos & tru_pos))
-    for fuzzy_pos in (exp_pos - (exp_pos & tru_pos)):
+    not_found = set(exp_pos - (exp_pos & tru_pos))
+    for fuzzy_pos in set(exp_pos - (exp_pos & tru_pos)):
 	for pos in range(fuzzy_pos - delta, fuzzy_pos + delta + 1):
-            for variant in exp[pos]:
-                if variant.type in ("snp", "multi_snp"):
-                    result[variant.type]["FP"] += 1
+            for variant in exp[fuzzy_pos]:
+                if variant.type in ("snp", "multi_snp"): 
+		    result[variant.type]["FP"] += 1
                     try:
                         not_found.remove(fuzzy_pos)
-                    except ValueError:
+                    except KeyError:
                         pass
-                if variant in truth[exact_pos]:
+                if variant in truth[pos]:
                     result[variant.type]["TP"] += 1
                     try:
                         not_found.remove(fuzzy_pos)
-                    except ValueError:
+                    except KeyError:
                         pass
 
     for pos in not_found:
-        for variant in exp[pos]:
+        for variant in set(exp[pos]):
             result[variant.type]["FP"] += 1
 
     return result
@@ -184,7 +184,7 @@ def breakpoints2eva(filename):
         for line in filehand:
             line = line.strip()
             if line.startswith(">left_contig_"):
-                data[int(findpos.search(line).group(1))].append(Variant(
+		data[int(findpos.search(line).group(1))].append(Variant(
                     mtg2eva[findtype.search(line).group(1)],
                     findcomment.search(line).group(1)))
 
