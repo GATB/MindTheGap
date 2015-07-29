@@ -116,6 +116,21 @@ def write_seq(file_handler, comment, seq):
     file_handler.write("%s\n" % seq)
 
 
+def snp_position(placement, dist_min, dist_max, del_pos):
+    """ Compute the position of snp """
+    if(placement == "b"):
+        return del_pos - random.randint(dist_min, dist_max)
+    elif(placement == "a"):
+        return del_pos + random.randint(dist_min, dist_max)
+    elif(placement == "r"):
+        if random.random() > 0.5:
+            return del_pos - random.randint(dist_min, dist_max)
+        else:
+            return del_pos + random.randint(dist_min, dist_max)
+    else:
+        logging.getLogger().warning("%s placement option isn't valid we place snp before deletion !" % placement)
+        return del_pos - random.randint(dist_min, dist_max)
+
 # Main programme function
 def main():
     """ The main function of make_snp_deletions no argument """
@@ -148,6 +163,9 @@ def main():
     parser.add_argument("-d", "--variant-dist", type=unsigned_int,
                         help="distance minimal between two variant (in bp)",
                         default=232)
+    parser.add_argument("-p", "--placement", type=str,
+                        help="placement of snp compared to deletion",
+                        default="b", choices=("b", "a", "r"))
 
     # Parse cli argument
     arg = vars(parser.parse_args())
@@ -193,10 +211,9 @@ def main():
 
             del_pos_max = del_pos + arg["variant_dist"] * 2
             del_pos = random.randint(del_pos+arg["variant_dist"], del_pos_max)
-            snp_pos = del_pos - random.randint(dist_snp_min,
-                                               dist_snp_max)
-
             del_size = random.randint(del_size_min, del_size_max);
+            snp_pos = snp_position(arg["placement"], dist_snp_min, dist_snp_max, del_pos)
+
             if (del_pos + del_size) > len(comment2seq[comment]):
                 logger.warning("""We can't create another deletion in this 
                 sequence we create %d deletion""" % seq_del_cpt)
