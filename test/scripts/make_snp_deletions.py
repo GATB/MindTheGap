@@ -10,6 +10,7 @@ import os
 # specific import
 import random
 from collections import defaultdict
+import re
 
 # log import
 import logging
@@ -187,7 +188,7 @@ def main():
     with open(arg["genome"]) as genome_file:
         for line in genome_file:
             if line.startswith(">"):
-                comment = line.lstrip(">").rstrip()
+                comment = re.split("\s", line.lstrip(">").rstrip())[0]
             else:
                 genome_size += len(line.rstrip())
                 comment2seq[comment] += line.rstrip()
@@ -222,7 +223,7 @@ def main():
             comment2seq[comment] = generate_snp_del(
                 comment2seq[comment], del_pos, snp_pos, del_size)
             
-            write_vde(vde_file, snp_pos, "snp", comment)
+            write_vde(vde_file, snp_pos, "multi_snp", comment)
             write_vde(vde_file, del_pos, "homo", comment)
 
         seq_del_cpt = 0
