@@ -204,11 +204,7 @@ bool FindSNP<span>::snp_at_begin(unsigned char* beginpos, size_t limit, KmerType
     // if end is false or if didn't read all kmer loop
     bool end = false;
     for(unsigned char j = 0; !end && j != this->_find->kmer_size(); (*beginpos)--, j++)
-    {
-		
-
-		
-		
+    {	
 	// for each nucleotide of nuc map
 	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end();)
 	{
@@ -233,10 +229,7 @@ bool FindSNP<span>::snp_at_begin(unsigned char* beginpos, size_t limit, KmerType
 		}
 		nuc.erase(nuc_it++); // This nucleotide didn't valid kmer we remove it
 	    }
-	}
-		
-		
-		
+	}		
     }
 	
     //Find the max nucleotide correct most kmer
@@ -504,8 +497,9 @@ bool FindMultiSNPrev<span>::update()
 	
     int kmer_threshold = this->_find->snp_min_val();
 
-    if(this->_find->gap_stretch_size() > this->_find->kmer_size() + kmer_threshold  )
+    if(this->_find->gap_stretch_size() > this->_find->kmer_size() + kmer_threshold)
     {
+	std::cout<<"SNPrev called"<<std::endl;
 	int nb_snp = 0;
 
 	size_t begin_pos = this->_find->position() - 2;//position dans le genome du  dernier snp du trou (pos du dernier 0)
@@ -519,10 +513,11 @@ bool FindMultiSNPrev<span>::update()
 	while(index_pos != index_limit)
 	{
 	    unsigned char save_index = index_pos;
+	    unsigned int nb_kmer_val = 0;
 	    KmerType nuc;
 			
 	    // if detect snp at end
-	    if(this->snp_at_begin(&index_pos, kmer_threshold, &nuc)) // recule tant que au moins un kmer solide
+	    if(this->snp_at_begin(&index_pos, kmer_threshold, &nuc, &nb_kmer_val)) // recule tant que au moins un kmer solide
 	    {
 		this->correct_history(save_index-( this->_find->kmer_size()-1), nuc);
 		nb_snp++;
@@ -532,8 +527,8 @@ bool FindMultiSNPrev<span>::update()
 		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), begin_pos , kmer_begin_str, kmer_end_str, 0, STR_MSNP_TYPE);
 		this->_find->breakpoint_id_iterate();
 		this->_find->multi_snp_iterate();
-				
-		begin_pos += (index_pos - save_index);
+
+		begin_pos += nb_kmer_val;
 	    }
 	    // else return false
 	    else
@@ -543,7 +538,7 @@ bool FindMultiSNPrev<span>::update()
 	}
 		
 	//Set value for future detection
-	unsigned int nb_kmer_correct = begin_pos_init - begin_pos ;
+	unsigned int nb_kmer_correct = begin_pos - begin_pos_init ;
 	if(nb_kmer_correct == 0)
 	{
 	    return false;

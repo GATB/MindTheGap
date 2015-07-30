@@ -98,9 +98,10 @@ def generate_snp_del(seq, pos_del, pos_snp, del_size):
     nuc = ['A', 'C', 'T', 'G']
 
     nuc.remove(seq[pos_snp])
-    seq = seq[:pos_snp] + nuc[random.randint(0, 2)] + seq[pos_snp+1:]
 
     seq = seq[:pos_del] + seq[pos_del+del_size:]
+
+    seq = seq[:pos_snp] + nuc[random.randint(0, 2)] + seq[pos_snp+1:]
 
     return seq
 
