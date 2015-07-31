@@ -126,7 +126,7 @@ bool FindDeletion<span>::update()
 		    return false;
 		}
 	    }
-	    std::cout<<"Is a false fuzzy deletion"<<std::endl;
+ 
 	    del_size -= repeat_size;
 	    repeat_size = 0;
 	}
