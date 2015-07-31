@@ -120,20 +120,28 @@ def compare(exp, truth, delta):
 
     not_found = set(exp_pos - (exp_pos & tru_pos))
     for fuzzy_pos in set(exp_pos - (exp_pos & tru_pos)):
+        end = False
 	for pos in range(fuzzy_pos - delta, fuzzy_pos + delta + 1):
             for variant in exp[fuzzy_pos]:
-                if variant.type in ("snp", "multi_snp"): 
+                if variant.type in ("snp", "multi_snp"):
 		    result[variant.type]["FP"] += 1
                     try:
                         not_found.remove(fuzzy_pos)
                     except KeyError:
                         pass
+                    end = True
+                    break
+
                 if variant in truth[pos]:
                     result[variant.type]["TP"] += 1
                     try:
                         not_found.remove(fuzzy_pos)
                     except KeyError:
                         pass
+                    end = True
+                    break
+            if end :
+                break
 
     for pos in not_found:
         for variant in set(exp[pos]):
