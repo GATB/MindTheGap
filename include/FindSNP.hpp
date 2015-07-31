@@ -499,7 +499,6 @@ bool FindMultiSNPrev<span>::update()
 
     if(this->_find->gap_stretch_size() > this->_find->kmer_size() + kmer_threshold)
     {
-	std::cout<<"SNPrev called"<<std::endl;
 	int nb_snp = 0;
 
 	size_t begin_pos = this->_find->position() - 2;//position dans le genome du  dernier snp du trou (pos du dernier 0)
