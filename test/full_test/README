@@ -1,0 +1,64 @@
+# Claire Lemaitre
+# 16/10/2015
+
+# Creates a small dataset to test MindTheGap find
+# With :
+#  - several chromosomes
+#  - all types of variants = solo SNP, multi SNP, homozygous insertion fuzzy or not, heterozygous insertion fuzzy or not, homozygous insertion with a SNP close before or after the insertion, homozygous deletion
+
+
+# 1. Generates random sequences
+~/workspace/divers_scripts/gener_alea 1000 5
+mv alea.seq init.fasta
+
+init.fasta = reference.fasta
+cp init.fasta reference.fasta
+
+# 2. Put 12 SNPs
+cp init.fasta initSnp.fasta
+liste des SNPs : (0-based)
+Seq0 100 T -> C
+Seq0 815 C -> A
+Seq1 205 G -> C   # 2 snps proches
+Seq1 218 T -> A
+Seq2 319 T -> C   # 3 snp proches
+Seq2 343 C -> A
+Seq2 378 G -> C
+Seq3 255 A -> T
+Seq3 510 C -> A
+Seq3 765 G -> A
+Seq4 256 C -> T
+Seq4 511 A -> G
+Seq4 840 C -> T
+
+# 3. Put 3 deletions (homozygous)
+cp initSnp.fasta initSnpAndDel.fasta
+dans initSnpAndDel.fasta :
+Seq0 296 -> 410  clean seq = TAGCTTGAGAGTGCGTATCTCACCGATCCCCTGGCTATGCTCCGCGATTCACTAGTAGTTTCACGCCGACAGAGCGAAACCGTGATAGGTCATCATGCCGGTCTGCAGTCACGT
+Seq1 739 -> 847 fuzzy repeat 2 CT debut del seq = CTGTTGGGAAGGAATTGCAATACTCTCCGAACCAGCTTAGGGCCCCCCGCCGCCGCAATTCGAGCGTTATGCCCGGAGCATTTGCACGATGCCATTAAACTATATCAA
+Seq4 884 -> 928 fuzzy repeat 2, 1 lettre de chaque côté : A et T seq = AGGGACCTAGACGCAACAGTAACCGCCTCGGAGTAAGCCCTGGT
+
+# 4. Put 5 homozygous insertions
+~/workspace/divers_scripts/gener_alea 3000 1 : pour piocher des séquences à insérer
+cp initSnpAndDel.fasta allele1.fasta
+dans allele1.fasta :
+Seq2 834 fuzzy rep 1 (T) seq=TGCACGCTGCAGGATTGGAACCACAATGTACGCCGATCCAAGCAGTAGTGGTTCATTGTATAAGTATCCTCCCTTGATTGGTCGAATATTAGGCATGCCCCGGGAGCATGTGGGCTCGAGCCACGGAGAGCAACTAATCGCGCATAAAACAAATACCTCATGGTTTTTGTGCGGAAAACCGTTGGGTGGACCATCAGCGGTTGTGAT
+Seq2 535 clean seq= TAACGTTCGCTGAACATCGACTCCGGTGACGACATACGATTCAAGAAGAGAGTGACTCTGTAGGATAACATCCCGCAACGCCTAATCCATCCAGCCTGGCACCATGTATAAAGGGCGTCAGGTATGTTAACGAGACTATT
+Seq4 820 clean before SNP seq = GGATGGCGGCCGGAGAGCGCTGCAATCGCATGGCTCGGGA
+Seq4 600 fuzzy rep 3 (1+2 GG + A) seq=GGTGTATTCCTGGGTTGAGTGGCAGGTTTCTCTTAATTCTTCCCTAAGTAGCTCCGA
+Seq3 780 clean after SNP seq = TTTGCAGCACTAGCCGTTCCTTGACATCTGCGGCCAACTTGTGCCTGAACCTGGAGTTTCGACAGCGTGGCGCTCTGGCCTAGTTCTTCGCTGGCACCTGGAAGAGCCGCC
+
+# 5. Put 3 heterozygous insertions
+cp allele1.fasta allele2.fasta
+dans allele2.fasta
+Seq1 341 clean seq = ATGGTTTATAGAACCCGGGCGTTCATGTCCGTCAGAACGATCTTGGCACGGTAGCCCCTGGTCCAGAGAGCCAAGGTGACTCAGCCCCACGATGGTGGTCTAGAGCGAAATAACCCTCGCCGAGA
+Seq4 348 fuzzy 2 CA seq= CAGTCTTAACCTTAAGACCGTTCATTGATAAAACTTGCTCACGCTCTAGATGGCGTGAAGCGAAACCTAGGAAAAAGTTTTGCAGATAATTAGATTATGCGCGATACTCCGCCGTGTGTT
+Seq0 122 clean after a SNP seq= ATCTAAGCTGTGACCTTGTGGCCGAGGCGCTTTTCACGCCTACATTAACTCCTGGGAAGCTCTCTGCTCTAGTTTCAGTGCACATCTCCAGGTGAGCAACCCTGGCAAGCAGCCCCTTCCTGTAGAAATTACTTAGC
+ 
+
+
+# 6. Generate reads :
+
+
+
+../build/MindTheGap find -in full_test/allele1.fasta,full_test/allele2.fasta -ref full_test/reference.fasta -abundance-min 1 -out full-test1
