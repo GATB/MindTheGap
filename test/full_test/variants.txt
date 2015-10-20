@@ -1,0 +1,24 @@
+Seq0 100 SNP T -> C
+Seq0 122 HET clean after SNP
+Seq0 296 DEL end=410 clean
+Seq0 815 SNP C -> A
+Seq1 205 MSNP G -> C # 2 snps proches
+Seq1 218 MSNP T -> A # 2 snps proches
+Seq1 341 HET clean
+Seq1 739 DEL end=847 fuzzy=2
+Seq2 319 MSNP T -> C # 3 snp proches
+Seq2 343 MSNP C -> A # 3 snp proches
+Seq2 378 MSNP G -> C # 3 snp proches
+Seq2 535 HOM clean
+Seq2 834 HOM fuzzy=1
+Seq3 255 SNP A -> T
+Seq3 510 SNP C -> A
+Seq3 765 SNP G -> A
+Seq3 780 HOM clean after SNP
+Seq4 256 SNP C -> T
+Seq4 348 HET fuzzy=2
+Seq4 511 SNP A -> G
+Seq4 600 HOM fuzzy=3
+Seq4 820 HOM clean before SNP
+Seq4 840 SNP C -> T
+Seq4 884 DEL end=928 fuzzy=2 

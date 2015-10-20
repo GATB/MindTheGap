@@ -66,7 +66,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _nb_multi_snp = 0;
     _nb_backup = 0;
     
-    _homo_only = true;
+    _homo_only = false;
     _homo_insert = true;
     _hete_insert = true;
     _snp = true;
