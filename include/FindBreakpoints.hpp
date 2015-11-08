@@ -716,7 +716,7 @@ IBloom<typename FindBreakpoints<span>::KmerType>* FindBreakpoints<span>::fillRef
 template<size_t span>
 void FindBreakpoints<span>::store_kmer_info(Node node)
 {
-	KmerType one = 1;
+	KmerType one; one.setVal(1);
 	KmerType kminus1_mask = (one << ((this->finder->_kmerSize-1)*2)) - one;
 	
 	this->m_current_info.kmer = this->m_it_kmer->forward();
