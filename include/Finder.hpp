@@ -74,6 +74,9 @@ public:
     IBank* _refBank;
     string _breakpoint_file_name;
     FILE * _breakpoint_file;
+    string _vcf_file_name;
+    FILE * _vcf_file;
+
 
     int _nb_homo_clean;
     int _nb_homo_fuzzy;
@@ -98,6 +101,10 @@ private:
      * arg seconds running time
      */
     void resumeResults(double seconds);
+
+    /** writes the header of the vcf file
+         */
+    void writeVcfHeader();
 
     /** Create and use FindBreakpoints class to find gaps in the reference genome
      */

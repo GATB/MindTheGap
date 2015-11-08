@@ -55,6 +55,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _snp_min_val = 5;
     _nbCores = 0;
     _breakpoint_file_name = "";
+    _vcf_file_name = "";
     _nb_homo_clean = 0;
     _nb_homo_fuzzy = 0;
     _nb_hetero_clean = 0;
@@ -65,7 +66,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _nb_multi_snp = 0;
     _nb_backup = 0;
     
-    _homo_only = true;
+    _homo_only = false;
     _homo_insert = true;
     _hete_insert = true;
     _snp = true;
@@ -224,15 +225,23 @@ void Finder::execute ()
     }
 
 
-    // Preparing the output file
+    // Preparing the output files
     _breakpoint_file_name = getInput()->getStr(STR_URI_OUTPUT)+".breakpoints";
     _breakpoint_file = fopen(_breakpoint_file_name.c_str(), "w");
     if(_breakpoint_file == NULL){
         //cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
         string message = "Cannot open file "+ _breakpoint_file_name + " for writting";
         throw Exception(message.c_str());
-
     }
+
+    _vcf_file_name = getInput()->getStr(STR_URI_OUTPUT)+".othervariants.vcf";
+    _vcf_file = fopen(_vcf_file_name.c_str(), "w");
+    if(_vcf_file == NULL){
+    	//cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
+    	string message = "Cannot open file "+ _vcf_file_name + " for writting";
+    	throw Exception(message.c_str());
+    }
+    writeVcfHeader();
 
     // Getting the reference genome
     //_refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
@@ -334,7 +343,7 @@ void Finder::execute ()
     //cout << "in MTG" <<endl;
     // We gather some statistics.
     fclose(_breakpoint_file);
-
+    fclose(_vcf_file);
 
     // Printing result informations (ie. add info to getInfo(), in Tool Info is printed automatically after end of execute() method
     //getInfo()->add(1,"version",getVersion());
@@ -420,8 +429,23 @@ void Finder::resumeResults(double seconds){
             getInfo()->add(2,"graph_file", "%s.h5",getInput()->getStr(STR_URI_OUTPUT).c_str());
         }
     getInfo()->add(2,"breakpoint_file","%s",_breakpoint_file_name.c_str());
+    getInfo()->add(2,"othervariants_file","%s",_vcf_file_name.c_str());
 
 
+}
+
+void Finder::writeVcfHeader(){
+
+	string sample="";
+	if (getInput()->get(STR_URI_INPUT) != 0){
+		sample = getInput()->getStr(STR_URI_INPUT);
+	}
+	if (getInput()->get(STR_URI_GRAPH) != 0){
+		sample=getInput()->getStr(STR_URI_GRAPH);
+	}
+	 fprintf(_vcf_file,
+		"##fileformat=VCFv4.1\n##filedate=TODO\n##source=MindTheGap find\n##SAMPLE=file:%s\n##REF=file:%s\n##INFO=<ID=Ty,Number=1,Type=String,Description=\"SNP, INS, DEL or .\">\n##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",
+		sample.c_str(),getInput()->getStr(STR_URI_REF).c_str());
 }
 
 template<size_t span>

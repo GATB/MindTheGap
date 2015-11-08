@@ -99,6 +99,12 @@ public :
     /** writes a given breakpoint in the output file
      */
     void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type);
+
+    /** writes a given variant in the output vcf file
+     */
+    void writeVcfVariant(int bkt_id, string& chrom_name, uint64_t position, string ref_char, string alt_char, int repeat_size, string type);
+
+
     /*Getter*/
     /** Return the number of found breakpoints
      */
@@ -460,6 +466,24 @@ void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint
 	    repeat_size,
 	    type.c_str(),
 	    kmer_end.c_str()
+	);
+}
+
+template<size_t span>
+void FindBreakpoints<span>::writeVcfVariant(int bkt_id, string& chrom_name, uint64_t position, string ref_char, string alt_char, int repeat_size, string type){
+	fprintf(this->finder->_vcf_file,">left_contig_%i_%s_pos_%lli_repeat_%i_%s\n%s\n>right_contig_%i_%s_pos_%lli_repeat_%i_%s\n%s\n",
+			bkt_id,
+			chrom_name.c_str(),
+			position,
+			repeat_size,
+			type.c_str(),
+			ref_char.c_str(),
+			bkt_id,
+			chrom_name.c_str(),
+			position,
+			repeat_size,
+			type.c_str(),
+			alt_char.c_str()
 	);
 }
 
