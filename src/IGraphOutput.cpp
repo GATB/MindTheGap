@@ -36,7 +36,7 @@ using namespace std;
  *********************************************************************/
 template<size_t span>
 IGraphOutput<span>::IGraphOutput (size_t kmerSize, const string& prefix)
-    : _modelKmer(kmerSize), _modelKmerMinusOne(kmerSize-1), original(true), _prefix(prefix)
+    : original(true), _modelKmer(kmerSize), _modelKmerMinusOne(kmerSize-1), _prefix(prefix)
 {
     first_id_els.node = 0;
     first_id_els.edge = 0;
