@@ -289,7 +289,7 @@ bool FindSoloSNP<span>::update()
 	
     if(this->_find->gap_stretch_size() == this->_find->kmer_size())
     {
-	KmerType nuc;
+	KmerType nuc; // alternative nucleotide
 	unsigned char pos = this->_find->het_kmer_begin_index() - 1;
 	if(this->snp_at_end(&pos, this->_find->kmer_size(), &nuc))
 	{
@@ -527,7 +527,7 @@ bool FindMultiSNPrev<span>::update()
 		this->_find->breakpoint_id_iterate();
 		this->_find->multi_snp_iterate();
 
-		begin_pos += nb_kmer_val;
+		begin_pos -= nb_kmer_val;
 	    }
 	    // else return false
 	    else
@@ -537,7 +537,7 @@ bool FindMultiSNPrev<span>::update()
 	}
 		
 	//Set value for future detection
-	unsigned int nb_kmer_correct = begin_pos - begin_pos_init ;
+	unsigned int nb_kmer_correct = begin_pos_init - begin_pos ;
 	if(nb_kmer_correct == 0)
 	{
 	    return false;

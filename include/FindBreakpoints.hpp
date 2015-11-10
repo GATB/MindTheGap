@@ -336,6 +336,10 @@ void FindBreakpoints<span>::operator()()
 	// We loop over sequences
 	for (it_seq->first(); !it_seq->isDone(); it_seq->next())
 	{
+
+		//DEBUG
+		//cout<<"sequence "<< (*it_seq)->getCommentShort() << endl;
+
 		//Reintialize stretch_size for each sequence
 		this->m_solid_stretch_size = 0;
 		this->m_gap_stretch_size = 0;
@@ -368,6 +372,9 @@ void FindBreakpoints<span>::operator()()
 			//save actual kmer for potential False Positive
 			m_previous_kmer = *m_it_kmer;
 		}
+
+		//DEBUG
+		//cout<<endl;
 	}
 }
 
@@ -385,6 +392,9 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 	// Kmer is in graph incremente scretch size
 	if(in_graph && is_valid)
 	{
+		//DEBUG
+		//cout<<"1";
+
 		m_solid_stretch_size++;
 		
 		if(m_solid_stretch_size > 1 && m_gap_stretch_size > 0)
@@ -392,6 +402,8 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 			// Call each readonly observer
 			for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
 			{
+				//DEBUG
+				//cout << m_gap_stretch_size << endl;
 				if((*it)->update())
 				{
 					break;
@@ -411,6 +423,9 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 	
 	if(!is_valid)
 	{
+		//DEBUG
+		//cout<<"n";
+
 		m_solid_stretch_size++;
 		if(this->m_previous_kmer.isValid() && in_graph)
 		{
@@ -421,6 +436,9 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 	// Kmer isn't in graph incremente gap size and reset solid size
 	if(!in_graph && is_valid)
 	{
+		//DEBUG
+		//cout<<"0";
+
 		if(this->m_solid_stretch_size==1)
 		{
 			this->m_gap_stretch_size = this->m_gap_stretch_size + this->m_solid_stretch_size; //if previous position was an isolated solid kmer, we need to add 1 to the m_gap_stretch_size (as if replacing the FP by a non indexed kmer)
