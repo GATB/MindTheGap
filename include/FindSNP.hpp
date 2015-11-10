@@ -85,7 +85,8 @@ template<size_t span>
 typename FindSNP<span>::KmerType FindSNP<span>::mutate_kmer(KmerType& kmer, KmerType& nuc, size_t pos)
 {
     size_t p = this->_find->kmer_size() - pos;
-    KmerType reset_mask = ~((KmerType)3 << (p*2));
+    KmerType trois; trois.setVal(3);
+    KmerType reset_mask = ~(trois << (p*2));
     KmerType set_mask = nuc << (p*2);
 
     return (kmer & reset_mask ) | set_mask;
@@ -114,10 +115,12 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
 {
     // Create map with all nuc A = 0, C = 1, T = 2, G = 3
     std::map<KmerType, unsigned int> nuc;
-    nuc[0] = 0;
-    nuc[1] = 0;
-    nuc[2] = 0;
-    nuc[3] = 0;
+    KmerType zero, un, deux, trois;
+    zero.setVal(0); un.setVal(1); deux.setVal(2); trois.setVal(3);
+    nuc[zero] = 0;
+    nuc[un] = 0;
+    nuc[deux] = 0;
+    nuc[trois] = 0;
 	
     unsigned char endpos = (*beginpos + limit) % 256;
 	
@@ -192,10 +195,12 @@ bool FindSNP<span>::snp_at_begin(unsigned char* beginpos, size_t limit, KmerType
 {
     // Create map with all nuc A = 0, C = 1, T = 2, G = 3
     std::map<KmerType, unsigned int> nuc;
-    nuc[0] = 0;
-    nuc[1] = 0;
-    nuc[2] = 0;
-    nuc[3] = 0;
+    KmerType zero, un, deux, trois;
+    zero.setVal(0); un.setVal(1); deux.setVal(2); trois.setVal(3);
+    nuc[zero] = 0;
+    nuc[un] = 0;
+    nuc[deux] = 0;
+    nuc[trois] = 0;
 	
 	
     unsigned char  beginpos_init = (*beginpos);
