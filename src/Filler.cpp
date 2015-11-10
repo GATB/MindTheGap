@@ -21,6 +21,7 @@
 #include <Filler.hpp>
 #include <Utils.hpp>
 #include <GraphAnalysis.hpp>
+#include <limits> // for numeric_limits
 
 #define PRINT_DEBUG
 /********************************************************************************/
