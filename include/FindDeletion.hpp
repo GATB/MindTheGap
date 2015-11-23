@@ -133,7 +133,22 @@ bool FindDeletion<span>::update()
     }
     
     // Write the breakpoint
-    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 1, begin, end, repeat_size, STR_DEL_TYPE);
+    //this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 1, begin, end, repeat_size, STR_DEL_TYPE);
+    //NOTE : position will always be the left-most when repeat_size>0.
+    size_t del_start_pos = this->_find->position() - 2 - del_size; //begining position of the deletion -1 (0-based): because in VCF we need to put the letter just before the deleted sequence
+    //cout << "start pos = " << del_start_pos << "size = " << del_size << endl;
+    char *del_sequence = new char[del_size+2];
+    sprintf(del_sequence,"%.*s", del_size+1, this->_find->chrom_seq()+del_start_pos);
+    char *alt_char = new char[2];
+    sprintf(alt_char,"%.*s", 1, del_sequence);
+    //cout << del_sequence << endl;
+    //cout << alt_char << endl;
+    // here position is 0-based
+    this->_find->writeVcfVariant(this->_find->breakpoint_id(), this->_find->chrom_name(), del_start_pos, del_sequence, alt_char, repeat_size, STR_DEL_TYPE);
+
+    delete(del_sequence);
+    delete(alt_char);
+
     this->_find->breakpoint_id_iterate();
 
     if(repeat_size != 0)
