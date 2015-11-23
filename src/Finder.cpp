@@ -443,9 +443,19 @@ void Finder::writeVcfHeader(){
 	if (getInput()->get(STR_URI_GRAPH) != 0){
 		sample=getInput()->getStr(STR_URI_GRAPH);
 	}
-	 fprintf(_vcf_file,
-		"##fileformat=VCFv4.1\n##filedate=TODO\n##source=MindTheGap find\n##SAMPLE=file:%s\n##REF=file:%s\n##INFO=<ID=Ty,Number=1,Type=String,Description=\"SNP, INS, DEL or .\">\n##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",
-		sample.c_str(),getInput()->getStr(STR_URI_REF).c_str());
+
+	//getting the date
+	time_t current_time;
+	char* c_time_string;
+	current_time = time(NULL);
+	c_time_string = ctime(&current_time);
+
+	fprintf(_vcf_file,
+			"##fileformat=VCFv4.1\n\
+##filedate=%s\
+##source=MindTheGap find\n\
+##SAMPLE=file:%s\n##REF=file:%s\n##INFO=<ID=Ty,Number=1,Type=String,Description=\"SNP, INS, DEL or .\">\n##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",
+c_time_string, sample.c_str(),getInput()->getStr(STR_URI_REF).c_str());
 }
 
 template<size_t span>

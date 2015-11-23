@@ -85,10 +85,15 @@ Le deuxième backup : gap_stretch_size = 18446744073709551598 : car avec SNP 319
 --> résolution pb de position pour SNPs proches  (bug dans FindSNP.hpp : FindMultiSNPrev<span>::update() -> begin_pos-= nb_kmer_val au lieu de +=)
 
 => 2 solutions : 
- - soit faire attention dans MultipleSNP de ne pas dépasser la taille du trou : tant pis on ne trouve pas le SNP 319 du tout
- - soit ne pas renvoyer de backup du tout
+ - soit faire attention dans MultipleSNP de ne pas dépasser la taille du trou : tant pis on ne trouve pas le SNP 319 du tout  --> DONE
+ - soit ne pas renvoyer de backup du tout : NON cf. plus bas
 pour full_test : ajouter le SNP 367, voir si même avec les FPs, on retrouve 3 SNPs sur 4 des multiples (du coup test si partir de la droite marche bien)
 attention : les FPs peuvent dépendre des fonctions de hash, et ce test n'ura pas toujours les mêmes résus...
+
+
+Nouveau jeu avec les FP après le muti-SNp --> pour tester multi-SNP avant FP
+ reference-bis.fasta seq2 292 A -> T
+--> si autorise multiSNP à dépasser la taille : 2 SNP FP en trop --> option n°1 validée (et implémentée)
 
 
 # 6. Generate reads :
