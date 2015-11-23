@@ -58,6 +58,7 @@ public:
     Finder ();
     ~Finder ();
     
+    const char* _mtg_version;
     size_t _kmerSize;
     Graph _graph;
     //Graph _ref_graph; // no longer used
@@ -90,6 +91,7 @@ public:
 
     // Actual job done by the tool is here
     void execute ();
+
     
 private:
     

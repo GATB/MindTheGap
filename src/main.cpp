@@ -89,7 +89,9 @@ int main (int argc, char* argv[])
     {
         try
         {
-            Finder().run (argc-1, argv+1);
+        	Finder finder = Finder();
+        	finder._mtg_version = MTG_VERSION;
+            finder.run (argc-1, argv+1);
         }
         catch (Exception& e)
         {
