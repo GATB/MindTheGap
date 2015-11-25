@@ -86,6 +86,11 @@ private:
      */
     set< std::pair<int,int> >  find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed);
 
+	/** Handle on the progress information. */
+	gatb::core::tools::dp::IteratorListener* _progress;
+	void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
+	
+	//tiens, on a pas encore de destructeur pour cette classe?
 };
 
 /********************************************************************************/

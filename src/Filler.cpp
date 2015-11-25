@@ -37,7 +37,7 @@ static const char* STR_FOO = "-foo";
 ** RETURN  :
 ** REMARKS :
 *********************************************************************/
-Filler::Filler ()  : Tool ("MindTheGap fill")
+Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
 {
     
 	//TODO rajouter les parametres
@@ -253,6 +253,21 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 	int nbBreakpoints=0;
 
+	
+	
+	u_int64_t nbBreakpointsEstimated = object->_breakpointBank->estimateNbItems()  / 2 ;  // 2 seq per breakpoint
+	u_int64_t nbBreakpointsProgressDone = 0;
+	
+	object->setProgress (new ProgressSynchro (
+									  object->createIteratorListener (nbBreakpointsEstimated, "Filling breakpoints"),
+									  System::thread().newSynchronizer())
+				 );
+	object->_progress->init ();
+	
+	
+	
+	
+	
 	// We loop over sequences.
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
@@ -309,7 +324,13 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 		// We increase the breakpoint counter.
 		nbBreakpoints++;
+		
+		//progress bar
+		nbBreakpointsProgressDone++;
+		if (nbBreakpointsProgressDone > 50)   {  object->_progress->inc (nbBreakpointsProgressDone);  nbBreakpointsProgressDone = 0;  }
 	}
+
+	object->_progress->finish ();
 
 	cout << "nb breakpoints=" << nbBreakpoints <<endl;
 
