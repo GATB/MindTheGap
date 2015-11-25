@@ -285,10 +285,15 @@ private :
 	
 	friend bool FindMultiSNPrev<span>::update();
 
+	
+	/** Handle on the progress information. */
+	gatb::core::tools::dp::IteratorListener* _progress;
+	void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
+	
 };
 
 template<size_t span>
-FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find->_kmerSize), m_it_kmer(m_model)
+FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find->_kmerSize), m_it_kmer(m_model), _progress (0)
 {
     this->m_breakpoint_id = 0;
     this->m_position = 0;
@@ -324,6 +329,9 @@ FindBreakpoints<span>::~FindBreakpoints()
 
     if(this->finder->_hete_insert)
 	this->m_ref_bloom->forget();
+	
+	setProgress             (0);
+
 }
 
 template<size_t span>
@@ -332,6 +340,19 @@ void FindBreakpoints<span>::operator()()
 	// We create an iterator over this bank
 	Iterator<Sequence>* it_seq = this->finder->_refBank->iterator();
 	LOCAL(it_seq);
+	
+	
+	u_int64_t  totalsize = this->finder->_refBank->estimateSequencesSize();
+	u_int64_t nbkmersdone = 0;
+	
+	//printf("bank size %lli \n",totalsize);
+	setProgress (new ProgressSynchro (
+									  finder->createIteratorListener (totalsize, "Finding breakpoints"), //bon sang le createIteratorListener est dans le tool finder
+									  System::thread().newSynchronizer())
+				 );
+	_progress->init ();
+	
+	
 	
 	// We loop over sequences
 	for (it_seq->first(); !it_seq->isDone(); it_seq->next())
@@ -371,11 +392,17 @@ void FindBreakpoints<span>::operator()()
 			
 			//save actual kmer for potential False Positive
 			m_previous_kmer = *m_it_kmer;
+			
+			nbkmersdone++;
+			if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
+
 		}
 
 		//DEBUG
 		//cout<<endl;
 	}
+	
+	  _progress->finish ();
 }
 
 template<size_t span>
@@ -698,58 +725,58 @@ void FindBreakpoints<span>::recent_hetero(int value)
 
 template<size_t span>
 IBloom<typename FindBreakpoints<span>::KmerType>* FindBreakpoints<span>::fillRefBloom(){
-
-    //Bloom of the repeated (k-1)mers of the reference genome
-    IBloom<KmerType>* ref_bloom = 0;
-
-    //solid kmers must be stored in a file
-    string tempFileName = this->finder->getInput()->getStr(STR_URI_OUTPUT)+"_trashme.h5";
-
-    // Parameters for SortingCountAlgorithm // all defaults
-    IProperties* props = SortingCountAlgorithm<>::getDefaultProperties();
-    props->setInt (STR_KMER_ABUNDANCE_MIN, this->finder->_het_max_occ+1);
-    props->setInt (STR_KMER_SIZE,          this->finder->_kmerSize-1);
-    props->setStr (STR_URI_OUTPUT,         tempFileName);
-    //Remark : could re-use MAX_DISK or others from Finder options ? not necessary here, small counting in theory
-    //props->setStr (STR_MAX_DISK, this->finder->getInput()->getStr(STR_MAX_DISK));
-
-    /** We create a DSK (kmer counting) instance and execute it. */
-    SortingCountAlgorithm<span> sortingCount (this->finder->_refBank,props);
-
-    sortingCount.getInput()->add (0, STR_VERBOSE, 0);//do not show progress bar
-    sortingCount.execute();
-
-    // OLD WAY : Partition<KmerCount> & solidCollection = storage->root().getGroup("dsk").getPartition<KmerCount> ("solid");
-    Partition<KmerCount> & solidCollection = * sortingCount.getSolidCounts();
-
-    /** We get the number of solid kmers. */
-    u_int64_t nb_solid = solidCollection.getNbItems();
-
-    /** parameters of the Bloom filter */
-    float NBITS_PER_KMER = 12;
-    u_int64_t estimatedBloomSize = (u_int64_t) ((double)nb_solid * NBITS_PER_KMER * 2); //TODO *3 ?
-    if (estimatedBloomSize ==0 )
-    {
-	estimatedBloomSize = 1000;
-    }
-
-    size_t nbHash = (int)floorf (0.7*NBITS_PER_KMER);
-
-    //iterator of KmerCount
-    Iterator<KmerCount>* itKmers = this->finder->createIterator(
-	solidCollection.iterator(),
-	nb_solid
-	);
-    LOCAL (itKmers);
-
-    // building the bloom
-    BloomBuilder<span> builder (estimatedBloomSize, nbHash, this->finder->_kmerSize-1, BLOOM_CACHE, this->finder->getDispatcher()->getExecutionUnitsNumber(), this->finder->_het_max_occ+1);
-    ref_bloom = builder.build (itKmers);
-    //cout << typeid(*ref_bloom).name() << endl;  // to verify the type of bloom
-
-    System::file().remove(tempFileName);
-
-    return ref_bloom;
+	
+	//Bloom of the repeated (k-1)mers of the reference genome
+	IBloom<KmerType>* ref_bloom = 0;
+	
+	//solid kmers must be stored in a file
+	string tempFileName = this->finder->getInput()->getStr(STR_URI_OUTPUT)+"_trashme.h5";
+	
+	// Parameters for SortingCountAlgorithm // all defaults
+	IProperties* props = SortingCountAlgorithm<>::getDefaultProperties();
+	props->setInt (STR_KMER_ABUNDANCE_MIN, this->finder->_het_max_occ+1);
+	props->setInt (STR_KMER_SIZE,          this->finder->_kmerSize-1);
+	props->setStr (STR_URI_OUTPUT,         tempFileName);
+	//Remark : could re-use MAX_DISK or others from Finder options ? not necessary here, small counting in theory
+	//props->setStr (STR_MAX_DISK, this->finder->getInput()->getStr(STR_MAX_DISK));
+	
+	/** We create a DSK (kmer counting) instance and execute it. */
+	SortingCountAlgorithm<span> sortingCount (this->finder->_refBank,props);
+	
+	sortingCount.getInput()->add (0, STR_VERBOSE, 0);//do not show progress bar
+	sortingCount.execute();
+	
+	// OLD WAY : Partition<KmerCount> & solidCollection = storage->root().getGroup("dsk").getPartition<KmerCount> ("solid");
+	Partition<KmerCount> & solidCollection = * sortingCount.getSolidCounts();
+	
+	/** We get the number of solid kmers. */
+	u_int64_t nb_solid = solidCollection.getNbItems();
+	
+	/** parameters of the Bloom filter */
+	float NBITS_PER_KMER = 12;
+	u_int64_t estimatedBloomSize = (u_int64_t) ((double)nb_solid * NBITS_PER_KMER * 2); //TODO *3 ?
+	if (estimatedBloomSize ==0 )
+	{
+		estimatedBloomSize = 1000;
+	}
+	
+	size_t nbHash = (int)floorf (0.7*NBITS_PER_KMER);
+	
+	//iterator of KmerCount
+	Iterator<KmerCount>* itKmers = this->finder->createIterator(
+																solidCollection.iterator(),
+																nb_solid
+																);
+	LOCAL (itKmers);
+	
+	// building the bloom
+	BloomBuilder<span> builder (estimatedBloomSize, nbHash, this->finder->_kmerSize-1, BLOOM_CACHE, this->finder->getDispatcher()->getExecutionUnitsNumber(), this->finder->_het_max_occ+1);
+	ref_bloom = builder.build (itKmers);
+	//cout << typeid(*ref_bloom).name() << endl;  // to verify the type of bloom
+	
+	System::file().remove(tempFileName);
+	
+	return ref_bloom;
 }
 
 template<size_t span>
