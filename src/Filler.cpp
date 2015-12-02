@@ -305,7 +305,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if(filledSequences.size()==0){
 			string sourceSequence2 = revcomp_sequence(targetSequence);
 			string targetSequence2 = revcomp_sequence(sourceSequence);
-			object->gapFill<span>(sourceSequence2,targetSequence2,filledSequences);
+			object->gapFill<span>(sourceSequence2,targetSequence2,filledSequences,true);
 		}
 		
 		//Checks if all sequences are roughly the same :
@@ -342,7 +342,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
-void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences){
+void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences, bool reversed){
 
 
 	//object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
@@ -394,6 +394,18 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 
 	//now this func also cuts the last node just before the beginning of the right anchor
 	set<string> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
+	
+	if(reversed)
+	{
+		set<string>::iterator its;
+		for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
+		{
+			filledSequences.insert (revcomp_sequence(*its));
+		}
+		return;
+	}
+		
+	
 
 	filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
 
