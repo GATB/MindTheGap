@@ -38,6 +38,7 @@ static const char* STR_SNP_ONLY = "-snp-only";
 static const char* STR_DELETION_ONLY = "-deletion-only";
 static const char* STR_HETERO_ONLY = "-hete-only";
 static const char* STR_NO_BACKUP = "-no-backup";
+static const char* STR_WITH_BACKUP = "-backup";
 static const char* STR_NO_SNP = "-no-snp";
 static const char* STR_NO_INSERT = "-no-insert";
 static const char* STR_NO_DELETION = "-no-deletion";
