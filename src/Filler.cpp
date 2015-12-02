@@ -267,23 +267,26 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	
 	
 	
-	
 	// We loop over sequences.
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
+		
 
 		//iterate by pair of sequences (WARNING : no verification same breakpoint id)
-		string sourceSequence =  string(itSeq->getDataBuffer());//previously L
+		string sourceSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously L
+
 		string breakpointName = string(itSeq->getComment());
-		
+
 		itSeq.next();
 		if(itSeq.isDone()){
 			throw Exception("Wrong breakpoint file: odd number of sequences...");
 		}
-		string targetSequence =  string(itSeq->getDataBuffer());//previously R
-		
-		//printf("break %i L : %s  R: %s \n",nbBreakpoints,sourceSequence.c_str(),targetSequence.c_str());
 
+		string targetSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously R
+		
+
+		//printf("break %i L : %s  R: %s \n",nbBreakpoints,sourceSequence.c_str(),targetSequence.c_str());
+		
 		//Initialize set of filled sequences
 		set<string> filledSequences;
 
@@ -291,6 +294,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if(sourceSequence.size()>object->_kmerSize){
 			sourceSequence.substr(sourceSequence.size()-object->_kmerSize,object->_kmerSize); //suffix of size _kmerSize
 		}
+
 		if(targetSequence.size()>object->_kmerSize){
 			targetSequence.substr(0,object->_kmerSize); //prefix of size _kmerSize
 		}
@@ -303,28 +307,29 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 			string targetSequence2 = revcomp_sequence(sourceSequence);
 			object->gapFill<span>(sourceSequence2,targetSequence2,filledSequences);
 		}
-
+		
 		//Checks if all sequences are roughly the same :
 		if (all_consensuses_almost_identical(filledSequences,90))
 		{
 			//if(verb)     printf(" [SUCCESS]\n");
 			if (filledSequences.size() > 1) {
-//				stringstream ss;
-//				ss << "cons" <<filledSequences.size();
-//				breakpointName=breakpointName+ss.str();
+				//				stringstream ss;
+				//				ss << "cons" <<filledSequences.size();
+				//				breakpointName=breakpointName+ss.str();
 				filledSequences.erase(++(filledSequences.begin()),filledSequences.end()); // keep only one consensus sequence
 			}
 		}
 		else
 			;
-			//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
+		//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
+		
 
 		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
 		object->writeFilledBreakpoint(filledSequences,breakpointName);
 
 		// We increase the breakpoint counter.
 		nbBreakpoints++;
-		
+
 		//progress bar
 		nbBreakpointsProgressDone++;
 		if (nbBreakpointsProgressDone > 50)   {  object->_progress->inc (nbBreakpointsProgressDone);  nbBreakpointsProgressDone = 0;  }
@@ -333,12 +338,12 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	object->_progress->finish ();
 
 	cout << "nb breakpoints=" << nbBreakpoints <<endl;
-
 }
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
 void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences){
+
 
 	//object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
 	BranchingTerminator terminator (_graph);
@@ -359,6 +364,7 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 
 	//find targetSequence in nodes of the contig graph
 	set< std::pair<int,int> > terminal_nodes_with_endpos = find_nodes_containing_R(targetSequence, contig_file_name, _nb_mis_allowed, _nb_gap_allowed);
+	
 
 	//printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
 	
@@ -442,19 +448,19 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 
     // heuristics: R has to be seen entirely in the node up to nb_mis_allowed errors, in the forward strand
 
-    BankFasta::Iterator itSeq (*Nodes);
+    BankFasta::Iterator  * itSeq  =  new BankFasta::Iterator  (*Nodes);
 
     // We loop over sequences.
-    for (itSeq.first(); !itSeq.isDone(); itSeq.next())
+    for (itSeq->first(); !itSeq->isDone(); itSeq->next())
     {
-    	nodelen = itSeq->getDataSize();
+    	nodelen = (*itSeq)->getDataSize();
         if (nodelen < targetSequence.size())
         {
             nodeNb++;
             continue;
         }
 
-		nodeseq =  itSeq->getDataBuffer();
+		nodeseq =  (*itSeq)->getDataBuffer();
 
 		
         if (debug)
@@ -524,12 +530,15 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
         nodeNb++;
     }
 
+
     if (debug)
     {
         for(set< std::pair<int,int> >::iterator it = terminal_nodes.begin(); it != terminal_nodes.end() ; ++it)
             fprintf(stderr," (node %d pos %d) ",(*it).first,(*it).second);
     }
 
-    delete Nodes;
+	delete itSeq;
+	delete Nodes;
+
     return terminal_nodes;
 }
