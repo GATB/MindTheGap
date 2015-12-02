@@ -31,7 +31,7 @@ output=$output"\n3-SNP*2 : "
 output=$output$(run_test reads/master.fasta references/multiSNP.fasta truths/multiSNP.fasta multiSNP "-snp-only")
 
 output=$output"\nsnp-before-clean-insert : "
-output=$output$(run_test reads/master.fasta references/deleted_before_SNP.fasta truths/insertion_before_SNP.fasta k-1_before_SNP "-no-deletion -no-backup -homo-only")
+output=$output$(run_test reads/master.fasta references/deleted_before_SNP.fasta truths/insertion_before_SNP.fasta k-1_before_SNP "-no-deletion -homo-only")
 
 output=$output"\nsnp-begin-fuzzy : "
 output=$output$(run_test reads/beginfuzzySNP.fasta references/beginfuzzySNP.fasta truths/beginfuzzySNP.fasta beginfuzzySNP "-snp-only")
@@ -52,7 +52,7 @@ output=$output"\nn-in-before-clean-insert : "
 output=$output$(run_test reads/master.fasta references/n_before_gap.fasta truths/n_before_gap.fasta n_before_gap "-insert-only")
 
 output=$output"\nn-after-clean-insert : "
-output=$output$(run_test reads/master.fasta references/n_after_gap.fasta truths/n_after_gap.fasta n_after_gap "insert-only")
+output=$output$(run_test reads/master.fasta references/n_after_gap.fasta truths/n_after_gap.fasta n_after_gap "-insert-only")
 
 
 echo -e $output | column -t

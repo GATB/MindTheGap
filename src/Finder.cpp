@@ -70,7 +70,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _homo_insert = true;
     _hete_insert = true;
     _snp = true;
-    _backup = true;
+    _backup = false;
     _deletion = true;
     
     // Option parser, with several sub-parsers
@@ -91,21 +91,37 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
 
     IOptionsParser* finderParser = new OptionsParser("Detection");
+    finderParser->push_front (new OptionNoParam (STR_INSERT_ONLY, "search only insertion breakpoints (do not report other variants)", false));
+    //finderParser->getParser(STR_INSERT_ONLY)->setVisible(false);
     finderParser->push_front (new OptionOneParam (STR_HET_MAX_OCC, "maximal number of occurrences of a kmer in the reference genome allowed for heterozyguous breakpoints", false,"1"));
     //allow to find heterozyguous breakpoints in n-repeated regions of the reference genome
-    finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy site", false, "5"));
-    finderParser->push_front (new OptionOneParam (STR_SNP_MIN_VAL, "number", false, "5"));
-    finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "only search for homozygous breakpoints", false));
-    finderParser->push_front (new OptionNoParam (STR_INSERT_ONLY, "only search for insert breakpoints", false));
-    finderParser->push_front (new OptionNoParam (STR_SNP_ONLY, "only search for snp", false));
-    finderParser->push_front (new OptionNoParam (STR_DELETION_ONLY, "only search for deletion breakpoints", false));
-    finderParser->push_front (new OptionNoParam (STR_HETERO_ONLY, "only search for heterozygote insert", false));
-    finderParser->push_front (new OptionNoParam (STR_NO_BACKUP, "didn't enable system for catch all breakpoint when size is upper kmer-size/2", false));
-    finderParser->push_front (new OptionNoParam (STR_NO_SNP, "didn't catch SNP breakpoint", false));
-    finderParser->push_front (new OptionNoParam (STR_NO_INSERT, "didn't catch insert breakpoint", false));
-    finderParser->push_front (new OptionNoParam (STR_NO_DELETION, "didn't catch deletion breakpoint", false));
-    finderParser->push_front (new OptionNoParam (STR_NO_HETERO, "didn't search heterozygote insert", false));
-    
+    finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy sites", false, "5"));
+    finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "search only homozygous breakpoints", false));
+
+    //Options not for the common user
+    finderParser->push_front (new OptionOneParam (STR_SNP_MIN_VAL, "minimal number of kmers to validate a SNP", false, "5"));
+    finderParser->getParser(STR_SNP_MIN_VAL)->setVisible(false);
+
+
+    //Options usefull only for debugging
+    finderParser->push_front (new OptionNoParam (STR_SNP_ONLY, "search only SNPs", false));
+    finderParser->getParser(STR_SNP_ONLY)->setVisible(false);
+    finderParser->push_front (new OptionNoParam (STR_DELETION_ONLY, "search only deletion variants", false));
+    finderParser->getParser(STR_DELETION_ONLY)->setVisible(false);
+    finderParser->push_front (new OptionNoParam (STR_HETERO_ONLY, "search only heterozygous insertion breakpoints", false));
+    finderParser->getParser(STR_HETERO_ONLY)->setVisible(false);
+    finderParser->push_front (new OptionNoParam (STR_NO_SNP, "do not search SNPs", false));
+    finderParser->getParser(STR_NO_SNP)->setVisible(false);
+    finderParser->push_front (new OptionNoParam (STR_NO_INSERT, "do not search insertion breakpoints", false));
+    finderParser->getParser(STR_NO_INSERT)->setVisible(false);
+    finderParser->push_front (new OptionNoParam (STR_NO_DELETION, "do not search deletions", false));
+    finderParser->getParser(STR_NO_DELETION)->setVisible(false);
+    finderParser->push_front (new OptionNoParam (STR_NO_HETERO, "do not search heterozygous insertion breakpoints", false));
+    finderParser->getParser(STR_NO_HETERO)->setVisible(false);
+    finderParser->push_front (new OptionNoParam (STR_WITH_BACKUP, "report also unusual breakpoints (gap size is larger than kmer-size/2 and does not validate a common variant)", false));
+    finderParser->getParser(STR_WITH_BACKUP)->setVisible(false);
+
+
     IOptionsParser* graphParser = new OptionsParser("Graph building");
     string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max()); //to be sure in case CountNumber definition changes
     graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, abundanceMax));
@@ -264,7 +280,7 @@ void Finder::execute ()
 	_homo_insert = true;
 	_hete_insert = false;
 	_snp = true;
-	_backup = true;
+	_backup = false;
 	_deletion = true;
     }
     
@@ -308,9 +324,9 @@ void Finder::execute ()
 	_deletion = false;
     }
 
-    if(getInput()->get(STR_NO_BACKUP) != 0)
+    if(getInput()->get(STR_WITH_BACKUP) != 0)
     {
-	_backup = false;
+	_backup = true;
     }
 
     if(getInput()->get(STR_NO_SNP) != 0)
@@ -402,29 +418,30 @@ void Finder::resumeParameters(){
     getInfo()->add(1,"Breakpoint detection options");
     getInfo()->add(2,"max_repeat","%i", _max_repeat);
     getInfo()->add(2,"hetero_max_occ","%i", _het_max_occ);
-    getInfo()->add(2,"homo_insert","%s", _homo_insert ? "yes" : "no");
-    getInfo()->add(2,"hete_insert","%s", _hete_insert ? "yes" : "no");
+    getInfo()->add(2,"homo_insertions","%s", _homo_insert ? "yes" : "no");
+    getInfo()->add(2,"hete_insertions","%s", _hete_insert ? "yes" : "no");
     getInfo()->add(2,"snp","%s", _snp ? "yes" : "no");
-    getInfo()->add(2,"backup","%s", _backup ? "yes" : "no");
+    //getInfo()->add(2,"backup","%s", _backup ? "yes" : "no");
     getInfo()->add(2,"deletion","%s", _deletion ? "yes" : "no");    
 }
 
 void Finder::resumeResults(double seconds){
     getInfo()->add(0,"Results");
-    getInfo()->add(1,"Breakpoints");
+    getInfo()->add(1,"Insertion breakpoints");
     getInfo()->add(2,"homozygous","%i", _nb_homo_clean+_nb_homo_fuzzy);
     getInfo()->add(3,"clean","%i", _nb_homo_clean);
     getInfo()->add(3,"fuzzy","%i", _nb_homo_fuzzy);
     getInfo()->add(2,"heterozygous","%i", _nb_hetero_clean+_nb_hetero_fuzzy);
     getInfo()->add(3,"clean","%i", _nb_hetero_clean);
     getInfo()->add(3,"fuzzy","%i", _nb_hetero_fuzzy);
-    getInfo()->add(2,"deletion","%i", _nb_clean_deletion+_nb_fuzzy_deletion);
-    getInfo()->add(3,"clean", "%i", _nb_clean_deletion);
-    getInfo()->add(3,"fuzzy", "%i", _nb_fuzzy_deletion);
-    getInfo()->add(2,"snp","%i", _nb_solo_snp+_nb_multi_snp);
-    getInfo()->add(3,"solo", "%i", _nb_solo_snp);
-    getInfo()->add(3,"multi", "%i", _nb_multi_snp);
-    getInfo()->add(2,"backup","%i", _nb_backup);
+    getInfo()->add(1,"Other variants");
+    getInfo()->add(2,"deletions","%i", _nb_clean_deletion+_nb_fuzzy_deletion);
+    //getInfo()->add(3,"clean", "%i", _nb_clean_deletion);
+    //getInfo()->add(3,"fuzzy", "%i", _nb_fuzzy_deletion);
+    getInfo()->add(2,"SNPs","%i", _nb_solo_snp+_nb_multi_snp);
+    //getInfo()->add(3,"isolated", "%i", _nb_solo_snp);
+    //getInfo()->add(3,"close", "%i", _nb_multi_snp);
+    //getInfo()->add(2,"backup","%i", _nb_backup);
     getInfo()->add(1,"Time", "%.1f s",seconds);
     getInfo()->add(1,"Output files");
     if(getInput()->get(STR_URI_INPUT) != 0){
@@ -458,7 +475,9 @@ void Finder::writeVcfHeader(){
 ##source=MindTheGap find version %s\n\
 ##SAMPLE=file:%s\n\
 ##REF=file:%s\n\
-##INFO=<ID=Ty,Number=1,Type=String,Description=\"SNP, INS, DEL or .\">\n\
+##INFO=<ID=TYPE,Number=1,Type=String,Description=\"SNP, INS, DEL or .\">\n\
+##INFO=<ID=LEN,Number=1,Type=Integer,Description=\"variant size\">\n\
+##INFO=<ID=REP,Number=1,Type=Integer,Description=\"repeat size at the breakpoint, only for INS and DEL\">\n\
 ##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n\
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",
 c_time_string, _mtg_version, sample.c_str(),getInput()->getStr(STR_URI_REF).c_str());

@@ -498,7 +498,7 @@ void FindBreakpoints<span>::addKmerObserver(IFindObserver<span>* new_obs)
 
 template<size_t span>
 void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type){
-    fprintf(this->finder->_breakpoint_file,">left_contig_%i_%s_pos_%lli_repeat_%i_%s\n%s\n>right_contig_%i_%s_pos_%lli_repeat_%i_%s\n%s\n",
+    fprintf(this->finder->_breakpoint_file,">bkpt%i_left_kmer_%s_pos_%lli_repeat_%i_%s\n%s\n>bkpt%i_right_kmer_%s_pos_%lli_repeat_%i_%s\n%s\n",
 	    bkt_id,
 	    chrom_name.c_str(),
 	    position,
@@ -519,13 +519,19 @@ void FindBreakpoints<span>::writeVcfVariant(int bkt_id, string& chrom_name, uint
 	//cout << ref_char << alt_char << endl;
 	// WARNING : currently all positions coming from FindObservers are 0-based, VCF is supposed to be 1-based, add +1 ??
 	//TODO : add the repeat size in a VCF field + size of the variant ?
-	fprintf(this->finder->_vcf_file,"%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\t%s\tformat\t1/1\n",
+	int variant_size=1;
+	if (strcmp(type.c_str(),STR_DEL_TYPE)==0){
+		variant_size = strlen(ref_char) - 1;
+	}
+	fprintf(this->finder->_vcf_file,"%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\tTYPE=%s;LEN=%i;REP=%i\tGT\t1/1\n",
 			chrom_name.c_str(),
 			position,
 			bkt_id,
 			ref_char,
 			alt_char,
-			type.c_str()
+			type.c_str(),
+			variant_size,
+			repeat_size
 	);
 }
 
