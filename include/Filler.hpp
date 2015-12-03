@@ -75,7 +75,7 @@ private:
     /** Fill one gap
             */
     template<size_t span>
-    void gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences);
+    void gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences,bool reversed =false);
 
     /** writes a given breakpoint in the output file
          */
