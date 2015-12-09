@@ -43,6 +43,10 @@ public:
     Graph _graph;
     int _nbCores;
     BankFasta* _breakpointBank;
+    int _nb_breakpoints;
+	int _nb_filled_breakpoints;
+	int _nb_multiple_fill;
+
 	
 	string _insert_file_name;
 	FILE * _insert_file;
@@ -65,7 +69,7 @@ private:
 
     /** fills getInfo() with results informations
          */
-    void resumeResults();
+    void resumeResults(double seconds);
 
     /** Main function to fill the gaps of all breakpoints
          */

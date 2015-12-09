@@ -43,6 +43,9 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
 	//TODO rajouter les parametres
 	_nb_mis_allowed = 0;
 	_nb_gap_allowed = 0;
+	_nb_breakpoints = 0;
+	_nb_filled_breakpoints = 0;
+	_nb_multiple_fill = 0;
 
 
     setParser (new OptionsParser ("MindTheGap fill"));
@@ -137,6 +140,7 @@ void Filler::execute ()
 
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
+		getInput()->add(0,STR_URI_OUTPUT_TMP, ".");
         getInput()->add(0,STR_BLOOM_TYPE, "basic"); //neighbor basic cache
         getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //cascading  pas bien car bcp plus de FP non critique au milieur trou
         getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
@@ -188,8 +192,11 @@ void Filler::execute ()
     _max_nodes = getInput()->getInt(STR_MAX_NODES);
     
     // Now do the job
+    time_t start_time = time(0);
     // According to the kmer size,  we call one fillBreakpoints method.
     Integer::apply<fillBreakpoints,Filler*> (_kmerSize, this);
+    time_t end_time = time(0);
+    double seconds=difftime(end_time,start_time);
 
     //cout << "in MTG Fill" <<endl;
     // We gather some statistics.
@@ -199,7 +206,7 @@ void Filler::execute ()
     //getInfo()->add(1,"version",getVersion());
     getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
-    resumeResults();
+    resumeResults(seconds);
 }
 
 void Filler::resumeParameters(){
@@ -231,14 +238,15 @@ void Filler::resumeParameters(){
     
 }
 
-void Filler::resumeResults(){
+void Filler::resumeResults(double seconds){
 	getInfo()->add(0,"Results");
-//	getInfo()->add(1,"Breakpoints");
-//	getInfo()->add(2,"homozygous","%i", _nb_homo_clean+_nb_homo_fuzzy);
-//	getInfo()->add(3,"clean","%i", _nb_homo_clean);
-//	getInfo()->add(3,"fuzzy","%i", _nb_homo_fuzzy);
-
-	getInfo()->add(1,"output file","%s",_insert_file_name.c_str());
+	getInfo()->add(1,"Breakpoints");
+	getInfo()->add(2,"nb_input","%i", _nb_breakpoints);
+	getInfo()->add(2,"nb_filled","%i", _nb_filled_breakpoints);
+	getInfo()->add(3,"unique_sequence","%i", _nb_filled_breakpoints-_nb_multiple_fill);
+	getInfo()->add(3,"multiple_sequence","%i", _nb_multiple_fill);
+	getInfo()->add(1,"Time", "%.1f s",seconds);
+	getInfo()->add(1,"Output file","%s",_insert_file_name.c_str());
 
 }
 
@@ -336,6 +344,8 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	}
 
 	object->_progress->finish ();
+
+	object->_nb_breakpoints = nbBreakpoints;
 
 	cout << "nb breakpoints=" << nbBreakpoints <<endl;
 }
@@ -440,6 +450,13 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 		nbInsertions++;
 	}
 	
+	if(nbInsertions>0){
+		_nb_filled_breakpoints++;
+		if(nbInsertions>1){
+			_nb_multiple_fill++;
+		}
+	}
+
 
 }
 
