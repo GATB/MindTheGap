@@ -1,11 +1,25 @@
 #!/bin/bash
 
+# look for MindTheGap binary. In devel mode, it's in ../build/bin directory.
+# In production mode, it's in ../bin directory.
+if [ -f "../bin/MindTheGap" ]
+then
+ bindir="../bin"
+elif [ -f "../build/bin/MindTheGap" ]
+then
+ bindir="../build/bin"
+else
+ echo "could not find a compiled Bloocoo binary"
+ exit 1
+fi
+
+
 run_test()
 {
     # param : reads_file ref_file true_result prefix
-    ../build/MindTheGap find -in $1 -ref $2 -kmer-size 31 -out output/$4_find $5 1> output/$4_find.out 2> output/$4_find.err
+    $bindir/MindTheGap find -in $1 -ref $2 -kmer-size 31 -out output/$4_find $5 1> output/$4_find.out 2> output/$4_find.err
 
-    ../build/MindTheGap fill -bkpt output/$4_find.breakpoints -graph output/$4_find.h5  -out output/$4_fill 1> output/$4_fill.out 2> output/$4_fill.err
+    $bindir/MindTheGap fill -bkpt output/$4_find.breakpoints -graph output/$4_find.h5  -out output/$4_fill 1> output/$4_fill.out 2> output/$4_fill.err
 
     diff --ignore-matching-lines=">" output/$4_fill.insertions $3 1> /dev/null 2>&1
 
