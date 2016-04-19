@@ -1,4 +1,0 @@
-* Add cli argument for SNP option
-* Add SNP information in output
-* Support N in reference for heterozygote  
-* Better test
