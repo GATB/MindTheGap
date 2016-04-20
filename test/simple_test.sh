@@ -81,7 +81,6 @@ run_test reads/master.fasta references/n_after_gap.fasta truths/n_after_gap.fast
 output=${output}${retvalue}
 
 echo -e $output | column -t
-echo "test 3: $testOK"
 
 if [ $testOK == "false" ]; then
   exit 1
