@@ -1,0 +1,16 @@
+##fileformat=VCFv4.1
+##filedate
+##source
+##SAMPLE=file:reads/master.fasta
+##REF=file:references/multiSNP.fasta
+##INFO=<ID=TYPE,Number=1,Type=String,Description="SNP, INS, DEL or .">
+##INFO=<ID=LEN,Number=1,Type=Integer,Description="variant size">
+##INFO=<ID=REP,Number=1,Type=Integer,Description="repeat size at the breakpoint, only for INS and DEL">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	G1
+dSNP	88	bkpt0	A	T	.	PASS	TYPE=SNP;LEN=1;REP=0	GT	1/1
+dSNP	108	bkpt1	G	C	.	PASS	TYPE=SNP;LEN=1;REP=0	GT	1/1
+dSNP	128	bkpt2	G	A	.	PASS	TYPE=SNP;LEN=1;REP=0	GT	1/1
+dSNP	288	bkpt3	A	T	.	PASS	TYPE=SNP;LEN=1;REP=0	GT	1/1
+dSNP	308	bkpt4	G	C	.	PASS	TYPE=SNP;LEN=1;REP=0	GT	1/1
+dSNP	328	bkpt5	G	A	.	PASS	TYPE=SNP;LEN=1;REP=0	GT	1/1
