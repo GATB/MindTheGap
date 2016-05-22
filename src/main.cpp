@@ -68,7 +68,7 @@ int main (int argc, char* argv[])
     	return EXIT_FAILURE;
     }
 
-    if(strcmp(argv[1],STR_VERSION)==0){
+    if(strcmp(argv[1],STR_VERSION)==0  ||  strcmp(argv[1],"-v")==0 ){
     	displayVersion(cout);
         return EXIT_FAILURE;
     }
@@ -106,7 +106,9 @@ int main (int argc, char* argv[])
         {
             try
             {
-                Filler().run (argc-1, argv+1);
+				Filler filler = Filler();
+				filler._mtg_version = MTG_VERSION;
+                filler.run (argc-1, argv+1);
             }
             catch (Exception& e)
             {

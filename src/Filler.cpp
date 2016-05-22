@@ -175,7 +175,7 @@ void Filler::execute ()
     }
 
 	
-	_insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions";
+	_insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.fasta";
 	_insert_file = fopen(_insert_file_name.c_str(), "w");
 	if(_insert_file == NULL){
 		string message = "Cannot open file "+ _insert_file_name + " for writting";
@@ -204,7 +204,11 @@ void Filler::execute ()
 	fclose(_insert_file);
 	
     //getInfo()->add(1,"version",getVersion());
-    getInfo()->add (1, &LibraryInfo::getInfo());
+	getInfo()->add(1,"version",_mtg_version);
+	getInfo()->add(1,"gatb-core-library",STR_LIBRARY_VERSION);
+	getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
+	
+    //getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
     resumeResults(seconds);
 }
@@ -420,6 +424,9 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 	filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
 
 
+	remove(contig_file_name.c_str());
+	remove((contig_graph_file_prefix+".graph").c_str());
+
 }
 
 void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpointName){
@@ -429,7 +436,16 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 	//printf("found %zu seq \n",filledSequences.size());
 	
 	int nbInsertions = 0;
+	int nbTotalInsertions = 0;
 
+	for (set<string>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+	{
+		string insertion = *it;
+		int llen = insertion.length() ;
+		if(llen > 0) nbTotalInsertions++;
+	}
+	
+	
 	for (set<string>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 	{
 		string insertion = *it;
@@ -443,7 +459,12 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 		// save sequences to results file
 		if(llen > 0)
 		{
-			fprintf(_insert_file,"> insertion %d ( len= %d ) for breakpoint \"%s\"\n",nbInsertions,llen, breakpointName.c_str());
+			
+			std::ostringstream osolu_i;
+			osolu_i <<   "solution " <<    nbInsertions+1 << "/" << nbTotalInsertions ;
+			string solu_i = nbTotalInsertions >1 ?  osolu_i.str() : "" ;
+			
+			fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
 			//todo check  revcomp here
 			fprintf(_insert_file,"%.*s\n",(int)llen,insertion.c_str() );
 		}

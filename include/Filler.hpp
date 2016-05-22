@@ -38,7 +38,10 @@ public:
 
     // Constructor
     Filler ();
-    
+	
+	const char* _mtg_version;
+
+	
     size_t _kmerSize;
     Graph _graph;
     int _nbCores;
