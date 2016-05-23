@@ -146,8 +146,8 @@ bool FindDeletion<span>::update()
     // here position is 0-based
     this->_find->writeVcfVariant(this->_find->breakpoint_id(), this->_find->chrom_name(), del_start_pos, del_sequence, alt_char, repeat_size, STR_DEL_TYPE);
 
-    delete(del_sequence);
-    delete(alt_char);
+    delete [](del_sequence);
+    delete [] (alt_char);
 
     this->_find->breakpoint_id_iterate();
 

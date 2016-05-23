@@ -220,75 +220,75 @@ bool FindSNP<span>::snp_at_begin(unsigned char* beginpos, size_t limit, KmerType
 template<size_t span>
 bool FindSNP<span>::snp_at_begin(unsigned char* beginpos, size_t limit, KmerType* ret_nuc, KmerType* ref_nuc, unsigned int* nb_kmer_val) //mute le premier nt du kmer a position beginpos de listorique puis recule
 {
-    // Create map with all nuc A = 0, C = 1, T = 2, G = 3
-    std::map<KmerType, unsigned int> nuc;
-    KmerType zero, un, deux, trois;
-    zero.setVal(0); un.setVal(1); deux.setVal(2); trois.setVal(3);
-    nuc[zero] = 0;
-    nuc[un] = 0;
-    nuc[deux] = 0;
-    nuc[trois] = 0;
+	// Create map with all nuc A = 0, C = 1, T = 2, G = 3
+	std::map<KmerType, unsigned int> nuc;
+	KmerType zero, un, deux, trois;
+	zero.setVal(0); un.setVal(1); deux.setVal(2); trois.setVal(3);
+	nuc[zero] = 0;
+	nuc[un] = 0;
+	nuc[deux] = 0;
+	nuc[trois] = 0;
 	
 	
-    unsigned char  beginpos_init = (*beginpos);
-    //this->remove_nuc(nuc, *beginpos - (this->_find->kmer_size()-1));
-    *ref_nuc = this->_find->het_kmer_history(*beginpos).kmer & 3; // obtain the reference nuc
-    nuc.erase(*ref_nuc);
-
-    // if end is false or if didn't read all kmer loop
-    bool end = false;
-    for(unsigned char j = 0; !end && j != this->_find->kmer_size(); (*beginpos)--, j++)
-    {	
-	// for each nucleotide of nuc map
-	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end();)
+	unsigned char  beginpos_init = (*beginpos);
+	//this->remove_nuc(nuc, *beginpos - (this->_find->kmer_size()-1));
+	*ref_nuc = this->_find->het_kmer_history(*beginpos).kmer & 3; // obtain the reference nuc
+	nuc.erase(*ref_nuc);
+	
+	// if end is false or if didn't read all kmer loop
+	bool end = false;
+	for(unsigned char j = 0; !end && j != this->_find->kmer_size(); (*beginpos)--, j++)
 	{
-	    KmerType const_fix = nuc_it->first; // fix conversion error
-	    KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, const_fix,  j+1);
-			
-			
-	    if(this->contains(correct_kmer))
-	    {
-		nuc[nuc_it->first]++;
-		++nuc_it;
-	    }
-	    else
-	    {
-				
-		if(nuc.size() == 1) //Is the last nucleotide and the last iteration
+		// for each nucleotide of nuc map
+		for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end();)
 		{
-		    end = true;
-		    (*beginpos) += 1; // Last iteration didn't create valid kmer we need decrement value //
-		    //will still be incr by end of upper for loop
-		    break;
+			KmerType const_fix = nuc_it->first; // fix conversion error
+			KmerType correct_kmer = this->mutate_kmer(this->_find->het_kmer_history(*beginpos).kmer, const_fix,  j+1);
+			
+			
+			if(this->contains(correct_kmer))
+			{
+				nuc[nuc_it->first]++;
+				++nuc_it;
+			}
+			else
+			{
+				
+				if(nuc.size() == 1) //Is the last nucleotide and the last iteration
+				{
+					end = true;
+					(*beginpos) += 1; // Last iteration didn't create valid kmer we need decrement value //
+					//will still be incr by end of upper for loop
+					break;
+				}
+				nuc.erase(nuc_it++); // This nucleotide didn't valid kmer we remove it
+			}
 		}
-		nuc.erase(nuc_it++); // This nucleotide didn't valid kmer we remove it
-	    }
-	}		
-    }
-	
-    //Find the max nucleotide correct most kmer
-    KmerType max = nuc.begin()->first;
-    for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
-    {
-	if(nuc_it->second > nuc[max])
-	{
-	    max = nuc_it->first;
 	}
-    }
 	
-    // If nuc max is upper or equale limit we find a snp
-    if((unsigned int)nuc[max] >= limit)
-    {
-	*ret_nuc = max;
-	*nb_kmer_val = nuc[max];
-	return true;
-    }
-    else
-    {
-	*beginpos = beginpos_init;
+	//Find the max nucleotide correct most kmer
+	KmerType max = nuc.begin()->first;
+	for(typename std::map<KmerType, unsigned int>::iterator nuc_it = nuc.begin(); nuc_it != nuc.end(); nuc_it++)
+	{
+		if(nuc_it->second > nuc[max])
+		{
+			max = nuc_it->first;
+		}
+	}
+	
+	// If nuc max is upper or equale limit we find a snp
+	if((unsigned int)nuc[max] >= limit)
+	{
+		*ret_nuc = max;
+		*nb_kmer_val = nuc[max];
+		return true;
+	}
+	else
+	{
+		*beginpos = beginpos_init;
+		return false;
+	}
 	return false;
-    }
-    return false;
 }
 
 

@@ -31,7 +31,7 @@
 #include <gatb/gatb_core.hpp>
 #include <Finder.hpp>
 #include <FindSNP.hpp>
-
+#include "CircularBuffer.hpp"
 /********************************************************************************/
 
 template<size_t type>
@@ -276,6 +276,13 @@ private :
     int m_recent_hetero;
     bool m_kmer_end_is_repeated;
 
+	
+	CircularBuffer<info_type> m_het_kmer_history_CB;
+	typedef typename CircularBuffer<info_type>::itCB  iterCB;
+	iterCB* m_het_kmer_end_index_CB;
+	iterCB* m_het_kmer_begin_index_CB;
+	
+	
     /** Bloom of the repeated kmers of the reference genome 
      */
     IBloom<KmerType>* m_ref_bloom;
@@ -299,6 +306,9 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find-
     this->m_position = 0;
     this->m_chrom_sequence = NULL;
     this->m_chrom_name = "";
+
+	m_het_kmer_end_index_CB = new iterCB (&m_het_kmer_history_CB);
+	m_het_kmer_begin_index_CB = new iterCB (&m_het_kmer_history_CB);
 
     /*Homozygote usage*/
     this->m_solid_stretch_size = 0;
@@ -367,8 +377,14 @@ void FindBreakpoints<span>::operator()()
 		
 		// for hetero mode:
 		memset(this->m_het_kmer_history, 0, sizeof(info_type)*256);
+		m_het_kmer_history_CB.clear();
+		
 		this->m_het_kmer_end_index = this->finder->_kmerSize +1;
 		this->m_het_kmer_begin_index = 1;
+		
+		m_het_kmer_end_index_CB->set(this->finder->_kmerSize +1);
+		m_het_kmer_end_index_CB->set(1);
+		
 		this->m_recent_hetero = 0;
 		
 		// We set the data from which we want to extract kmers.
@@ -378,7 +394,8 @@ void FindBreakpoints<span>::operator()()
 		this->m_position = 0;
 		
 		// We iterate the kmers.
-		for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++)
+		for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++
+			 ,m_het_kmer_begin_index_CB++, m_het_kmer_end_index++)
 		{
 			//we need to convert the kmer in a node to query the graph.
 			Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
@@ -637,6 +654,9 @@ template<size_t span>
 typename FindBreakpoints<span>::info_type& FindBreakpoints<span>::het_kmer_history(unsigned char index)
 {
     return this->m_het_kmer_history[index];
+	
+//	return  index(); //with index of type iterCB
+
 }
 
 template<size_t span>
@@ -812,6 +832,7 @@ void FindBreakpoints<span>::store_kmer_info(Node node)
 	
 	//filling the history array with the current kmer information
 	this->m_het_kmer_history[m_het_kmer_end_index] = m_current_info;
+	m_het_kmer_end_index_CB->item() = m_current_info ;
 	
 	//checking if the k-1 prefix is repeated
 	KmerType prefix = (this->m_it_kmer->forward() >> 2) & kminus1_mask; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)

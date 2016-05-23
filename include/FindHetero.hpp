@@ -45,42 +45,42 @@ FindHeteroInsert<span>::FindHeteroInsert(FindBreakpoints<span> * find) : IFindOb
 template<size_t span>
 bool FindHeteroInsert<span>::update()
 {
-    if(!this->_find->homo_only())
-    {
-        // hetero site detection
-	if(!this->_find->kmer_end_is_repeated() && this->_find->current_info().nb_in == 2 && !this->_find->recent_hetero())
+	if(!this->_find->homo_only())
 	{
-	    //loop over putative repeat size (0=clean, >0 fuzzy), reports only the smallest repeat size found.
-	    for(int i = 0; i <= this->_find->max_repeat(); i++)
-	    {
-		if(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 && !this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated)
+		// hetero site detection
+		if(!this->_find->kmer_end_is_repeated() && this->_find->current_info().nb_in == 2 && !this->_find->recent_hetero())
 		{
-		    //hetero breakpoint found
-		    string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer);
-		    string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
-		    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE);
-
-		    this->_find->breakpoint_id_iterate();
-
-		    if(i==0)
-		    {
-			this->_find->hetero_clean_iterate();
-		    }
-		    else
-		    {
-			this->_find->hetero_fuzzy_iterate();
-		    }
-		    
-		    this->_find->recent_hetero(this->_find->max_repeat()); // we found a breakpoint, the next hetero one mus be at least _max_repeat apart from this one.
-		    return true; //reports only the smallest repeat size found.
+			//loop over putative repeat size (0=clean, >0 fuzzy), reports only the smallest repeat size found.
+			for(int i = 0; i <= this->_find->max_repeat(); i++)
+			{
+				if(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 && !this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated)
+				{
+					//hetero breakpoint found
+					string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer);
+					string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
+					this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE);
+					
+					this->_find->breakpoint_id_iterate();
+					
+					if(i==0)
+					{
+						this->_find->hetero_clean_iterate();
+					}
+					else
+					{
+						this->_find->hetero_fuzzy_iterate();
+					}
+					
+					this->_find->recent_hetero(this->_find->max_repeat()); // we found a breakpoint, the next hetero one mus be at least _max_repeat apart from this one.
+					return true; //reports only the smallest repeat size found.
+				}
+			}
 		}
-	    }
+		
+		this->_find->recent_hetero(max(0, this->_find->recent_hetero() - 1));  // when recent_hetero=0 : we are sufficiently far from the previous hetero-site
 	}
-
-	this->_find->recent_hetero(max(0, this->_find->recent_hetero() - 1));  // when recent_hetero=0 : we are sufficiently far from the previous hetero-site
-    }
-
-    return false;
+	
+	return false;
 }
 
 #endif /* _TOOL_FindHetero_HPP_ */

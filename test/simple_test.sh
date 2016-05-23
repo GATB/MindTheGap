@@ -22,9 +22,9 @@ run_test()
 
     $bindir/MindTheGap fill -bkpt output/$4_find.breakpoints -graph output/$4_find.h5  -out output/$4_fill 1> output/$4_fill.out 2> output/$4_fill.err
 
-    diff --ignore-matching-lines=">" output/$4_fill.insertions $3 1> /dev/null 2>&1
+    diff --ignore-matching-lines=">" output/$4_fill.insertions.fasta $3 1> /dev/null 2>&1
 
-    var=$?
+	var=$?
     if [ $var -eq 0 ]
     then
 	     eval $6="passed"
@@ -38,17 +38,17 @@ run_test()
 run_test_vcf()
 {
 # param : reads_file ref_file true_result prefix
-$bindir/MindTheGap find -in $1 -ref $2 -kmer-size 31 -out output/$4_find $5 1> output/$4_find.out 2> output/$4_find.err
+	$bindir/MindTheGap find -in $1 -ref $2 -kmer-size 31 -out output/$4_find $5 1> output/$4_find.out 2> output/$4_find.err
 
-diff --ignore-matching-lines="##" output/$4_find.othervariants.vcf $3 1> /dev/null 2>&1
+	diff --ignore-matching-lines="##" output/$4_find.othervariants.vcf $3 1> /dev/null 2>&1
 
-var=$?
-if [ $var -eq 0 ]
-then
-eval $6="passed"
-else
-testOK="false" ; eval $6="FAILED"
-fi
+	var=$?
+	if [ $var -eq 0 ]
+	then
+		eval $6="passed"
+	else
+		testOK="false" ; eval $6="FAILED"
+	fi
 }
 
 
@@ -59,6 +59,10 @@ output=$output"clean-insert : "
 run_test reads/master.fasta references/deleted.fasta truths/insertion.fasta k-1 "-insert-only" retvalue
 output=${output}${retvalue}
 
+output=$output"\n13-inserts-ref10k : "
+run_test reads/readref10K.fasta  references/g10K_del.fasta truths/insert_ref10K.fasta 13i "-insert-only" retvalue
+output=${output}${retvalue}
+
 output=$output"\n1-SNP : "
 run_test_vcf reads/master.fasta references/sSNP.fasta truths/truth_snp.vcf sSNP "-snp-only" retvalue
 output=${output}${retvalue}
@@ -66,6 +70,7 @@ output=${output}${retvalue}
 output=$output"\n3-SNP*2 : "
 run_test_vcf reads/master.fasta references/multiSNP.fasta truths/multiSNP.vcf multiSNP "-snp-only" retvalue
 output=${output}${retvalue}
+
 
 output=$output"\nsnp-before-clean-insert : "
 run_test reads/master.fasta references/deleted_before_SNP.fasta truths/insertion_before_SNP.fasta k-1_before_SNP "-no-deletion -homo-only" retvalue
