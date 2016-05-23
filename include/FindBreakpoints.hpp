@@ -306,6 +306,8 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find-
     this->m_position = 0;
     this->m_chrom_sequence = NULL;
     this->m_chrom_name = "";
+	this->m_kmer_begin = KmerCanonical();
+	this->m_kmer_end = KmerCanonical();
 
 	//m_het_kmer_end_index_CB = new iterCB (&m_het_kmer_history_CB);
 	//m_het_kmer_begin_index_CB = new iterCB (&m_het_kmer_history_CB);
