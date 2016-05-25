@@ -520,7 +520,7 @@ void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint
     fprintf(this->finder->_breakpoint_file,">bkpt%i_left_kmer_%s_pos_%lli_repeat_%i_%s\n%s\n>bkpt%i_right_kmer_%s_pos_%lli_repeat_%i_%s\n%s\n",
 	    bkt_id,
 	    chrom_name.c_str(),
-	    position,
+	    position+1, //switch to 1-based
 	    repeat_size,
 	    type.c_str(),
 	    kmer_begin.c_str(),
@@ -544,7 +544,7 @@ void FindBreakpoints<span>::writeVcfVariant(int bkt_id, string& chrom_name, uint
 	}
 	fprintf(this->finder->_vcf_file,"%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\tTYPE=%s;LEN=%i;REP=%i\tGT\t1/1\n",
 			chrom_name.c_str(),
-			position,
+			position+1,  //switch to 1-based
 			bkt_id,
 			ref_char,
 			alt_char,
