@@ -464,7 +464,24 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 			osolu_i <<   "solution " <<    nbInsertions+1 << "/" << nbTotalInsertions ;
 			string solu_i = nbTotalInsertions >1 ?  osolu_i.str() : "" ;
 			
-			fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
+			
+			int bkptid;
+			int chrid = 0;
+			//parse bkpt header
+			//get bkpt id
+			sscanf(breakpointName.c_str(),"bkpt%i*",&bkptid );
+			//get chrid
+			char * charp = strstr(breakpointName.c_str(), "Seq");
+			if(charp!= NULL)
+			{
+				sscanf(charp,"Seq%i",&chrid );
+			}
+			//get pos
+			charp = strstr(breakpointName.c_str(), "pos_");
+
+			fprintf(_insert_file,">bkpt%i insertion_len_%d_chr%d_%s  %s\n",bkptid,llen,chrid,charp,solu_i.c_str());
+
+			//fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
 			//todo check  revcomp here
 			fprintf(_insert_file,"%.*s\n",(int)llen,insertion.c_str() );
 		}

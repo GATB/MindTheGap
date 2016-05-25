@@ -8,4 +8,4 @@
 ##INFO=<ID=REP,Number=1,Type=Integer,Description="repeat size at the breakpoint, only for INS and DEL">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	G1
-sSNP	88	bkpt0	A	T	.	PASS	TYPE=SNP;LEN=1;REP=0	GT	1/1
+sSNP	88	bkpt1	A	T	.	PASS	TYPE=SNP;LEN=1;REP=0	GT	1/1

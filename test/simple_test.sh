@@ -106,6 +106,9 @@ output=${output}${retvalue}
 
 echo -e $output | column -t
 
+
+rm -rf output/
+
 if [ $testOK == "false" ]; then
   exit 1
 fi

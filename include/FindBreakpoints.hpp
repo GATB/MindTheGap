@@ -302,11 +302,11 @@ private :
 template<size_t span>
 FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find->_kmerSize), m_it_kmer(m_model), _progress (0)
 {
-    this->m_breakpoint_id = 0;
+    this->m_breakpoint_id = 1;
     this->m_position = 0;
     this->m_chrom_sequence = NULL;
     this->m_chrom_name = "";
-	this->m_kmer_begin = KmerCanonical();
+	this->m_kmer_begin = KmerCanonical(); // init kmerbegin and kmerend otherwise not init when checking this->_find->kmer_begin().isValid() in update
 	this->m_kmer_end = KmerCanonical();
 
 	//m_het_kmer_end_index_CB = new iterCB (&m_het_kmer_history_CB);
