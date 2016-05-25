@@ -120,12 +120,14 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
 
 1. Breakpoint format
     
-    A breakpoint file is output by MindTheGap find and is required by MindTheGap fill. This is plain text file in fasta format, where each insertion site (or gap to fill) corresponds to two consecutive fasta entries. Sequences are kmer (with k being the same value used by the de bruijn graph). MindTheGap fill will try to find a path in the de bruijn graph from the first kmer to the second one. 
+    A breakpoint file is output by MindTheGap find and is required by MindTheGap fill. This is a plain text file in fasta format, where each insertion site (or gap to fill) corresponds to two consecutive fasta entries: left kmer and right kmer. Sequences are kmer (with k being the same value used in the de bruijn graph). MindTheGap fill will try to find a path in the de bruijn graph from the left kmer to the right one. 
     In the breakpoint file output by MindTheGap find, one can find useful information in the fasta headers, such as the genomic position of the insertion site and its genotype (detected by the homozygous or heterozygous algorithm). A typical header is as follows: 
         
         >bkpt5_left_kmer_chr1_pos_39114_repeat_0_HOM
-
-    5 is the id of the insertion event. The position of the insertion site is on chr1 at position 39114 (position just before the insertion, 0-based). The size of the repeated sequence is 0 (clean insertion site) and it was detected by the homozygous algorithm.
+        #bkpt5 : this is the id of the insertion event. 
+        #chr1_pos_39114 : the position of the insertion site is on chr1 at position 39114 (position just before the insertion, 0-based). 
+        #repeat_0 : is the size of the repeated sequence at the breakpoint (here 0 means it is a clean insertion site).
+        #HOM : it was detected by the homozygous algorithm.
 	
 2. VCF variant format
 
@@ -133,7 +135,16 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
 	
 3. Assembled insertion format
     
-    TODO
+    MindTheGap fill outputs a file in fasta format containing the obtained inserted sequences. The output sequences do not contain the breakpoint kmers. For each insertion breakpoint for which the filling succeeded, one can find in this file either one or several sequences with the following header:
+    
+        >bkpt5 insertion_len_59_chr1_pos_39114_repeat_0_HOM
+        #same info as in the breakpoint file
+        #len_59 : the length in bp of the inserted sequence, here 59 bp
+
+    If more than one sequence is assembled for a given breakpoint, the header is as follows:
+    
+        >bkpt5 insertion_len_59_chr1_pos_39114_repeat_0_HOM 2/3
+        #this is the second sequence out of 3    
  
 
 
