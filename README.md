@@ -101,7 +101,7 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     
     `MindTheGap find` generates the following output files:
     * a breakpoint file (`.breakpoints`) in fasta format. It contains the breakpoint sequences of each detected insertion site.    Each insertion site corresponds to 2 consecutive entries in the fasta file : sequences are the left and right side flanking kmers.
-    * a variant file (`.vcf`) in vcf format. It contains SNPs and deletion events.
+    * a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
     
     `MindTheGap fill` generates the following output files:
     * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences that were successfully assembled. In the header, position on the reference genome is 
@@ -125,13 +125,15 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
         
         >bkpt5_left_kmer_chr1_pos_39114_repeat_0_HOM
         #bkpt5 : this is the id of the insertion event. 
-        #chr1_pos_39114 : the position of the insertion site is on chr1 at position 39114 (position just before the insertion, 0-based). 
+        #chr1_pos_39114 : the position of the insertion site is on chr1 at position 39114 (position just before the insertion, 1-based). 
         #repeat_0 : is the size of the repeated sequence at the breakpoint (here 0 means it is a clean insertion site).
         #HOM : it was detected by the homozygous algorithm.
+
+    Note: in the case of a repeat at the breakpoint site, the exact position can not be known inside the repeat, the reported position is always the right-most.
 	
 2. VCF variant format
 
-    TODO following the VCF guide version X.x...
+    For both .othervariants.vcf and insertions.vcf files, the format follows the VCF specifications version 4.1 (see https://samtools.github.io/hts-specs/VCFv4.1.pdf). Positions are 1-based.
 	
 3. Assembled insertion format
     
@@ -141,7 +143,7 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
         #same info as in the breakpoint file
         #len_59 : the length in bp of the inserted sequence, here 59 bp
 
-    If more than one sequence is assembled for a given breakpoint, the header is as follows:
+    If more than one sequence are assembled for a given breakpoint, the header is as follows:
     
         >bkpt5 insertion_len_59_chr1_pos_39114_repeat_0_HOM 2/3
         #this is the second sequence out of 3    

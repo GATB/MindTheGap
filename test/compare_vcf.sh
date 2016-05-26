@@ -14,3 +14,7 @@ grep -v "^#" $vcf1 | cut -f1,2,4,5 | sort > $tmp1
 grep -v "^#" $vcf2 | cut -f1,2,4,5 | sort > $tmp2 
 
 diff $tmp1 $tmp2
+
+rm -f $tmp1
+rm -f $tmp2
+

@@ -526,7 +526,7 @@ void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint
 	    kmer_begin.c_str(),
 	    bkt_id,
 	    chrom_name.c_str(),
-	    position,
+	    position+1, //switch to 1-based
 	    repeat_size,
 	    type.c_str(),
 	    kmer_end.c_str()
@@ -536,8 +536,7 @@ void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint
 template<size_t span>
 void FindBreakpoints<span>::writeVcfVariant(int bkt_id, string& chrom_name, uint64_t position, char* ref_char, char* alt_char, int repeat_size, string type){
 	//cout << ref_char << alt_char << endl;
-	// WARNING : currently all positions coming from FindObservers are 0-based, VCF is supposed to be 1-based, add +1 ??
-	//TODO : add the repeat size in a VCF field + size of the variant ?
+	// NOTE : currently all positions coming from FindObservers are 0-based, VCF is supposed to be 1-based, so we add +1
 	int variant_size=1;
 	if (strcmp(type.c_str(),STR_DEL_TYPE)==0){
 		variant_size = strlen(ref_char) - 1;

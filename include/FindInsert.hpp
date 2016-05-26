@@ -56,7 +56,8 @@ bool FindCleanInsert<span>::update()
 	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 
-	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0,STR_HOM_TYPE);
+	//position : this->_find->position() is the beginning of the second found kmer after the gap : -2 ie position of the last 0, ie position just before (at the left of) the insertion site (0-based)
+	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, kmer_begin_str, kmer_end_str, 0,STR_HOM_TYPE);
 
 	// iterate counter
 	this->_find->breakpoint_id_iterate();
@@ -100,8 +101,9 @@ bool FindFuzzyInsert<span>::update()
 	// obtains the kmer sequence
 	string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 	string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
-	    
-	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size, STR_HOM_TYPE);
+
+	//position : this->_find->position() is the beginning of the second found kmer after the gap : -2 ie position of the last 0, ie position just before (at the left of) the insertion site (0-based)
+	this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size, STR_HOM_TYPE);
 
 	//iterate counter
 	this->_find->breakpoint_id_iterate();
