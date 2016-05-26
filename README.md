@@ -90,8 +90,8 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     
     In addition to the read or graph files, the fill module has one mandatory option `-bkpt` and several optional options:	
     * `-bkpt`: the breakpoint file path. This is one of the output of the Find module and contains for each detected insertion site its left and right kmers from and to which the local assembly will be performed (see section E for details about the format).
-    * `-max-nodes`: maximum number of nodes in contig graph (nt)  [default '100']. This arguments limits the computational time, this is especially usefull for complex genomes.
-    * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially usefull for complex genomes.
+    * `-max-nodes`: maximum number of nodes in contig graph  [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
+    * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
 
 6. **MindTheGap Output**
     
