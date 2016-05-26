@@ -471,7 +471,7 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 			//get bkpt id
 			sscanf(breakpointName.c_str(),"bkpt%i*",&bkptid );
 			//get chrid
-			char * charp = strstr(breakpointName.c_str(), "Seq");
+			const char * charp = strstr(breakpointName.c_str(), "Seq");
 			if(charp!= NULL)
 			{
 				sscanf(charp,"Seq%i",&chrid );
