@@ -126,7 +126,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max()); //to be sure in case CountNumber definition changes
     graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, abundanceMax));
     //TODO for release : change 3 -> auto
-    graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
+    graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "auto"));
     graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
 	//IOptionsParser* graphParser = SortingCountAlgorithm<>::getOptionsParser(false);
     //graphParser->setName ("Graph building");
@@ -386,7 +386,7 @@ void Finder::resumeParameters(){
 
     //In MindTheGap, solidity-kind always at "sum" (not tunable)
     //getInfo()->add(2,"solidity_kind",_graph.getInfo().getStr("solidity_kind").c_str());
-    try { // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
+    try { // use try/catch because this key is present only if auto asked
     	getInfo()->add(2,"abundance_min (auto inferred)",_graph.getInfo().getStr("cutoffs_auto.values").c_str());
     } catch (Exception e) {
     	// doing nothing

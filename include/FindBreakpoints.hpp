@@ -370,6 +370,8 @@ void FindBreakpoints<span>::operator()()
 	for (it_seq->first(); !it_seq->isDone(); it_seq->next())
 	{
 
+		this->m_kmer_begin = KmerCanonical();
+		this->m_kmer_end = KmerCanonical();
 		//DEBUG
 		//cout<<"sequence "<< (*it_seq)->getCommentShort() << endl;
 

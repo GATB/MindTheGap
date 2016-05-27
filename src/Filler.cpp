@@ -72,7 +72,7 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
 	IOptionsParser* graphParser = new OptionsParser("Graph building");
 	string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max()); //to be sure in case CountNumber definition changes
 	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MAX, "maximal abundance threshold for solid kmers", false, abundanceMax));
-	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "3"));
+	graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "auto"));
 	graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
 
 
@@ -227,8 +227,19 @@ void Filler::resumeParameters(){
     getInfo()->add(2,"Breakpoints",getInput()->getStr(STR_URI_BKPT).c_str());
     getInfo()->add(1,"Graph");
     getInfo()->add(2,"kmer-size","%i", _kmerSize);
-    try { // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
-            getInfo()->add(2,"abundance_min",_graph.getInfo().getStr("abundance_min").c_str());
+    try { // use try/catch because this key is present only if auto asked
+    	getInfo()->add(2,"abundance_min (auto inferred)",_graph.getInfo().getStr("cutoffs_auto.values").c_str());
+    } catch (Exception e) {
+    	// doing nothing
+    }
+    string min_abundance;
+    int thre = _graph.getInfo().getInt("thresholds"); //with getInt obtains the first number (if sum : threshold = 4 4 if -in had 2 input files, less confusing for the user if only one value shown)
+    stringstream ss;
+    ss << thre;
+    min_abundance = ss.str();
+    getInfo()->add(2,"abundance_min (used)",min_abundance);
+
+    try {     // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
             getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
             getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
         } catch (Exception e) {
@@ -466,20 +477,20 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 			
 			
 			int bkptid;
-			int chrid = 0;
+			char chr_name[1000];
 			//parse bkpt header
 			//get bkpt id
 			sscanf(breakpointName.c_str(),"bkpt%i*",&bkptid );
-			//get chrid
-			const char * charp = strstr(breakpointName.c_str(), "Seq");
-			if(charp!= NULL)
-			{
-				sscanf(charp,"Seq%i",&chrid );
-			}
+			//get chr name // TODO nicer way ?
+			const char * charp = strstr(breakpointName.c_str(), "kmer_");
+			const char * charp2 = strstr(charp+5, "_");
+			int size = charp2-(charp+5);
+			strncpy(chr_name,charp+5,size);
+			chr_name[size]='\0';
 			//get pos
 			charp = strstr(breakpointName.c_str(), "pos_");
 
-			fprintf(_insert_file,">bkpt%i insertion_len_%d_chr%d_%s  %s\n",bkptid,llen,chrid,charp,solu_i.c_str());
+			fprintf(_insert_file,">bkpt%i insertion_len_%d_%s_%s  %s\n",bkptid,llen,chr_name,charp,solu_i.c_str());
 
 			//fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
 			//todo check  revcomp here
