@@ -106,6 +106,8 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     `MindTheGap fill` generates the following output files:
     * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences that were successfully assembled. In the header, position on the reference genome is 
     * an insertion variant file (`.insertions.vcf`) in vcf format. This file resumes insertion position information already contained in the fasta file, but in a vcf format. It is not self-sufficient, inserted sequences if larger than XX bp are not written in the vcf but are referred to their fasta id in the fasta file.
+
+    Warning: the output in vcf of insertion variants is not yet implemented, coming soon...
 	
 7. **Computational resources options**
     
@@ -152,8 +154,20 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
 
 ## Full example
 
-TODO
+This example can be run with the small dataset in directory `data/`, for instance from the build directory:
 
+    #find
+    bin/MindTheGap find -in ../data/reads_r1.fastq,../data/reads_r2.fastq -ref ../data/reference.fasta -out example
+    # 3 files are generated: 
+    #   example.h5 (graph), 
+    #   example.othervariants.vcf (SNPs and deletion variants), 
+    #   example.breakpoints (breakpoints of insertion variants).
+
+    #fill
+    bin/MindTheGap fill -graph example.h5 -bkpt example.breakpoints -out example
+    # 2 files are generated:
+    #   example.insertions.fasta
+    #   example.insertions.vcf  (not yet implemented, coming soon)
 
 ## Utility programs
 
