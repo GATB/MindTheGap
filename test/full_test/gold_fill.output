@@ -1,0 +1,26 @@
+nb breakpoints=7
+MindTheGap fill                         
+    version                                  : 1.0.0
+    gatb-core-library                        : 1.2.0
+    supported_kmer_sizes                     : 32 64 96 128
+Parameters                              
+    Input data                              
+        Graph                                    : gold.h5
+        Breakpoints                              : gold.breakpoints
+    Graph                                   
+        kmer-size                                : 31
+        abundance_min (auto inferred)            : 3 
+        abundance_min (used)                     : 3
+        nb_solid_kmers                           : 5473
+        nb_branching_nodes                       : 34
+    Assembly options                        
+        max_depth                                : 10000
+        max_nodes                                : 100
+Results                                 
+    Breakpoints                             
+        nb_input                                 : 7
+        nb_filled                                : 7
+            unique_sequence                          : 7
+            multiple_sequence                        : 0
+    Time                                     : 0.0 s
+    Output file                              : gold.insertions.fasta

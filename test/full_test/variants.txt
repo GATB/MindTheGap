@@ -1,14 +1,14 @@
 Seq0 100 SNP T -> C
-Seq0 122 HET clean after SNP
+Seq0 122 HET clean after SNP # not detected for the moment
 Seq0 296 DEL end=410 clean
 Seq0 815 SNP C -> A
-Seq1 205 MSNP G -> C # 2 snps proches
-Seq1 218 MSNP T -> A # 2 snps proches
+Seq1 205 MSNP G -> C # 2 close snps 
+Seq1 218 MSNP T -> A # 2 close snps 
 Seq1 341 HET clean
 Seq1 739 DEL end=847 fuzzy=2
-Seq2 319 MSNP T -> C # 3 snp proches
-Seq2 343 MSNP C -> A # 3 snp proches
-Seq2 378 MSNP G -> C # 3 snp proches
+Seq2 319 MSNP T -> C # 2 close snp, note : due to bloom-FP can be missed
+Seq2 343 MSNP C -> A # 2 close snp
+Seq2 378 MSNP G -> C 
 Seq2 535 HOM clean
 Seq2 834 HOM fuzzy=1
 Seq3 255 SNP A -> T

@@ -6,6 +6,7 @@
 #  - several chromosomes
 #  - all types of variants = solo SNP, multi SNP, homozygous insertion fuzzy or not, heterozygous insertion fuzzy or not, homozygous insertion with a SNP close before or after the insertion, homozygous deletion
 
+# Here, positions are 0-based
 
 # 1. Generates random sequences
 ~/workspace/divers_scripts/gener_alea 1000 5
@@ -14,16 +15,15 @@ mv alea.seq init.fasta
 init.fasta = reference.fasta
 cp init.fasta reference.fasta
 
-# 2. Put 12 SNPs
+# 2. Put 13 SNPs
 cp init.fasta initSnp.fasta
 liste des SNPs : (0-based)
 Seq0 100 T -> C
 Seq0 815 C -> A
 Seq1 205 G -> C   # 2 snps proches
 Seq1 218 T -> A
-Seq2 319 T -> C   # 4 snp proches
+Seq2 319 T -> C   # 2 snp proches (k=31)
 Seq2 343 C -> A
-[Seq2 370 T -> C] TO add otherwise = 2 snps proches + 1 isolé
 Seq2 378 G -> C
 Seq3 255 A -> T
 Seq3 510 C -> A
@@ -95,8 +95,31 @@ Nouveau jeu avec les FP après le muti-SNp --> pour tester multi-SNP avant FP
  reference-bis.fasta seq2 292 A -> T
 --> si autorise multiSNP à dépasser la taille : 2 SNP FP en trop --> option n°1 validée (et implémentée)
 
+UPDATE 27/05/2016 :
+ Not detected : - Seq0 122 HET clean after SNP # not detected for the moment : not possible due to update after SNPs only touching gap-stretch-size ?
+     	      	- Seq2 319 MSNP T -> C # 2 close snp, note : due to bloom-FP can be missed
+ Now reported positions are 1-based and points to the nucleotide of the variant (SNP), or just before (at the left) : deletions, insertions.
+
 
 # 6. Generate reads :
+l=5000
+1000 reads -> c=20x
+~/Bin/samtools-0.1.18/misc/wgsim -e 0.01 -d 200 -s 20 -N 500 -1 100 -2 100 -r 0 -R 0 allele1.fasta allele1_r1.fq allele1_r2.fq
+~/Bin/samtools-0.1.18/misc/wgsim -e 0.01 -d 200 -s 20 -N 500 -1 100 -2 100 -r 0 -R 0 allele2.fasta allele2_r1.fq allele2_r2.fq
+
+cat allele1_r1.fq allele2_r1.fq > reads_r1.fastq
+cat allele1_r2.fq allele2_r2.fq > reads_r2.fastq
+
+../build/bin/MindTheGap find -in full_test/reads_r1.fastq,full_test/reads_r2.fastq -ref full_test/reference.fasta -abundance-min auto -out test-reads
+
+Avec les reads le SNP 320 est trouvé (pas de pb de bloom-FP)
+
+cp reads_r1.fq ../../data/reads_r1.fastq
+cp reads_r2.fq ../../data/reads_r2.fastq
+cp reference.fasta ../../data/reference.fasta
 
 
+# 7. Create Gold files for automated tests
 
+../../build/bin/MindTheGap find -in ../../data/reads_r1.fastq,../../data/reads_r2.fastq -ref ../../data/reference.fasta -out gold > gold_find.output
+../../build/bin/MindTheGap fill -graph gold.h5 -bkpt gold.breakpoints -out gold > gold_fill.output

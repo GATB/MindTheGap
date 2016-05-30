@@ -1,0 +1,38 @@
+MindTheGap find                         
+    version                                  : 1.0.0
+    gatb-core-library                        : 1.2.0
+    supported_kmer_sizes                     : 32 64 96 128
+Parameters                              
+    Input data                              
+        Reads                                    : ../../data/reads_r1.fastq,../../data/reads_r2.fastq
+        Reference                                : ../../data/reference.fasta
+    Graph                                   
+        kmer-size                                : 31
+        abundance_min (auto inferred)            : 3 
+        abundance_min (used)                     : 3
+        abundance_max                            : 2147483647
+        nb_solid_kmers                           : 5473
+        nb_branching_nodes                       : 34
+    Breakpoint detection options            
+        max_repeat                               : 5
+        hetero_max_occ                           : 1
+        homo_insertions                          : yes
+        hete_insertions                          : yes
+        snp                                      : yes
+        deletion                                 : yes
+Results                                 
+    Insertion breakpoints                   
+        homozygous                               : 5
+            clean                                    : 3
+            fuzzy                                    : 2
+        heterozygous                             : 2
+            clean                                    : 1
+            fuzzy                                    : 1
+    Other variants                          
+        deletions                                : 3
+        SNPs                                     : 13
+    Time                                     : 0.0 s
+    Output files                            
+        graph_file                               : gold.h5
+        breakpoint_file                          : gold.breakpoints
+        othervariants_file                       : gold.othervariants.vcf
