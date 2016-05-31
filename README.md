@@ -125,13 +125,13 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     A breakpoint file is output by MindTheGap find and is required by MindTheGap fill. This is a plain text file in fasta format, where each insertion site (or gap to fill) corresponds to two consecutive fasta entries: left kmer and right kmer. Sequences are kmer (with k being the same value used in the de bruijn graph). MindTheGap fill will try to find a path in the de bruijn graph from the left kmer to the right one. 
     In the breakpoint file output by MindTheGap find, one can find useful information in the fasta headers, such as the genomic position of the insertion site and its genotype (detected by the homozygous or heterozygous algorithm). A typical header is as follows: 
         
-        >bkpt5_left_kmer_chr1_pos_39114_repeat_0_HOM
+        >bkpt5_chr1_pos_39114_fuzzy_0_HOM left_kmer
         #bkpt5 : this is the id of the insertion event. 
         #chr1_pos_39114 : the position of the insertion site is on chr1 at position 39114 (position just before the insertion, 1-based). 
-        #repeat_0 : is the size of the repeated sequence at the breakpoint (here 0 means it is a clean insertion site).
+        #fuzzy_0 : is the size of the repeated sequence at the breakpoint (here 0 means it is a clean insertion site).
         #HOM : it was detected by the homozygous algorithm.
 
-    Note: in the case of a repeat at the breakpoint site, the exact position can not be known inside the repeat, the reported position is always the right-most.
+    Note: in the case of a repeat at the breakpoint site (fuzzy>0), the exact position can not be known inside the repeat, the reported position is always the right-most.
 	
 2. VCF variant format
 
@@ -141,13 +141,13 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     
     MindTheGap fill outputs a file in fasta format containing the obtained inserted sequences. The output sequences do not contain the breakpoint kmers. For each insertion breakpoint for which the filling succeeded, one can find in this file either one or several sequences with the following header:
     
-        >bkpt5 insertion_len_59_chr1_pos_39114_repeat_0_HOM
+        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_59
         #same info as in the breakpoint file
         #len_59 : the length in bp of the inserted sequence, here 59 bp
 
     If more than one sequence are assembled for a given breakpoint, the header is as follows:
     
-        >bkpt5 insertion_len_59_chr1_pos_39114_repeat_0_HOM 2/3
+        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57 solution 2/3
         #this is the second sequence out of 3    
  
 
