@@ -18,13 +18,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <Finder.hpp>
+#include "Finder.hpp"
 #include <FindBreakpoints.hpp>
 #include <IFindObserver.hpp>
 #include <FindBackup.hpp>
 #include <FindDeletion.hpp>
-#include <FindHetero.hpp>
-#include <FindInsert.hpp>
+#include <FindHeteroInsertion.hpp>
+#include <FindInsertion.hpp>
 #include <FindSNP.hpp>
 #include <limits> //for std::numeric_limits
 
@@ -477,7 +477,7 @@ void Finder::writeVcfHeader(){
 ##REF=file:%s\n\
 ##INFO=<ID=TYPE,Number=1,Type=String,Description=\"SNP, INS, DEL or .\">\n\
 ##INFO=<ID=LEN,Number=1,Type=Integer,Description=\"variant size\">\n\
-##INFO=<ID=REP,Number=1,Type=Integer,Description=\"repeat size at the breakpoint, only for INS and DEL\">\n\
+##INFO=<ID=FUZZY,Number=1,Type=Integer,Description=\"repeat size at the breakpoint, only for INS and DEL\">\n\
 ##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n\
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",
 c_time_string, _mtg_version, sample.c_str(),getInput()->getStr(STR_URI_REF).c_str());
@@ -505,8 +505,8 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 	
 	if(object->_homo_insert)
 	{
-		findBreakpoints.addGapObserver(new FindCleanInsert<span>(&findBreakpoints));
-		findBreakpoints.addGapObserver(new FindFuzzyInsert<span>(&findBreakpoints));
+		findBreakpoints.addGapObserver(new FindCleanInsertion<span>(&findBreakpoints));
+		findBreakpoints.addGapObserver(new FindFuzzyInsertion<span>(&findBreakpoints));
 	}
 	
 	if(object->_backup)
@@ -517,7 +517,7 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 	/* Add kmer observer*/
 	if(object->_hete_insert)
 	{
-		findBreakpoints.addKmerObserver(new FindHeteroInsert<span>(&findBreakpoints));
+		findBreakpoints.addKmerObserver(new FindHeteroInsertion<span>(&findBreakpoints));
 	}
 	
 	/* Run */

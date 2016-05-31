@@ -476,13 +476,14 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 			string solu_i = nbTotalInsertions >1 ?  osolu_i.str() : "" ;
 			
 			
-			int bkptid;
+			//int bkptid;
 			//parse bkpt header
 			//get bkpt id
-			sscanf(breakpointName.c_str(),"bkpt%i*",&bkptid );
-			const char * end_header = strstr(breakpointName.c_str(), "kmer_");
+			//sscanf(breakpointName.c_str(),"bkpt%i*",&bkptid );
+			//const char * end_header = strstr(breakpointName.c_str(), "kmer_");
 
-			fprintf(_insert_file,">bkpt%i insertion_len_%d_%s  %s\n",bkptid,llen,end_header+5,solu_i.c_str());
+			// bkpt%i insertion_len_%d_%s
+			fprintf(_insert_file,">%s_len_%d   %s\n",breakpointName.c_str(),llen,solu_i.c_str());
 
 			//fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
 			//todo check  revcomp here
