@@ -138,7 +138,7 @@ bool FindDeletion<span>::update()
 	
 	//printf("FindDeletion repeat_size %u  del_size %i  %i %llu\n",repeat_size,del_size,this->_find->position(),this->_find->position());
 
-	if(del_size<=0) return FALSE;
+	if(del_size<=0) return false;
 	
 	// Write the breakpoint
 	//this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 1, begin, end, repeat_size, STR_DEL_TYPE);
