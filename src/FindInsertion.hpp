@@ -26,13 +26,13 @@
 #include <FindBreakpoints.hpp>
 
 template<size_t span>
-class FindCleanInsert : public IFindObserver<span>
+class FindCleanInsertion : public IFindObserver<span>
 {
 public :
     
     /** \copydoc IFindObserver::IFindObserver
      */
-    FindCleanInsert(FindBreakpoints<span> * find);
+    FindCleanInsertion(FindBreakpoints<span> * find);
 
     /** \copydoc IFindObserver::update
      */
@@ -40,10 +40,10 @@ public :
 };
 
 template<size_t span>
-FindCleanInsert<span>::FindCleanInsert(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
+FindCleanInsertion<span>::FindCleanInsertion(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
 
 template<size_t span>
-bool FindCleanInsert<span>::update()
+bool FindCleanInsertion<span>::update()
 {   
     if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
@@ -69,13 +69,13 @@ bool FindCleanInsert<span>::update()
 }
 
 template<size_t span>
-class FindFuzzyInsert : public IFindObserver<span>
+class FindFuzzyInsertion : public IFindObserver<span>
 {
 public :
 
     /** \copydoc IFindObserver::IFindobserver
      */
-    FindFuzzyInsert(FindBreakpoints<span> * find);
+    FindFuzzyInsertion(FindBreakpoints<span> * find);
     
     /** \copydoc IFindObserver::update
      */
@@ -83,10 +83,10 @@ public :
 };
 
 template<size_t span>
-FindFuzzyInsert<span>::FindFuzzyInsert(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
+FindFuzzyInsertion<span>::FindFuzzyInsertion(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
 
 template<size_t span>
-bool FindFuzzyInsert<span>::update()
+bool FindFuzzyInsertion<span>::update()
 {
     if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {

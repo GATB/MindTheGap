@@ -519,7 +519,7 @@ void FindBreakpoints<span>::addKmerObserver(IFindObserver<span>* new_obs)
 
 template<size_t span>
 void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type){
-    fprintf(this->finder->_breakpoint_file,">bkpt%i_left_kmer_%s_pos_%lli_repeat_%i_%s\n%s\n>bkpt%i_right_kmer_%s_pos_%lli_repeat_%i_%s\n%s\n",
+    fprintf(this->finder->_breakpoint_file,">bkpt%i_%s_pos_%lli_fuzzy_%i_%s left_kmer\n%s\n>bkpt%i_%s_pos_%lli_fuzzy_%i_%s right_kmer\n%s\n",
 	    bkt_id,
 	    chrom_name.c_str(),
 	    position+1, //switch to 1-based
@@ -543,7 +543,7 @@ void FindBreakpoints<span>::writeVcfVariant(int bkt_id, string& chrom_name, uint
 	if (strcmp(type.c_str(),STR_DEL_TYPE)==0){
 		variant_size = strlen(ref_char) - 1;
 	}
-	fprintf(this->finder->_vcf_file,"%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\tTYPE=%s;LEN=%i;REP=%i\tGT\t1/1\n",
+	fprintf(this->finder->_vcf_file,"%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\tTYPE=%s;LEN=%i;FUZZY=%i\tGT\t1/1\n",
 			chrom_name.c_str(),
 			position+1,  //switch to 1-based
 			bkt_id,

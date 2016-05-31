@@ -26,13 +26,13 @@
 #include <FindBreakpoints.hpp>
 
 template<size_t span>
-class FindHeteroInsert : public IFindObserver<span>
+class FindHeteroInsertion : public IFindObserver<span>
 {
 public :
 
     /** \copydoc IFindObserver::IFindObserver
      */
-    FindHeteroInsert(FindBreakpoints<span> * find);
+    FindHeteroInsertion(FindBreakpoints<span> * find);
 
     /** \copydoc IFindObserver::update
      */
@@ -40,10 +40,10 @@ public :
 };
 
 template<size_t span>
-FindHeteroInsert<span>::FindHeteroInsert(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
+FindHeteroInsertion<span>::FindHeteroInsertion(FindBreakpoints<span> * find) : IFindObserver<span>(find){}
 
 template<size_t span>
-bool FindHeteroInsert<span>::update()
+bool FindHeteroInsertion<span>::update()
 {
 	if(!this->_find->homo_only())
 	{
