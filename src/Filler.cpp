@@ -477,20 +477,12 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 			
 			
 			int bkptid;
-			char chr_name[1000];
 			//parse bkpt header
 			//get bkpt id
 			sscanf(breakpointName.c_str(),"bkpt%i*",&bkptid );
-			//get chr name // TODO nicer way ?
-			const char * charp = strstr(breakpointName.c_str(), "kmer_");
-			const char * charp2 = strstr(charp+5, "_");
-			int size = charp2-(charp+5);
-			strncpy(chr_name,charp+5,size);
-			chr_name[size]='\0';
-			//get pos
-			charp = strstr(breakpointName.c_str(), "pos_");
+			const char * end_header = strstr(breakpointName.c_str(), "kmer_");
 
-			fprintf(_insert_file,">bkpt%i insertion_len_%d_%s_%s  %s\n",bkptid,llen,chr_name,charp,solu_i.c_str());
+			fprintf(_insert_file,">bkpt%i insertion_len_%d_%s  %s\n",bkptid,llen,end_header+5,solu_i.c_str());
 
 			//fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
 			//todo check  revcomp here
