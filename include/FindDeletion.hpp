@@ -65,12 +65,17 @@ bool FindDeletion<span>::update()
 	{
 		return false;
 	}
+	if( this->_find->gap_stretch_size()  < (this->_find->kmer_size()  - this->_find->max_repeat() ) )
+	{
+		return false;
+	}
 	
 	// Test if deletion is a fuzzy deletion
 	std::string begin = this->_find->model().toString(this->_find->kmer_begin().forward());
 	std::string end = this->_find->model().toString(this->_find->kmer_end().forward());
 	
 	unsigned int repeat_size = this->fuzzy_site(begin, end);
+	
 	if(repeat_size > (unsigned)this->_find->max_repeat())
 	{
 		return false;
@@ -85,9 +90,6 @@ bool FindDeletion<span>::update()
 	 int del_size = (int) this->_find->gap_stretch_size() -  (int) this->_find->kmer_size() + (int) repeat_size + 1;
 //was size_t, caused computation bug
 
-
-	if(del_size<0) //todo check why this can happen
-		return false;
 	
 	// Create a sequence maybe is in graphe
 	std::string seq = begin + end;
@@ -138,7 +140,7 @@ bool FindDeletion<span>::update()
 	
 	//printf("FindDeletion repeat_size %u  del_size %i  %i %llu\n",repeat_size,del_size,this->_find->position(),this->_find->position());
 
-	if(del_size<=0) return false;
+	if(del_size<=0) return false; //just in case
 	
 	// Write the breakpoint
 	//this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 1, begin, end, repeat_size, STR_DEL_TYPE);
