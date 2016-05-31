@@ -316,37 +316,37 @@ FindSoloSNP<span>::FindSoloSNP(FindBreakpoints<span> * find) : FindSNP<span>(fin
 template<size_t span>
 bool FindSoloSNP<span>::update()
 {
-    if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
-    {
-	return false;
-    }
-	
-    if(this->_find->gap_stretch_size() == this->_find->kmer_size())
-    {
-    KmerType ref_nuc; // reference nucleotide
-    KmerType nuc; // alternative nucleotide
-	unsigned char pos = this->_find->het_kmer_begin_index() - 1;
-	if(this->snp_at_end(&pos, this->_find->kmer_size(), &nuc, &ref_nuc))
+	if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
 	{
-	    //string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
-	    //string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
-	    //this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, kmer_begin_str, kmer_end_str, 0, STR_SNP_TYPE);
-
-	    char ref_char [2];
-	    ref_char[0] = this->nuc_to_char(ref_nuc);
-	    ref_char[1] = '\0';
-	    char alt_char [2];
-	    alt_char[0] = this->nuc_to_char(nuc);
-	    alt_char[1] = '\0';
-
-	    this->_find->writeVcfVariant(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, ref_char, alt_char, 0, STR_SNP_TYPE);
-	    this->_find->breakpoint_id_iterate();
-	    this->_find->solo_snp_iterate();
-	    return true;
+		return false;
 	}
-    }
 	
-    return false;
+	if(this->_find->gap_stretch_size() == this->_find->kmer_size())
+	{
+		KmerType ref_nuc; // reference nucleotide
+		KmerType nuc; // alternative nucleotide
+		unsigned char pos = this->_find->het_kmer_begin_index() - 1;
+		if(this->snp_at_end(&pos, this->_find->kmer_size(), &nuc, &ref_nuc))
+		{
+			//string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
+			//string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
+			//this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, kmer_begin_str, kmer_end_str, 0, STR_SNP_TYPE);
+			
+			char ref_char [2];
+			ref_char[0] = this->nuc_to_char(ref_nuc);
+			ref_char[1] = '\0';
+			char alt_char [2];
+			alt_char[0] = this->nuc_to_char(nuc);
+			alt_char[1] = '\0';
+			
+			this->_find->writeVcfVariant(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, ref_char, alt_char, 0, STR_SNP_TYPE);
+			this->_find->breakpoint_id_iterate();
+			this->_find->solo_snp_iterate();
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 template<size_t span>

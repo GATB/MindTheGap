@@ -61,102 +61,113 @@ FindDeletion<span>::FindDeletion(FindBreakpoints<span> * find) : IFindObserver<s
 template<size_t span>
 bool FindDeletion<span>::update()
 {
-    if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
-    {
-	return false;
-    }
-
-    // Test if deletion is a fuzzy deletion
-    std::string begin = this->_find->model().toString(this->_find->kmer_begin().forward());
-    std::string end = this->_find->model().toString(this->_find->kmer_end().forward());
-
-    unsigned int repeat_size = this->fuzzy_site(begin, end);
-
-    if(repeat_size > (unsigned)this->_find->max_repeat())
-    {
-	return false;
-    }
-    
-    if(repeat_size != 0)
-    {	
-	begin = begin.substr(0, begin.length() - repeat_size);
-    }
-
-    // Compute del_size
-    unsigned int del_size = this->_find->gap_stretch_size() - this->_find->kmer_size() + repeat_size + 1;
-
-    // Create a sequence maybe is in graphe
-    std::string seq = begin + end;
-
-    // Create variable required for iterate on kmer
-    KmerModel local_m(this->_find->kmer_size());
-    KmerIterator local_it(local_m);
-    Data local_d(const_cast<char*>(seq.c_str()));
-
-    // Init this variable
-    local_d.setRef(const_cast<char*>(seq.c_str()), (size_t)seq.length());
-    local_it.setData(local_d);
-
-    bool is_deletion = true;
-    for(local_it.first(); !local_it.isDone(); local_it.next())
-    {
-        if(!this->contains(local_it->forward()))
-    	{
-    	    is_deletion = false;
-	    break;
-	}
-    }
-
-    if(is_deletion == false)
-    {
-	if(repeat_size == 0)
+	if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
 	{
-	    return false;
+		return false;
 	}
-	else // Maybee isn't a fuzzy deletion
+	
+	// Test if deletion is a fuzzy deletion
+	std::string begin = this->_find->model().toString(this->_find->kmer_begin().forward());
+	std::string end = this->_find->model().toString(this->_find->kmer_end().forward());
+	
+	unsigned int repeat_size = this->fuzzy_site(begin, end);
+	if(repeat_size > (unsigned)this->_find->max_repeat())
 	{
-	    seq = this->_find->model().toString(this->_find->kmer_begin().forward()) + end;
-	    local_d.setRef(const_cast<char*>(seq.c_str()), (size_t)seq.length());
-	    local_it.setData(local_d);
+		return false;
+	}
+	
+	if(repeat_size != 0)
+	{
+		begin = begin.substr(0, begin.length() - repeat_size);
+	}
+	
+	// Compute del_size
+	 int del_size = (int) this->_find->gap_stretch_size() -  (int) this->_find->kmer_size() + (int) repeat_size + 1;
+//was size_t, caused computation bug
 
-	    for(local_it.first(); !local_it.isDone(); local_it.next())
-	    {
+
+	if(del_size<0) //todo check why this can happen
+		return false;
+	
+	// Create a sequence maybe is in graphe
+	std::string seq = begin + end;
+	
+	// Create variable required for iterate on kmer
+	KmerModel local_m(this->_find->kmer_size());
+	KmerIterator local_it(local_m);
+	Data local_d(const_cast<char*>(seq.c_str()));
+	
+	// Init this variable
+	local_d.setRef(const_cast<char*>(seq.c_str()), (size_t)seq.length());
+	local_it.setData(local_d);
+	
+	bool is_deletion = true;
+	for(local_it.first(); !local_it.isDone(); local_it.next())
+	{
 		if(!this->contains(local_it->forward()))
 		{
-		    return false;
+			is_deletion = false;
+			break;
 		}
-	    }
- 
-	    del_size -= repeat_size;
-	    repeat_size = 0;
 	}
-    }
-    
-    // Write the breakpoint
-    //this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 1, begin, end, repeat_size, STR_DEL_TYPE);
-    //NOTE : position will always be the left-most when repeat_size>0.
-    size_t del_start_pos = this->_find->position() - 2 - del_size; //begining position of the deletion -1 (0-based): because in VCF we need to put the letter just before the deleted sequence
-    //cout << "start pos = " << del_start_pos << "size = " << del_size << endl;
-    char *del_sequence = new char[del_size+2];
-    sprintf(del_sequence,"%.*s", del_size+1, this->_find->chrom_seq()+del_start_pos);
-    char *alt_char = new char[2];
-    sprintf(alt_char,"%.*s", 1, del_sequence);
-    //cout << del_sequence << endl;
-    //cout << alt_char << endl;
-    // here position is 0-based
-    this->_find->writeVcfVariant(this->_find->breakpoint_id(), this->_find->chrom_name(), del_start_pos, del_sequence, alt_char, repeat_size, STR_DEL_TYPE);
+	
+	if(is_deletion == false)
+	{
+		if(repeat_size == 0)
+		{
+			return false;
+		}
+		else // Maybee isn't a fuzzy deletion
+		{
+			seq = this->_find->model().toString(this->_find->kmer_begin().forward()) + end;
+			local_d.setRef(const_cast<char*>(seq.c_str()), (size_t)seq.length());
+			local_it.setData(local_d);
+			
+			for(local_it.first(); !local_it.isDone(); local_it.next())
+			{
+				if(!this->contains(local_it->forward()))
+				{
+					return false;
+				}
+			}
+			
+			del_size -= repeat_size;
+			repeat_size = 0;
+		}
+	}
+	
+	//printf("FindDeletion repeat_size %u  del_size %i  %i %llu\n",repeat_size,del_size,this->_find->position(),this->_find->position());
 
-    delete [](del_sequence);
-    delete [] (alt_char);
+	if(del_size<=0) return FALSE;
+	
+	// Write the breakpoint
+	//this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - del_size - 1, begin, end, repeat_size, STR_DEL_TYPE);
+	//NOTE : position will always be the left-most when repeat_size>0.
+	size_t del_start_pos = this->_find->position() - 2 - del_size; //begining position of the deletion -1 (0-based): because in VCF we need to put the letter just before the deleted sequence
 
-    this->_find->breakpoint_id_iterate();
-
-    if(repeat_size != 0)
-	this->_find->fuzzy_deletion_iterate();
-    else
-	this->_find->clean_deletion_iterate();
-
-    return true;
+	//cout << "start pos = " << del_start_pos << "size = " << del_size << endl;
+	char *del_sequence = new char[del_size+2];
+	sprintf(del_sequence,"%.*s", del_size+1, this->_find->chrom_seq()+del_start_pos);
+	char *alt_char = new char[2];
+	sprintf(alt_char,"%.*s", 1, del_sequence);
+	//cout << del_sequence << endl;
+	//cout << alt_char << endl;
+	// here position is 0-based
+	this->_find->writeVcfVariant(this->_find->breakpoint_id(),
+								 this->_find->chrom_name(),
+								 del_start_pos, del_sequence, alt_char, repeat_size, STR_DEL_TYPE);
+	
+	delete [](del_sequence);
+	delete [] (alt_char);
+	
+	this->_find->breakpoint_id_iterate();
+	
+	if(repeat_size != 0)
+		this->_find->fuzzy_deletion_iterate();
+	else
+		this->_find->clean_deletion_iterate();
+	
+	return true;
 }
 
 /*
