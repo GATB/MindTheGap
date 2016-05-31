@@ -24,7 +24,7 @@
 #include <gatb/gatb_core.hpp>
 /********************************************************************************/
 
-#ifdef DONT_USE_TR1
+#ifdef USE_NEW_CXX 
     #include <unordered_map>
     #include <functional>
 
