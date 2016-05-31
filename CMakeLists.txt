@@ -78,21 +78,9 @@ include (GatbCore)
 ################################################################################
 
 
-#to be removed 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-
-   IF(CMAKE_SYSTEM_NAME MATCHES "(Darwin)") # different clang versions number between linux and mac
-        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
-             set (dont_use_tr1 0)
-        else()
- 		set (dont_use_tr1 1)
-        endif()
- endif()
- endif()
-
 # We also set a flag for TR1 management
-if (dont_use_tr1)
-    set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DDONT_USE_TR1 ")
+if (use_new_cxx)
+    set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DUSE_NEW_CXX ")
 endif()
  
 message("-- cxx: ${CMAKE_CXX_FLAGS}")
