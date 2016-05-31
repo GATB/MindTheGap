@@ -77,6 +77,28 @@ include (GatbCore)
 # TOOL
 ################################################################################
 
+
+#to be removed 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+
+   IF(CMAKE_SYSTEM_NAME MATCHES "(Darwin)") # different clang versions number between linux and mac
+        if (CMAKE_CXX_COMPILER_VERSION  VERSION_LESS 4.3) 
+             set (dont_use_tr1 0)
+        else()
+ 		set (dont_use_tr1 1)
+        endif()
+ endif()
+ endif()
+
+# We also set a flag for TR1 management
+if (dont_use_tr1)
+    set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DDONT_USE_TR1 ")
+endif()
+ 
+message("-- cxx: ${CMAKE_CXX_FLAGS}")
+
+
+
 # we get compilation definitions from the gatb-core part
 add_definitions (${gatb-core-flags})
 
@@ -87,9 +109,10 @@ SET( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 #       - from project source 
 #       - from GATB-CORE source
 #       - from dsk source 
-include_directories (include ${gatb-core-includes})
-
 set (PROGRAM_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
+
+include_directories (${PROGRAM_SOURCE_DIR} ${gatb-core-includes})
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # we define the files to be compiled
