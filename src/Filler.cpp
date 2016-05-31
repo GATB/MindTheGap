@@ -298,7 +298,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		//iterate by pair of sequences (WARNING : no verification same breakpoint id)
 		string sourceSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously L
 
-		string breakpointName = string(itSeq->getComment());
+		string breakpointName = string(itSeq->getCommentShort());
 
 		itSeq.next();
 		if(itSeq.isDone()){
