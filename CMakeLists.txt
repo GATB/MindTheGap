@@ -66,7 +66,7 @@ SET (CMAKE_MODULE_PATH ${GATB_CORE_HOME}/cmake)
 ################################################################################
 
 # We don't want to install some GATB-CORE artifacts
-SET (GATB_CORE_EXCLUDE_TOOLS     1)
+#SET (GATB_CORE_EXCLUDE_TOOLS     1)
 SET (GATB_CORE_EXCLUDE_TESTS     1)
 SET (GATB_CORE_EXCLUDE_EXAMPLES  1)
 
