@@ -8,7 +8,7 @@
 
 # What is MindTheGap ?
 
-MindTheGap  performs detection and assembly of DNA insertion variants in NGS read datasets with respect to a reference genome. It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint.
+MindTheGap  performs detection and assembly of DNA insertion variants in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint.
 
 # Getting the latest source code
 
@@ -31,13 +31,15 @@ c++ compiler; compilation was tested with gcc and g++ version>=4.5 (Linux) and c
 
 ## Description
 
-MindTheGap is a software that performs detection and assembly of genomic insertion variants in NGS read datasets with respect to a reference genome.
+MindTheGap is a software that performs integrated detection and assembly of genomic insertion variants in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome.
 
 It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint. For each breakpoint, MindTheGap either returns a single insertion sequence (when there is no assembly ambiguity), or a set of candidate insertion sequences (due to ambiguities) or nothing at all (when the insertion is too complex to be assembled).
 
-MindTheGap performs de novo assembly using the GATB library and inspired from algorithms from Minia. Hence, the computational resources required to run MindTheGap are significantly lower than that of other assemblers (for instance it uses less than 6GB of main emory for analyzing a full human NGS dataset).
+MindTheGap performs de novo assembly using the GATB library and inspired from algorithms from Minia. Hence, the computational resources required to run MindTheGap are significantly lower than that of other assemblers (for instance it uses less than 6GB of main memory for analyzing a full human NGS dataset).
 
 Since version 1.0.0, MindTheGap can detect other types of variants, not only insertion events. These are homozygous SNPs and homozygous deletions of any size. They are detected by the find module of MindTheGap and are output separately in a VCF file. Importantly, even if the user is not interested in these types of variants, it is worth to detect them  since it can improve the recall of the insertion event detection algorithm : it is now possible to find insertion events that are located at less than k nucleotides from an other such variant.
+
+For more details on the method and some recent results, see the [web page](https://gatb.inria.fr/software/mind-the-gap/).
 	
 ## Usage
 
@@ -176,10 +178,11 @@ Either in your bin/ directory or in ext/gatb-core/bin/, you can find additional 
 * dbgh5 : to build a graph from read set(s) and obtain a .h5 file
 * h5dump : to extract all data stored in a .h5 file
 	
-## Publication
+## Reference
 
 MindTheGap: integrated detection and assembly of short and long insertions. Guillaume Rizk, Anaïs Gouin, Rayan Chikhi and Claire Lemaitre. Bioinformatics 2014 30(24):3451-3457. http://bioinformatics.oxfordjournals.org/content/30/24/3451
 
+[Web page](https://gatb.inria.fr/software/mind-the-gap/)
  
 
 # Contact
