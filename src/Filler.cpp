@@ -42,7 +42,7 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     
 	//TODO rajouter les parametres
 	_nb_mis_allowed = 2;
-	_nb_gap_allowed = 1;
+	_nb_gap_allowed = 0;
 	_nb_breakpoints = 0;
 	_nb_filled_breakpoints = 0;
 	_nb_multiple_fill = 0;
