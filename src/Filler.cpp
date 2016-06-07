@@ -323,7 +323,9 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		}
 
 		object->gapFill<span>(sourceSequence,targetSequence,filledSequences);
-
+//		printf("filledseq nb %i \n",filledSequences.size());
+//		printf("filledseq %s \n", (*(filledSequences.begin())).c_str()  );
+		
 		//Can be modified : could do in reverse mode even if filledSequences is not empty (new filled sequences are inserted into the set : to verify)
 		if(filledSequences.size()==0){
 			string sourceSequence2 = revcomp_sequence(targetSequence);
@@ -417,6 +419,7 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 	bool success;
 	set<unlabeled_path> paths = graph.find_all_paths(terminal_nodes, success);
 
+	
 	//now this func also cuts the last node just before the beginning of the right anchor
 	set<string> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
 	
@@ -553,8 +556,8 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 			{
 
 
-			    std::string nodestring(nodeseq + j , min(anchor_size + nb_gaps_allowed, (int)(nodelen-j)));
-				int deb = j==128;
+			    std::string nodestring(nodeseq + j , min(anchor_size , (int)(nodelen-j)));  // was  anchor_size + nb_gaps_allowed
+				//int deb = j==128;
 				needleman_wunsch(targetSequence,nodestring,&nw_match,&nw_mis, &nw_gaps);
 				curr_err = nw_mis + nw_gaps;
 
@@ -573,14 +576,6 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 
 				}
 				
-				
-				if(nb_gaps_allowed>0 && best_j != -1)
-				{
-					terminal_nodes.insert( std::make_pair (nodeNb,best_j) ); // nodeNb,  j pos of beginning of right anchor
-					//	printf("found pos %i nb mis %i nb gaps %i \n",best_j,bm,bg);
-					break;
-				}
-			
 			}
 			else
 			{
@@ -598,7 +593,12 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 			}
         }
 
-
+		if(nb_gaps_allowed>0 && best_j != -1)
+		{
+			terminal_nodes.insert( std::make_pair (nodeNb,best_j) ); // nodeNb,  j pos of beginning of right anchor
+			//	printf("found pos %i nb mis %i nb gaps %i \n",best_j,bm,bg);
+			//break;
+		}
 
 
         nodeNb++;

@@ -181,8 +181,9 @@ set<unlabeled_path> GraphAnalysis::find_all_paths(int start_node, set<int> termi
 
 set<string> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< std::pair<int,int> > terminal_nodes_with_endpos )
 {
+	//debug =2;
     set<string> sequences;
-
+//	printf("paths set size %i \n",paths.size());
     for (set<unlabeled_path>::iterator it = paths.begin(); it != paths.end(); it++)
     {
         if (debug)
