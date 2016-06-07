@@ -41,8 +41,8 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
 {
     
 	//TODO rajouter les parametres
-	_nb_mis_allowed = 0;
-	_nb_gap_allowed = 0;
+	_nb_mis_allowed = 2;
+	_nb_gap_allowed = 1;
 	_nb_breakpoints = 0;
 	_nb_filled_breakpoints = 0;
 	_nb_multiple_fill = 0;
@@ -409,7 +409,7 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 	if(terminal_nodes.size()==0)
 	{
 		//if(verb)
-		//	printf("Right anchor not found.. gapfillling failed... \n");
+			//printf("Right anchor not found.. gapfillling failed... \n");
 		return ;
 	}
 
@@ -560,18 +560,27 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 
 //				printf("-----------   ---------\n");
 //				printf("testing pos %i:   mis %i gap %i  curr_err %i\n",j,nw_mis,nw_gaps,curr_err);
-//				printf("%s  \n",R.c_str());
+//				printf("%s  \n",targetSequence.c_str());
 //				printf("%s  \n",nodestring.c_str());
-//
+
 
 				if( (nw_mis <= nb_mis_allowed && nw_gaps <= nb_gaps_allowed )  && (curr_err < best_err))
 				{
 					best_err = curr_err;
 					best_j  = j;
 					// bg = nw_gaps; bm = nw_mis;
-				//	printf("found correct pos %i nb mis %i nb gaps %i \n",j,nw_mis,nw_gaps);
+				 	//printf("found correct pos %i nb mis %i nb gaps %i \n",j,nw_mis,nw_gaps);
 
 				}
+				
+				
+				if(nb_gaps_allowed>0 && best_j != -1)
+				{
+					terminal_nodes.insert( std::make_pair (nodeNb,best_j) ); // nodeNb,  j pos of beginning of right anchor
+					//	printf("found pos %i nb mis %i nb gaps %i \n",best_j,bm,bg);
+					break;
+				}
+			
 			}
 			else
 			{
@@ -582,20 +591,14 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 				if(nbmatch >= (anchor_size - nb_mis_allowed))
 				{
 					terminal_nodes.insert( std::make_pair (nodeNb,j) ); // nodeNb,  j pos of beginning of right anchor
-				//	printf("found pos %i nbmatch %i  \n",j,nbmatch);
-
+					//printf("found pos %i nbmatch %i  \n",j,nbmatch);
 					break;
 				}
 
 			}
         }
 
-		if(nb_gaps_allowed>0 && best_j != -1)
-		{
-			terminal_nodes.insert( std::make_pair (nodeNb,best_j) ); // nodeNb,  j pos of beginning of right anchor
-		//	printf("found pos %i nb mis %i nb gaps %i \n",best_j,bm,bg);
-			break;
-		}
+
 
 
         nodeNb++;
