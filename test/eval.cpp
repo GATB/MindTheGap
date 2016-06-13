@@ -184,7 +184,6 @@ int main(int argc,char * argv[]){
 	FILE * log_true = fopen("log_true","w");
 	
 	
-
 	
 	FILE *ref_fasta = fopen(argv[1], "r");
 	fseek(ref_fasta, 0, SEEK_END);
@@ -217,7 +216,7 @@ int main(int argc,char * argv[]){
 	int did =0;
 	int cid=0;
 	int pos=0;
-	
+
 	///////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////// map  reference true insert in rmap ///////////////////
 	///////////////////////////////////////////////////////////////////////////////////
@@ -432,7 +431,7 @@ int main(int argc,char * argv[]){
 
 			bkpt_info.pos = pos;
 			bkpt_info.cid = cid;
-			
+			bkpt_info.truei=false;
 		//	printf("did %i cid %i pos %i    %s\n",did,cid,pos,tempheader);
 			if(bmap.find(pos)!=bmap.end())
 			{
@@ -482,14 +481,38 @@ int main(int argc,char * argv[]){
 		{
 			if(bmap.find(tpos+ii)!=bmap.end())
 			{
-				bkpt_info_t bfound = bmap[tpos+ii];
+				bkpt_info_t & bfound = bmap[tpos+ii];
 				if(bfound.cid == r_cid)
 				{
+					bfound.truei = true;
 					true_bkpt++;
 				}
 			}
 		}
 	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////// compute prec    du find           //////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
+	int nb_bkpt_total =0;
+	int nb_true_bkpt =0;
+	
+	printf("prec du find\n");
+
+	for(auto iterator = bmap.begin(); iterator != bmap.end(); iterator++) {
+		
+		bkpt_info_t bkpt = iterator->second;
+		
+		if(bkpt.truei)
+		{
+			nb_true_bkpt ++;
+		}
+		
+		nb_bkpt_total++;
+	}
+	
 	
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -610,7 +633,11 @@ int main(int argc,char * argv[]){
 	}
 	
 	
-	/////////////////compute precision fill
+	///////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////// compute prec    du fill             //////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
 	int nb_insert_filled =0;
 	int nb_true_insert =0;
 
@@ -638,6 +665,8 @@ int main(int argc,char * argv[]){
 	
 	
 	printf("Find recall         %i / %lu  : %.3f\n", true_bkpt,rmap.size(), true_bkpt/(float)rmap.size()  );
+	printf("Find prec           %i / %i  : %.3f\n", nb_true_bkpt,nb_bkpt_total, nb_true_bkpt/(float)nb_bkpt_total );
+
 	printf("Fill good loc       %i / %i  : %.3f \n",good_pos,nb_insert,good_pos/(float)nb_insert);
 	printf("Recall (> %.2f)     %i / %i  : %.3f \n",nw_pass,tp,nb_insert,tp/(float)nb_insert);
 	printf("Fill prec           %i / %i  : %.3f \n",nb_true_insert,nb_insert_filled,  nb_true_insert/(float)nb_insert_filled );
