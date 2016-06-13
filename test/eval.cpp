@@ -499,8 +499,6 @@ int main(int argc,char * argv[]){
 	int nb_bkpt_total =0;
 	int nb_true_bkpt =0;
 	
-	printf("prec du find\n");
-
 	for(auto iterator = bmap.begin(); iterator != bmap.end(); iterator++) {
 		
 		bkpt_info_t bkpt = iterator->second;
