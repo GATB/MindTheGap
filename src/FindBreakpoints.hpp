@@ -98,7 +98,7 @@ public :
     
     /** writes a given breakpoint in the output file
      */
-    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type);
+    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type,bool repeat_in_genome_kmer_begin =false, bool repeat_in_genome_kmer_end = false);
 
     /** writes a given variant in the output vcf file
      */
@@ -174,6 +174,8 @@ public :
     /**
      */
     bool kmer_end_is_repeated();
+	
+	bool kmer_begin_is_repeated();
 
     /** Get info_type at the index in circular buffer, rq : limits the kmerSize <256
      */
@@ -275,6 +277,7 @@ private :
     info_type m_current_info;
     int m_recent_hetero;
     bool m_kmer_end_is_repeated;
+	bool m_kmer_begin_is_repeated;
 
 	
 //	CircularBuffer<info_type> m_het_kmer_history_CB;
@@ -302,48 +305,48 @@ private :
 template<size_t span>
 FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find->_kmerSize), m_it_kmer(m_model), _progress (0)
 {
-    this->m_breakpoint_id = 1;
-    this->m_position = 0;
-    this->m_chrom_sequence = NULL;
-    this->m_chrom_name = "";
+	this->m_breakpoint_id = 1;
+	this->m_position = 0;
+	this->m_chrom_sequence = NULL;
+	this->m_chrom_name = "";
 	this->m_kmer_begin = KmerCanonical(); // init kmerbegin and kmerend otherwise not init when checking this->_find->kmer_begin().isValid() in update
 	this->m_kmer_end = KmerCanonical();
-
+	
 	//m_het_kmer_end_index_CB = new iterCB (&m_het_kmer_history_CB);
 	//m_het_kmer_begin_index_CB = new iterCB (&m_het_kmer_history_CB);
-
-    /*Homozygote usage*/
-    this->m_solid_stretch_size = 0;
-    this->m_gap_stretch_size = 0;
-
-    this->finder = find;
-
-    /*Heterozygote usage*/
-    if(this->finder->_hete_insert)
-    {
-	this->m_ref_bloom = this->fillRefBloom();
-	this->m_ref_bloom->use();
-    }
+	
+	/*Homozygote usage*/
+	this->m_solid_stretch_size = 0;
+	this->m_gap_stretch_size = 0;
+	
+	this->finder = find;
+	
+	/*Heterozygote usage*/ //always fill repeat ref bloom
+	//if(this->finder->_hete_insert)
+	{
+		this->m_ref_bloom = this->fillRefBloom();
+		this->m_ref_bloom->use();
+	}
 }
 
 template<size_t span>
 FindBreakpoints<span>::~FindBreakpoints()
 {
-    for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
-    {
-	(*it)->forget();
-    }
-
-    for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
-    {
-	(*it)->forget();
-    }
-
-    if(this->finder->_hete_insert)
-	this->m_ref_bloom->forget();
+	for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
+	{
+		(*it)->forget();
+	}
+	
+	for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
+	{
+		(*it)->forget();
+	}
+	
+	//if(this->finder->_hete_insert)  //always fill repeat ref bloom
+		this->m_ref_bloom->forget();
 	
 	setProgress             (0);
-
+	
 }
 
 template<size_t span>
@@ -478,6 +481,7 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 		if(this->m_previous_kmer.isValid() && in_graph)
 		{
 			this->m_kmer_begin = this->m_previous_kmer;
+			this->m_kmer_begin_is_repeated =  this->m_current_info.is_repeated ;
 		}
 	}
 	
@@ -494,6 +498,7 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 		if(this->m_solid_stretch_size > 1 && this->m_previous_kmer.isValid()) // begin of not indexed zone
 		{
 			this->m_kmer_begin = this->m_previous_kmer;
+			this->m_kmer_begin_is_repeated =  this->m_current_info.is_repeated ;
 		}
 		
 		m_gap_stretch_size++;
@@ -518,19 +523,21 @@ void FindBreakpoints<span>::addKmerObserver(IFindObserver<span>* new_obs)
 }
 
 template<size_t span>
-void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type){
-    fprintf(this->finder->_breakpoint_file,">bkpt%i_%s_pos_%lli_fuzzy_%i_%s left_kmer\n%s\n>bkpt%i_%s_pos_%lli_fuzzy_%i_%s right_kmer\n%s\n",
+void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type, bool repeat_in_genome_kmer_begin, bool repeat_in_genome_kmer_end  ){
+    fprintf(this->finder->_breakpoint_file,">bkpt%i_%s_pos_%lli_fuzzy_%i_%s %s left_kmer\n%s\n>bkpt%i_%s_pos_%lli_fuzzy_%i_%s %s right_kmer\n%s\n",
 	    bkt_id,
 	    chrom_name.c_str(),
 	    position+1, //switch to 1-based
 	    repeat_size,
 	    type.c_str(),
+		repeat_in_genome_kmer_begin ? "REPEAT" : "",
 	    kmer_begin.c_str(),
 	    bkt_id,
 	    chrom_name.c_str(),
 	    position+1, //switch to 1-based
 	    repeat_size,
 	    type.c_str(),
+		repeat_in_genome_kmer_end ? "REPEAT" : "",
 	    kmer_end.c_str()
 	);
 }
@@ -654,6 +661,12 @@ bool FindBreakpoints<span>::kmer_end_is_repeated()
 }
 
 template<size_t span>
+bool FindBreakpoints<span>::kmer_begin_is_repeated()
+{
+	return this->m_kmer_begin_is_repeated;
+}
+
+template<size_t span>
 typename FindBreakpoints<span>::info_type& FindBreakpoints<span>::het_kmer_history(unsigned char index)
 {
     return this->m_het_kmer_history[index];
@@ -682,6 +695,13 @@ template<size_t span>
 bool FindBreakpoints<span>::graph_contains(Node& kmer_node)
 {
     return this->finder->_graph.contains(kmer_node);
+	//keep tips and internal node sonly
+	//return	( this->finder->_graph.contains(kmer_node) && (this->finder->_graph.indegree(kmer_node)>=1 || this->finder->_graph.outdegree(kmer_node)>=1 ));
+	
+	//keep internal nodes only
+	//	 return	( this->finder->_graph.contains(kmer_node) && (this->finder->_graph.indegree(kmer_node)>=1 && this->finder->_graph.outdegree(kmer_node)>=1 ));
+	
+
 }
 
 /*Iterater*/
@@ -752,6 +772,8 @@ void FindBreakpoints<span>::recent_hetero(int value)
     this->m_recent_hetero = value;
 }
 
+
+//todo later replace this by mphf+ abundance per kmer
 template<size_t span>
 IBloom<typename FindBreakpoints<span>::KmerType>* FindBreakpoints<span>::fillRefBloom(){
 	
@@ -830,7 +852,7 @@ void FindBreakpoints<span>::store_kmer_info(Node node)
 	KmerType suffix = this->m_it_kmer->forward() & kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
 	KmerType suffix_rev = revcomp(suffix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
 	
-	if(this->finder->_hete_insert)
+	//if(this->finder->_hete_insert) //alwayss fill repeat info
 		this->m_current_info.is_repeated = this->m_ref_bloom->contains(min(suffix,suffix_rev));
 	
 	//filling the history array with the current kmer information
@@ -841,7 +863,7 @@ void FindBreakpoints<span>::store_kmer_info(Node node)
 	KmerType prefix = (this->m_it_kmer->forward() >> 2) & kminus1_mask; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
 	KmerType prefix_rev = revcomp(prefix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
 	
-	if(this->finder->_hete_insert)
+//	if(this->finder->_hete_insert) //alwayss fill repeat info
 		this->m_kmer_end_is_repeated = this->m_ref_bloom->contains(min(prefix,prefix_rev));
 }
 

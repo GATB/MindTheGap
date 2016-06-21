@@ -82,7 +82,8 @@ private:
     /** Fill one gap
             */
     template<size_t span>
-    void gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences,bool reversed =false);
+    void gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences, bool begin_kmer_repeated, bool end_kmer_repeated
+				 ,bool reversed =false);
 
     /** writes a given breakpoint in the output file
          */

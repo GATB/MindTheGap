@@ -58,7 +58,7 @@ bool FindHeteroInsertion<span>::update()
 					//hetero breakpoint found
 					string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer);
 					string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
-					this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE);
+					this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
 					
 					this->_find->breakpoint_id_iterate();
 					

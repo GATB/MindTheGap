@@ -300,6 +300,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 		string breakpointName = string(itSeq->getCommentShort());
 
+		bool begin_kmer_repeated = itSeq->getComment().find("REPEAT") !=  std::string::npos;
 		itSeq.next();
 		if(itSeq.isDone()){
 			throw Exception("Wrong breakpoint file: odd number of sequences...");
@@ -307,8 +308,11 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 		string targetSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously R
 		
+		string breakpointName_R = string(itSeq->getCommentShort());
+		bool end_kmer_repeated = itSeq->getComment().find("REPEAT") !=  std::string::npos;
 
-		//printf("break %i L : %s  R: %s \n",nbBreakpoints,sourceSequence.c_str(),targetSequence.c_str());
+		
+		//printf("break %i L : %s  R: %s   %i %i \n",nbBreakpoints,sourceSequence.c_str(),targetSequence.c_str(),begin_kmer_repeated, end_kmer_repeated);
 		
 		//Initialize set of filled sequences
 		set<string> filledSequences;
@@ -322,7 +326,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 			targetSequence.substr(0,object->_kmerSize); //prefix of size _kmerSize
 		}
 
-		object->gapFill<span>(sourceSequence,targetSequence,filledSequences);
+		object->gapFill<span>(sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
 //		printf("filledseq nb %i \n",filledSequences.size());
 //		printf("filledseq %s \n", (*(filledSequences.begin())).c_str()  );
 		
@@ -330,7 +334,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if(filledSequences.size()==0){
 			string sourceSequence2 = revcomp_sequence(targetSequence);
 			string targetSequence2 = revcomp_sequence(sourceSequence);
-			object->gapFill<span>(sourceSequence2,targetSequence2,filledSequences,true);
+			object->gapFill<span>(sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
 		}
 		
 		//Checks if all sequences are roughly the same :
@@ -369,7 +373,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
-void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences, bool reversed){
+void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bool reversed ){
 
 
 	//object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
@@ -389,8 +393,13 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 	graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
 	graph_output.close();
 
+	int nb_mis_allowed = _nb_mis_allowed;
+	if(begin_kmer_repeated || end_kmer_repeated)
+		nb_mis_allowed=0;
+	
+	//printf("nb_mis_allowed %i \n",nb_mis_allowed);
 	//find targetSequence in nodes of the contig graph
-	set< std::pair<int,int> > terminal_nodes_with_endpos = find_nodes_containing_R(targetSequence, contig_file_name, _nb_mis_allowed, _nb_gap_allowed);
+	set< std::pair<int,int> > terminal_nodes_with_endpos = find_nodes_containing_R(targetSequence, contig_file_name, nb_mis_allowed, _nb_gap_allowed);
 	
 
 	//printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
@@ -505,6 +514,7 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 
 }
 
+//peut etre aussi indiquer en sortie le nb err du match
 set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed)
 {
     bool debug = false;
