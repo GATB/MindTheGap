@@ -300,7 +300,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 		string breakpointName = string(itSeq->getCommentShort());
 
-		bool begin_kmer_repeated = itSeq->getComment().find("REPEAT") !=  std::string::npos;
+		bool begin_kmer_repeated = itSeq->getComment().find("REPEATED") !=  std::string::npos;
 		itSeq.next();
 		if(itSeq.isDone()){
 			throw Exception("Wrong breakpoint file: odd number of sequences...");
@@ -309,13 +309,13 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		string targetSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously R
 		
 		string breakpointName_R = string(itSeq->getCommentShort());
-		bool end_kmer_repeated = itSeq->getComment().find("REPEAT") !=  std::string::npos;
+		bool end_kmer_repeated = itSeq->getComment().find("REPEATED") !=  std::string::npos;
 
 		
 		//printf("break %i L : %s  R: %s   %i %i \n",nbBreakpoints,sourceSequence.c_str(),targetSequence.c_str(),begin_kmer_repeated, end_kmer_repeated);
 		
 		//Initialize set of filled sequences
-		set<string> filledSequences;
+		set<filled_insertion_t> filledSequences;
 
 		// Resize to kmer-size :
 		if(sourceSequence.size()>object->_kmerSize){
@@ -373,7 +373,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
-void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bool reversed ){
+void Filler::gapFill(string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bool reversed ){
 
 
 	//object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
@@ -399,16 +399,16 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 	
 	//printf("nb_mis_allowed %i \n",nb_mis_allowed);
 	//find targetSequence in nodes of the contig graph
-	set< std::pair<int,int> > terminal_nodes_with_endpos = find_nodes_containing_R(targetSequence, contig_file_name, nb_mis_allowed, _nb_gap_allowed);
+	set< info_node_t > terminal_nodes_with_endpos = find_nodes_containing_R(targetSequence, contig_file_name, nb_mis_allowed, _nb_gap_allowed, begin_kmer_repeated || end_kmer_repeated);
 	
 
 	//printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
 	
 	//also convert it to list of node id for traditional use
 	set<int> terminal_nodes;
-	for (set< std::pair<int,int> >::iterator it = terminal_nodes_with_endpos.begin(); it != terminal_nodes_with_endpos.end(); it++)
+	for (set< info_node_t >::iterator it = terminal_nodes_with_endpos.begin(); it != terminal_nodes_with_endpos.end(); it++)
 	{
-		terminal_nodes.insert((*it).first);
+		terminal_nodes.insert((*it).node_id);
 	}
 
 
@@ -430,14 +430,15 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 
 	
 	//now this func also cuts the last node just before the beginning of the right anchor
-	set<string> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
+	set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
 	
 	if(reversed)
 	{
-		set<string>::iterator its;
+		set<filled_insertion_t>::iterator its;
 		for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
-		{
-			filledSequences.insert (revcomp_sequence(*its));
+		{			
+			filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor,its->is_anchor_repeated );
+			filledSequences.insert ( rev_insert);
 		}
 		return;
 	}
@@ -452,7 +453,7 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<string>& 
 
 }
 
-void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpointName){
+void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName){
 	
 	//printf("-- writeFilledBreakpoint --\n");
 	
@@ -461,17 +462,17 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 	int nbInsertions = 0;
 	int nbTotalInsertions = 0;
 
-	for (set<string>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+	for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 	{
-		string insertion = *it;
+		string insertion = it->seq;
 		int llen = insertion.length() ;
 		if(llen > 0) nbTotalInsertions++;
 	}
 	
 	
-	for (set<string>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+	for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 	{
-		string insertion = *it;
+		string insertion = it->seq;
 		int llen = insertion.length() ;// - (int) R.length() - (int) L.length() - 2*hetmode;
 		
 		//printf("Insertion %i  %s \n",nbContig,insertion.c_str() );
@@ -487,6 +488,8 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 			osolu_i <<   "solution " <<    nbInsertions+1 << "/" << nbTotalInsertions ;
 			string solu_i = nbTotalInsertions >1 ?  osolu_i.str() : "" ;
 			
+			int qual = it->compute_qual();
+			if(filledSequences.size()>1) qual = 0;
 			
 			//int bkptid;
 			//parse bkpt header
@@ -495,7 +498,7 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 			//const char * end_header = strstr(breakpointName.c_str(), "kmer_");
 
 			// bkpt%i insertion_len_%d_%s
-			fprintf(_insert_file,">%s_len_%d   %s\n",breakpointName.c_str(),llen,solu_i.c_str());
+			fprintf(_insert_file,">%s_len_%d_qual_%i   %s\n",breakpointName.c_str(),llen,qual,solu_i.c_str());
 
 			//fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
 			//todo check  revcomp here
@@ -515,11 +518,11 @@ void Filler::writeFilledBreakpoint(set<string>& filledSequences, string breakpoi
 }
 
 //peut etre aussi indiquer en sortie le nb err du match
-set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed)
+set< info_node_t >  Filler::find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed, bool anchor_is_repeated)
 {
     bool debug = false;
     //set<int> terminal_nodes;
-    set< std::pair<int,int> >  terminal_nodes;
+    set< info_node_t >  terminal_nodes;
     BankFasta* Nodes = new BankFasta((char *)linear_seqs_name.c_str());
 
     long nodeNb = 0;
@@ -595,7 +598,7 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 				}
 				if(nbmatch >= (anchor_size - nb_mis_allowed))
 				{
-					terminal_nodes.insert( std::make_pair (nodeNb,j) ); // nodeNb,  j pos of beginning of right anchor
+					terminal_nodes.insert(   (info_node_t) {(int)nodeNb,(int)j, anchor_size - nbmatch,anchor_is_repeated}   ); // nodeNb,  j pos of beginning of right anchor
 					//printf("found pos %i nbmatch %i  \n",j,nbmatch);
 					break;
 				}
@@ -605,7 +608,7 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 
 		if(nb_gaps_allowed>0 && best_j != -1)
 		{
-			terminal_nodes.insert( std::make_pair (nodeNb,best_j) ); // nodeNb,  j pos of beginning of right anchor
+			terminal_nodes.insert(   (info_node_t) {(int)nodeNb,(int)best_j,best_err,anchor_is_repeated}  ); // nodeNb,  j pos of beginning of right anchor
 			//	printf("found pos %i nb mis %i nb gaps %i \n",best_j,bm,bg);
 			//break;
 		}
@@ -617,8 +620,8 @@ set< std::pair<int,int> >  Filler::find_nodes_containing_R(string targetSequence
 
     if (debug)
     {
-        for(set< std::pair<int,int> >::iterator it = terminal_nodes.begin(); it != terminal_nodes.end() ; ++it)
-            fprintf(stderr," (node %d pos %d) ",(*it).first,(*it).second);
+        for(set< info_node_t >::iterator it = terminal_nodes.begin(); it != terminal_nodes.end() ; ++it)
+            fprintf(stderr," (node %d pos %d) ",(*it).node_id,(*it).pos);
     }
 
 	delete itSeq;

@@ -27,6 +27,45 @@
 
 using namespace std;
 
+class filled_insertion_t
+{
+public:
+	
+	filled_insertion_t(string insert, int nb_errors, bool anchor_repeated_in_ref) : nb_errors_in_anchor(nb_errors),is_anchor_repeated(anchor_repeated_in_ref)
+	{
+		seq = insert;
+	}
+	
+	string seq;
+	int nb_errors_in_anchor;
+	bool is_anchor_repeated;
+	
+	
+	//required to be inserted in std::set
+	bool operator< (const filled_insertion_t & other) const
+	{
+		return (seq < other.seq);
+	}
+	
+	int compute_qual() const
+	{
+		
+		if(is_anchor_repeated)
+			return 5;
+		
+		if(nb_errors_in_anchor==2)
+			return 10;
+		
+		if(nb_errors_in_anchor==1)
+			return 15;
+		
+		return 50;
+		
+	}
+};
+
+
+
 // TODO factoriser
 // this one is used in GraphAnalysis (modifies s)
 void revcomp_sequence(char s[], int len);
@@ -44,9 +83,14 @@ int identNT(char a, char b);
  */
 float needleman_wunsch(string a, string b, int * nbmatch,int * nbmis,int * nbgaps);
 
+
+
+
 /**
  * returns true if all pairs of sequences have identity percent > threshold
  */
-bool all_consensuses_almost_identical(set<string> consensuses, int identity_threshold);
+bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int identity_threshold);
+
+
 
 #endif /* _Utils_HPP_ */

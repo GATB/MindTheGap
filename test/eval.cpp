@@ -122,6 +122,7 @@ typedef struct
 	int cid;
 	std::string seq;
 	bool truei;
+	int qual;
 	
 } insert_info_t;
 
@@ -168,14 +169,26 @@ int main(int argc,char * argv[]){
 	if(argc<4)
 	{
 		printf("eval ref_fasta  breakpoint_file insert_fasta\n");
+		printf("options -q <min qual>  -nw <perc ident>\n");
 		exit(1);
 	}
 	
 	int nw = 90;
-	if(argc==5)
+	int min_qual = 0;
+	
+	if(argc>=4)
 	{
-		 nw = atoi(argv[4]);
+		for (int n_a = 4; n_a < argc ; n_a++)
+		{
+			if (strcmp(argv[n_a],"-q")==0)
+				min_qual = atoi(argv[n_a+1]);
+
+			if (strcmp(argv[n_a],"-nw")==0)
+				nw = atoi(argv[n_a+1]);
+		}
 	}
+
+	printf("min qual %i \n",min_qual);
 	
 	float nw_pass= nw/(float) 100;
 
@@ -304,6 +317,7 @@ int main(int argc,char * argv[]){
 	 did =0;
 	 cid=0;
 	 pos=0;
+	int qual =0;
 	//insert
 	
 	////
@@ -334,15 +348,23 @@ int main(int argc,char * argv[]){
 			
 			//>deletion_1 : chr1_69719
 			//idem avec >bkpt2 insertion_len_18_chr1_pos_290291_repeat_2_HOM
-		//	>bkpt7_chr1_pos_931449_fuzzy_0_HOM_len_65
-
+			//	>bkpt7_chr1_pos_931449_fuzzy_0_HOM_len_65
+			
+			//bkpt444_chr1_pos_454047_fuzzy_0_HOM_len_1410
 			sscanf(tempheader,">bkpt%i_chr%i_pos_%i",&did,&cid,&pos);
-
+			
+			char * resq = strstr(tempheader, "qual_");
+			if(resq!=NULL)
+			{
+				sscanf(resq,"qual_%i",&qual);
+			}
+			else
+				qual = 66;
 			//sscanf(tempheader,">bkpt%i insertion_len_%i_chr%i_pos_%i",&did,&ilen,&cid,&pos);
 			//printf("%i %i %i  \n",did,cid,pos);
 			
 			
-		//	refdata.push_back(std::string());
+			//	refdata.push_back(std::string());
 			
 		}
 		else
@@ -368,6 +390,7 @@ int main(int argc,char * argv[]){
 			insert_info_t insert_info;
 			insert_info.pos = pos;
 			insert_info.cid = cid;
+			insert_info.qual = qual;
 			insert_info.seq =std::string(tempseq);
 			insert_info.truei = false;
 			imap[pos].push_back(insert_info);
@@ -543,20 +566,18 @@ int main(int argc,char * argv[]){
 			if(imap.find(tpos+ii)!=imap.end())
 			{
 				vec_insert =  & (imap[tpos+ii]);
-				//std::map< int , std::vector<insert_info_t> > imap;
+				
+				//if(vec_insert->size()==1)
 				for(int jj=0; jj < vec_insert->size(); jj++) // loop on different insert at this pos
 				{
 					insert_info_t  & insert_info = (*vec_insert)[jj];
+					if( insert_info.qual < min_qual  ) continue;
+
 					int i_cid = insert_info.cid;
 					std::string iseq = insert_info.seq;
 					int nberrs =   compare_WN(refseq.c_str(), iseq.c_str(), refseq.size(),iseq.size(), 10);
 					float pid = 1.0 - ( nberrs / (float)std::max(refseq.size(),iseq.size()));
-					
-					//std::cout << refseq << std::endl;
-					//std::cout << iseq << std::endl;
-					//printf("pid %f  ( %lu %lu ) nbdiff %i\n",pid,refseq.size(),iseq.size(),nberrs);
-					//printf("--------------------------------------------\n");
-					
+
 					
 					if(i_cid == r_cid ) //
 					{
@@ -644,9 +665,12 @@ int main(int argc,char * argv[]){
 
 		std::vector<insert_info_t>  & vec_insert = iterator->second;
 		bool found = false;
+		bool skip =false;
 		for(int jj=0; jj < vec_insert.size(); jj++)
 		{
 			insert_info_t insert_info = vec_insert[jj];
+
+			if( insert_info.qual < min_qual  ) {skip = true; break;} // si multiple soluce, toutes sont à qual 0 
 
 			if(insert_info.truei)
 			{
@@ -655,7 +679,10 @@ int main(int argc,char * argv[]){
 			}
 		}
 
-		nb_insert_filled++;
+		if(!skip)
+			nb_insert_filled++;
+		
+		skip =false;
 	}
 	
 	

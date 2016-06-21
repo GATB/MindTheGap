@@ -24,6 +24,8 @@
 /********************************************************************************/
 #include <gatb/gatb_core.hpp>
 #include <GraphOutputDot.hpp>
+#include <Utils.hpp>
+
 using namespace std;
 
 /********************************************************************************/
@@ -31,6 +33,32 @@ using namespace std;
 static const char* STR_URI_BKPT = "-bkpt";
 static const char* STR_MAX_DEPTH = "-max-length";
 static const char* STR_MAX_NODES = "-max-nodes";
+
+
+ class info_node_t
+{
+public:
+	int node_id;
+	int pos;  // pos of beginning of right anchor
+	int nb_errors;
+	bool anchor_is_repeated;
+	
+	
+	//required to be inserted in std::set
+	bool operator< (const info_node_t & other) const
+	{
+		return ( (node_id < other.node_id) || ((node_id == other.node_id)  && (pos < other.pos))  );
+	}
+	
+	bool operator> (const info_node_t & other) const
+	{
+		return ( (node_id > other.node_id) || ((node_id == other.node_id)  && (pos > other.pos))  );
+	}
+};
+
+
+
+
 
 class Filler : public Tool
 {
@@ -64,6 +92,8 @@ public:
     // Actual job done by the tool is here
     void execute ();
 
+	
+
 private:
     
     /** fills getInfo() with parameters informations
@@ -82,17 +112,17 @@ private:
     /** Fill one gap
             */
     template<size_t span>
-    void gapFill(string sourceSequence, string targetSequence, set<string>& filledSequences, bool begin_kmer_repeated, bool end_kmer_repeated
+    void gapFill(string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences, bool begin_kmer_repeated, bool end_kmer_repeated
 				 ,bool reversed =false);
 
     /** writes a given breakpoint in the output file
          */
-    void writeFilledBreakpoint(set<string>& filledSequences, string breakpointName);
+    void writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName);
 
     /**
      * returns the nodes containing the targetSequence
      */
-    set< std::pair<int,int> >  find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed);
+    set< info_node_t >  find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed, bool anchor_is_repeated);
 
 	/** Handle on the progress information. */
 	gatb::core::tools::dp::IteratorListener* _progress;

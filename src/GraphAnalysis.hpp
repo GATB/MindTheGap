@@ -33,6 +33,7 @@
 #include <vector>
 #include <fstream>
 #include <stdlib.h>
+#include <Filler.hpp>
 
 using namespace std;
 
@@ -66,5 +67,5 @@ public:
     set<unlabeled_path> find_all_paths(int start_node, set<int> terminal_nodes, unlabeled_path current_path, int &nb_calls, bool &success);
     
     static int debug; // 0: no debug, 1: node id debug, 2: ful sequence debug; useful to see the sequences of the traversed paths
-    set<string> paths_to_sequences(set<unlabeled_path> paths, set< std::pair<int,int> > terminal_nodes_with_endpos); // is it also used in mapsembler  ?
+    set<filled_insertion_t> paths_to_sequences(set<unlabeled_path> paths, set< info_node_t > terminal_nodes_with_endpos); // is it also used in mapsembler  ?
 };

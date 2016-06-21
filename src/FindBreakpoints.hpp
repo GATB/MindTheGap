@@ -530,14 +530,14 @@ void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint
 	    position+1, //switch to 1-based
 	    repeat_size,
 	    type.c_str(),
-		repeat_in_genome_kmer_begin ? "REPEAT" : "",
+		repeat_in_genome_kmer_begin ? "REPEATED" : "",
 	    kmer_begin.c_str(),
 	    bkt_id,
 	    chrom_name.c_str(),
 	    position+1, //switch to 1-based
 	    repeat_size,
 	    type.c_str(),
-		repeat_in_genome_kmer_end ? "REPEAT" : "",
+		repeat_in_genome_kmer_end ? "REPEATED" : "",
 	    kmer_end.c_str()
 	);
 }

@@ -188,15 +188,15 @@ float needleman_wunsch(string a, string b, int * nbmatch,int * nbmis,int * nbgap
     return identity;
 }
 
-bool all_consensuses_almost_identical(set<string> consensuses, int identity_threshold)
+bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int identity_threshold)
 {
-	for (set<string>::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
+	for (set<filled_insertion_t>::iterator it_a = consensuses.begin(); it_a != consensuses.end(); it_a++)
     {
-		set<string>::iterator it_b = it_a;
+		set<filled_insertion_t>::iterator it_b = it_a;
         advance(it_b,1);
         while (it_b != consensuses.end())
         {
-            if (needleman_wunsch(*it_a,*it_b, NULL, NULL, NULL) * 100 < identity_threshold)
+            if (needleman_wunsch(it_a->seq,it_b->seq, NULL, NULL, NULL) * 100 < identity_threshold)
                 return false;
             advance(it_b,1);
         }

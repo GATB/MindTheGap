@@ -179,10 +179,13 @@ set<unlabeled_path> GraphAnalysis::find_all_paths(int start_node, set<int> termi
     return paths;
 }
 
-set<string> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< std::pair<int,int> > terminal_nodes_with_endpos )
+set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< info_node_t > terminal_nodes_with_endpos )
 {
 	//debug =2;
-    set<string> sequences;
+    set<filled_insertion_t> sequences;
+	int errs_in_anchor;
+	bool anchor_repeated_in_ref;
+	
 //	printf("paths set size %i \n",paths.size());
     for (set<unlabeled_path>::iterator it = paths.begin(); it != paths.end(); it++)
     {
@@ -195,8 +198,9 @@ set<string> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< s
         for (unlabeled_path::iterator it_path = p.begin(); it_path != p.end(); it_path++)
         {
             int node = *it_path;
-            int pos_anchor;
-            
+            int pos_anchor = 0;
+
+			
             if (debug)
             {
                 string node = node_identifier(*it_path);
@@ -227,11 +231,13 @@ set<string> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< s
             {
                 set<int> terminal_nodes;
                 //retreive anchor pos
-                for (set< std::pair<int,int> >::iterator it = terminal_nodes_with_endpos.begin(); it != terminal_nodes_with_endpos.end(); it++)
+                for (set< info_node_t >::iterator it = terminal_nodes_with_endpos.begin(); it != terminal_nodes_with_endpos.end(); it++)
                 {
-                    if((*it).first == node)
+                    if((*it).node_id == node)
                     {
-                        pos_anchor = (*it).second;
+                        pos_anchor = (*it).pos;
+						errs_in_anchor = it->nb_errors;
+						anchor_repeated_in_ref= it->anchor_is_repeated;
                         break;
                     }
                 }
@@ -285,7 +291,7 @@ set<string> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< s
             printf(" sequence: %s\n",sequence.c_str());
 
         if(sequence.length()>0) // test filtrage ici ?
-            sequences.insert(sequence);
+            sequences.insert(filled_insertion_t(sequence,errs_in_anchor,anchor_repeated_in_ref));
     }
     return sequences;
 }
