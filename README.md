@@ -23,9 +23,11 @@ c++ compiler; compilation was tested with gcc and g++ version>=4.5 (Linux) and c
     # get a local copy of MindTheGap source code
     git clone --recursive https://github.com/GATB/MindTheGap.git
     
-    # compile the code an run a simple test on your computer
+    # compile the code
     cd MindTheGap
     sh INSTALL
+
+Note: when updating your local repository with `git pull`, if you see that thirdparty/gatb-core has changed, you have to run also : `git submodule update`. 
 
 # USER MANUAL	 
 
@@ -102,11 +104,11 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     * a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program dbginfo located in your bin directory or in ext/gatb-core/bin/.
     
     `MindTheGap find` generates the following output files:
-    * a breakpoint file (`.breakpoints`) in fasta format. It contains the breakpoint sequences of each detected insertion site.    Each insertion site corresponds to 2 consecutive entries in the fasta file : sequences are the left and right side flanking kmers.
+    * a breakpoint file (`.breakpoints`) in fasta format. It contains the breakpoint sequences of each detected insertion site. Each insertion site corresponds to 2 consecutive entries in the fasta file : sequences are the left and right side flanking kmers.
     * a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
     
     `MindTheGap fill` generates the following output files:
-    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences that were successfully assembled. In the header, position on the reference genome is 
+    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences that were successfully assembled. The location of each insertion on the reference genome can be found in its fasta header, together with the insertion length and quality score. 
     * an insertion variant file (`.insertions.vcf`) in vcf format. This file resumes insertion position information already contained in the fasta file, but in a vcf format. It is not self-sufficient, inserted sequences if larger than XX bp are not written in the vcf but are referred to their fasta id in the fasta file.
 
     Warning: the output in vcf of insertion variants is not yet implemented, coming soon...
@@ -133,7 +135,9 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
         #fuzzy_0 : is the size of the repeated sequence at the breakpoint (here 0 means it is a clean insertion site).
         #HOM : it was detected by the homozygous algorithm.
 
-    Note: in the case of a repeat at the breakpoint site (fuzzy>0), the exact position can not be known inside the repeat, the reported position is always the right-most.
+    Note: in the case of a small repeat at the breakpoint site (fuzzy>0), the exact position can not be known inside the repeat, the reported position is always the right-most.
+
+    Note #2: sometimes the header can contain the word `REPEATED` next to `left kmer` or `right kmer`. This concerns also repeated sequences but must not be confused with the `fuzzy` field. Fuzzy indicates if a small repeat (typically <5 pb) is exactly repeated at the breakpoint site and at an extremity of the inserted sequence (this can happen very often by chance and may have no biological meaning). Whereas "REPEATED" indicates that this insertion site is probably located in a repeated region of the reference genome, with the repeat size being >=(k-1). These breakpoints have more probability to be false positives.   
 	
 2. VCF variant format
 
@@ -141,16 +145,28 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
 	
 3. Assembled insertion format
     
-    MindTheGap fill outputs a file in fasta format containing the obtained inserted sequences. The output sequences do not contain the breakpoint kmers. For each insertion breakpoint for which the filling succeeded, one can find in this file either one or several sequences with the following header:
+    MindTheGap fill outputs a file in fasta format containing the obtained inserted sequences. Breakpoint kmers are not included in the output sequences. For each insertion breakpoint for which the filling succeeded, one can find in this file either one or several sequences with the following header:
     
-        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_59
+        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_59_qual_50
         #same info as in the breakpoint file
         #len_59 : the length in bp of the inserted sequence, here 59 bp
+        #qual_50 : quality of 50 (quality scores range from 0 to 50, 50 being the best quality) 
 
     If more than one sequence are assembled for a given breakpoint, the header is as follows:
     
-        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57 solution 2/3
-        #this is the second sequence out of 3    
+        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57_qual_0 solution 2/3
+        #this is the second sequence out of 3
+        #by definition, if multiple sequences can be assembled for a given breakpoint, the quality is 0.
+
+    **Quality scores**:
+    
+    Each insertion is assigned a quality score ranging from 0 (low quality) to 50 (highest quality). This quality score reflects mainly repeat-associated criteria:
+    * `qual=0`: if multiple sequences can be assembled for a given breakpoint (note that to output multiple sequences, they must differ from each other significantly, ie. <90% id)
+    * `qual=5`: if one of the breakpoint kmer is repeated in the reference genome (REPEATED field in the breakpoint file)
+    * `qual=10`: if one of the breakpoint kmer could not be found exactly but with 2 errors (mismatches)
+    * `qual=15`: if one of the breakpoint kmer could not be found exactly but with 1 error (mismatch)
+    * `qual=50`: otherwise.
+ 
  
 
 
@@ -182,9 +198,13 @@ Either in your bin/ directory or in ext/gatb-core/bin/, you can find additional 
 
 MindTheGap: integrated detection and assembly of short and long insertions. Guillaume Rizk, Anaïs Gouin, Rayan Chikhi and Claire Lemaitre. Bioinformatics 2014 30(24):3451-3457. http://bioinformatics.oxfordjournals.org/content/30/24/3451
 
-[Web page](https://gatb.inria.fr/software/mind-the-gap/)
+[Web page](https://gatb.inria.fr/software/mind-the-gap/) with some updated results.
  
 
 # Contact
 
-To contact a developer, request help, etc: https://gatb.inria.fr/contact/
+To contact a developer, request help, or for any feedback on MindTheGap, please use the issue form of github: https://github.com/GATB/MindTheGap/issues
+
+You can see all issues concerning MindTheGap [here](https://github.com/GATB/MindTheGap/issues) and GATB [here](https://www.biostars.org/t/GATB/).
+
+If you do not have any github account, you can also send an email to claire dot lemaitre or guillaume dot rizk at inria dot fr
