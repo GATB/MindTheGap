@@ -51,13 +51,13 @@ public:
 	{
 		
 		if(is_anchor_repeated)
-			return 5;
+			return 25;
 		
 		if(nb_errors_in_anchor==2)
-			return 10;
+			return 5;
 		
 		if(nb_errors_in_anchor==1)
-			return 15;
+			return 10;
 		
 		return 50;
 		

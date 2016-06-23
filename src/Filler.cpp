@@ -383,11 +383,11 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<filled_in
 	// todo put these two above lines in fillBreakpoints and pass object extension in param
 
 	//Build contigs and output them in a file in fasta format
-	string contig_file_name = "contigs.fasta";
+	string contig_file_name = "contigs.fasta" + Stringify::format("%i",getpid());
 	extension.construct_linear_seqs(sourceSequence,targetSequence,contig_file_name,false); //last param : swf=stopWhenFound
 
     // connect the contigs into a graph
-	string contig_graph_file_prefix="contig_graph";
+	string contig_graph_file_prefix="contig_graph" + Stringify::format("%i",getpid());
 	GraphOutputDot<span> graph_output(_kmerSize,contig_graph_file_prefix);
 	graph_output.load_nodes_extremities(contig_file_name);
 	graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
@@ -490,7 +490,8 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 			
 			int qual = it->compute_qual();
 			
-			//if(filledSequences.size()>1 && qual<50) qual = 0;
+			if(filledSequences.size()>1 && qual>10) qual = 15; // if multiple solutions and 0 err or repeated in ref
+			
 			//else if(filledSequences.size()>1 && qual ==50) qual = 2;
 			
 			
