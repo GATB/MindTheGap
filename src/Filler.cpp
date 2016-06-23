@@ -489,8 +489,9 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 			string solu_i = nbTotalInsertions >1 ?  osolu_i.str() : "" ;
 			
 			int qual = it->compute_qual();
-			if(filledSequences.size()>1 && qual<50) qual = 0;
-			else if(filledSequences.size()>1 && qual ==50) qual = 2;
+			
+			//if(filledSequences.size()>1 && qual<50) qual = 0;
+			//else if(filledSequences.size()>1 && qual ==50) qual = 2;
 			
 			
 			//int bkptid;
