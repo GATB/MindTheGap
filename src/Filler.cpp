@@ -436,7 +436,7 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<filled_in
 	{
 		set<filled_insertion_t>::iterator its;
 		for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
-		{			
+		{
 			filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor,its->is_anchor_repeated );
 			filledSequences.insert ( rev_insert);
 		}
@@ -489,7 +489,9 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 			string solu_i = nbTotalInsertions >1 ?  osolu_i.str() : "" ;
 			
 			int qual = it->compute_qual();
-			if(filledSequences.size()>1) qual = 0;
+			if(filledSequences.size()>1 && qual<50) qual = 0;
+			else qual = 2;
+			
 			
 			//int bkptid;
 			//parse bkpt header
