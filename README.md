@@ -137,7 +137,7 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
 
     Note: in the case of a small repeat at the breakpoint site (fuzzy>0), the exact position can not be known inside the repeat, the reported position is always the right-most.
 
-    Note #2: sometimes the header can contain the word `REPEATED` next to `left kmer` or `right kmer`. This concerns also repeated sequences but must not be confused with the `fuzzy` field. Fuzzy indicates if a small repeat (typically <5 pb) is exactly repeated at the breakpoint site and at an extremity of the inserted sequence (this can happen very often by chance and may have no biological meaning). Whereas "REPEATED" indicates that this insertion site is probably located in a repeated region of the reference genome, with the repeat size being >=(k-1). These breakpoints have more probability to be false positives.   
+    Note #2: sometimes the header can contain the word `REPEATED` next to `left kmer` or `right kmer`. This concerns also repeated sequences but must not be confused with the `fuzzy` field. Fuzzy indicates if a small repeat (typically <5 bp) is exactly repeated at the breakpoint site and at an extremity of the inserted sequence (this can happen very often by chance and may have no biological meaning). Whereas "REPEATED" indicates that this insertion site is probably located in a repeated region of the reference genome, with the repeat size being >=(k-1). These breakpoints have more probability to be false positives.   
 	
 2. VCF variant format
 
@@ -154,17 +154,16 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
 
     If more than one sequence are assembled for a given breakpoint, the header is as follows:
     
-        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57_qual_0 solution 2/3
+        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57_qual_15 solution 2/3
         #this is the second sequence out of 3
-        #by definition, if multiple sequences can be assembled for a given breakpoint, the quality is 0.
 
     **Quality scores**:
     
     Each insertion is assigned a quality score ranging from 0 (low quality) to 50 (highest quality). This quality score reflects mainly repeat-associated criteria:
-    * `qual=0`: if multiple sequences can be assembled for a given breakpoint (note that to output multiple sequences, they must differ from each other significantly, ie. <90% id)
-    * `qual=5`: if one of the breakpoint kmer is repeated in the reference genome (REPEATED field in the breakpoint file)
-    * `qual=10`: if one of the breakpoint kmer could not be found exactly but with 2 errors (mismatches)
-    * `qual=15`: if one of the breakpoint kmer could not be found exactly but with 1 error (mismatch)
+    * `qual=5`: if one of the breakpoint kmer could not be found exactly but with 2 errors (mismatches)
+    * `qual=10`: if one of the breakpoint kmer could not be found exactly but with 1 error (mismatch)
+    * `qual=15`: if multiple sequences can be assembled for a given breakpoint (note that to output multiple sequences, they must differ from each other significantly, ie. <90% id)
+    * `qual=25`: if one of the breakpoint kmer is repeated in the reference genome (REPEATED field in the breakpoint file)
     * `qual=50`: otherwise.
  
  
