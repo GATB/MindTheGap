@@ -26,7 +26,7 @@ cmake_minimum_required(VERSION 2.6)
 # The version number.
 ################################################################################
 # The default version number is the latest official build
-SET (gatb-tool_VERSION_MAJOR 1)
+SET (gatb-tool_VERSION_MAJOR 2)
 SET (gatb-tool_VERSION_MINOR 0)
 SET (gatb-tool_VERSION_PATCH 0)
 
