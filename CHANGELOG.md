@@ -4,6 +4,12 @@
 ## [Unreleased]
 
 --------------------------------------------------------------------------------
+## [2.0.1] - 2016-07-21
+
+This is a bug-fix release :
+* fixed a compilation issue with old version of clang compilers (prior to clang 4.3 on mac), by updating the gatb-core version to 1.2.2.
+
+--------------------------------------------------------------------------------
 ## [2.0.0] - 2016-06-29
 
 *   Initial release after refactoring the whole code of MindTheGap to use the **GATB library**.
