@@ -17,9 +17,11 @@ cd build
 cmake ..
 
 # Run the newly created makefile:
-make -j8
-# Go back at the installation root directory
+make
+# To compile faster, use:
+# make -j8
 
+# Go back at the installation root directory
 cd ..
 # run tests
 echo "Running simple test..."
