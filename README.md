@@ -10,7 +10,7 @@
 
 MindTheGap  performs detection and assembly of DNA insertion variants in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint.
 
-# Getting the latest source code
+# Installation instructions
 
 ## Requirements
 
@@ -18,7 +18,7 @@ CMake 2.6+; see http://www.cmake.org/cmake/resources/software.html
 
 c++ compiler; compilation was tested with gcc and g++ version>=4.5 (Linux) and clang version>=4.1 (Mac OSX).
 
-## Instructions
+## Getting the latest source code with git
 
     # get a local copy of MindTheGap source code
     git clone --recursive https://github.com/GATB/MindTheGap.git
@@ -26,8 +26,31 @@ c++ compiler; compilation was tested with gcc and g++ version>=4.5 (Linux) and c
     # compile the code
     cd MindTheGap
     sh INSTALL
+    # the binary file is located in directory build/bin/
+    ./build/bin/MindTheGap -help
 
 Note: when updating your local repository with `git pull`, if you see that thirdparty/gatb-core has changed, you have to run also : `git submodule update`. 
+
+## Installing a stable release
+
+Retrieve a binary archive file from one of the official MindTheGap releases (see "Releases" tab on the Github web page); file name is `MindTheGap-vX.Y.Z-bin-Linux.tar.gz` (for Linux) or `MindTheGap-vX.Y.Z-bin-Darwin.tar.gz` (for MacOs).
+
+    tar -zxf MindTheGap-vX.Y.Z-bin-Darwin.tar.gz
+    cd MindTheGap-vX.Y.Z-bin-Darwin
+    chmod u+x bin/MindTheGap
+
+    # run a simple example
+    ./bin/MindTheGap find -in data/reads_r1.fastq,data/reads_r2.fastq -ref data/reference.fasta -out example
+    ./bin/MindTheGap fill -graph example.h5 -bkpt example.breakpoints -out example
+
+In case the software does not run appropriately on your system, you should consider to install it from its source code. Retrieve the source archive file `MindTheGap-vX.Y.Z-Source.tar.gz`.
+
+    tar -zxf MindTheGap-vX.Y.Z-Source.tar.gz
+    cd MindTheGap-vX.Y.Z-Source
+    sh INSTALL
+    # the binary file is located in directory build/bin/
+    ./build/bin/MindTheGap -help
+
 
 # USER MANUAL	 
 
