@@ -51,6 +51,11 @@ In case the software does not run appropriately on your system, you should consi
     # the binary file is located in directory build/bin/
     ./build/bin/MindTheGap -help
 
+## Using docker
+
+Pull the docker image of the latest release of MindTheGap:
+
+    docker pull clemaitr/mindthegap
 
 # USER MANUAL	 
 
