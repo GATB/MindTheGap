@@ -62,6 +62,7 @@ public:
 
 class Filler : public Tool
 {
+
 public:
 
     // Constructor
@@ -92,10 +93,24 @@ public:
     // Actual job done by the tool is here
     void execute ();
 
-	
 
+	
+	//these two func moved to public because need access from functor gapfillerFunctor
+	/** writes a given breakpoint in the output file
+	 */
+	void writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName);
+
+	/** Fill one gap
+	 */
+	template<size_t span>
+	void gapFill(int tid,string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences, bool begin_kmer_repeated, bool end_kmer_repeated
+				 ,bool reversed =false);
+
+	gatb::core::tools::dp::IteratorListener* _progress;
+
+	
 private:
-    
+	
     /** fills getInfo() with parameters informations
      */
     void resumeParameters();
@@ -109,15 +124,7 @@ private:
     template<size_t span>
     struct fillBreakpoints {  void operator ()  (Filler* object); };
 
-    /** Fill one gap
-            */
-    template<size_t span>
-    void gapFill(string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences, bool begin_kmer_repeated, bool end_kmer_repeated
-				 ,bool reversed =false);
 
-    /** writes a given breakpoint in the output file
-         */
-    void writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName);
 
     /**
      * returns the nodes containing the targetSequence
@@ -125,7 +132,6 @@ private:
     set< info_node_t >  find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed, bool anchor_is_repeated);
 
 	/** Handle on the progress information. */
-	gatb::core::tools::dp::IteratorListener* _progress;
 	void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
 	
 	//tiens, on a pas encore de destructeur pour cette classe?

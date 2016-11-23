@@ -265,6 +265,137 @@ void Filler::resumeResults(double seconds){
 
 }
 
+
+template<size_t span>
+class gapfillerFunctor
+{
+public:
+	void operator() (Sequence& sequence)
+	{
+		if( (sequence.getIndex() & 1) == 0)
+		{
+			_previousSeq = sequence;
+		}
+		else
+		{
+			//compute pair
+			//printf("%s  id %i  %s  id %i   tid %i  \n",previousSeq.getCommentShort().c_str(), previousSeq.getIndex()
+			//	   ,sequence.getCommentShort().c_str(), sequence.getIndex(), _tid);
+			
+			
+			{
+				
+				
+				string sourceSequence =  string(_previousSeq.getDataBuffer(),_previousSeq.getDataSize());//previously L
+				string breakpointName = string(_previousSeq.getCommentShort());
+				
+				bool begin_kmer_repeated = _previousSeq.getComment().find("REPEATED") !=  std::string::npos;
+				
+				
+				string targetSequence =  string(sequence.getDataBuffer(),sequence.getDataSize());//previously R
+				
+				string breakpointName_R = string(sequence.getCommentShort());
+				bool end_kmer_repeated = sequence.getComment().find("REPEATED") !=  std::string::npos;
+				
+				
+				//Initialize set of filled sequences
+				set<filled_insertion_t> filledSequences;
+				
+				// Resize to kmer-size :
+				if(sourceSequence.size()> _object->_kmerSize ){
+					sourceSequence.substr(sourceSequence.size()- _object->_kmerSize,_object->_kmerSize); //suffix of size _kmerSize
+				}
+				
+				if(targetSequence.size()>_object->_kmerSize){
+					targetSequence.substr(0,_object->_kmerSize); //prefix of size _kmerSize
+				}
+				
+				_object->gapFill<span>(_tid,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
+				
+				//Can be modified : could do in reverse mode even if filledSequences is not empty (new filled sequences are inserted into the set : to verify)
+				if(filledSequences.size()==0){
+					string sourceSequence2 = revcomp_sequence(targetSequence);
+					string targetSequence2 = revcomp_sequence(sourceSequence);
+					_object->gapFill<span>(_tid,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
+				}
+				
+				//Checks if all sequences are roughly the same :
+				if (all_consensuses_almost_identical(filledSequences,90))
+				{
+					//if(verb)     printf(" [SUCCESS]\n");
+					if (filledSequences.size() > 1) {
+						//				stringstream ss;
+						//				ss << "cons" <<filledSequences.size();
+						//				breakpointName=breakpointName+ss.str();
+						filledSequences.erase(++(filledSequences.begin()),filledSequences.end()); // keep only one consensus sequence
+					}
+				}
+				else
+					;
+				//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
+				
+				
+				// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
+				_object->writeFilledBreakpoint(filledSequences,breakpointName);
+				
+				// We increase the breakpoint counter.
+				_nb_breakpoints++;
+				
+				//progress bar
+				_nbBreakpointsProgressDone++;
+				if (_nbBreakpointsProgressDone > 50)   {  _object->_progress->inc (_nbBreakpointsProgressDone);  _nbBreakpointsProgressDone = 0;  }
+			}
+			
+			
+			
+			
+			
+		}
+		
+	}
+	
+	//constructor
+	gapfillerFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints) : _object(object),_global_nb_breakpoints(global_nb_breakpoints)
+	{
+	//	_progress = progress;
+		_nb_living =nb_living;
+		_tid =  __sync_fetch_and_add (_nb_living, 1);
+		_nb_breakpoints = 0;
+		printf("creating thread id %i \n",_tid);
+
+	}
+	
+	gapfillerFunctor(gapfillerFunctor const &r)
+	{
+		_nb_living = r._nb_living;
+		_object= r._object;
+		_global_nb_breakpoints = r._global_nb_breakpoints;
+	//	_progress = r._progress;
+		_nb_breakpoints = 0;
+		_tid =  __sync_fetch_and_add (_nb_living, 1);
+
+		printf("CC creating thread id %i \n",_tid);
+
+	}
+	
+	~gapfillerFunctor()
+	{
+		 __sync_fetch_and_add (_global_nb_breakpoints, _nb_breakpoints);
+	}
+private:
+	Filler* _object;
+
+	int _tid;
+	int _nb_breakpoints;
+	int * _global_nb_breakpoints;
+	int * _nb_living;
+	//gatb::core::tools::dp::IteratorListener* _progress;
+	Sequence _previousSeq;
+	u_int64_t _nbBreakpointsProgressDone = 0;
+
+};
+
+
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
 void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
@@ -273,6 +404,8 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 	// We create an iterator over the breakpoint bank.
 	BankFasta::Iterator itSeq (*object->_breakpointBank);
+
+	
 
 	int nbBreakpoints=0;
 
@@ -288,9 +421,40 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	object->_progress->init ();
 	
 	
+	printf("-------- parall loop ---------\n");
+
+	//faire en pthread, itSeq next à la main pour remplir buffer ?
 	
+	int nb_living=0;
+	Dispatcher().iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),1000);
 	
+	//il va falloir le faire avec vrai functor pour varibale qui memorise la seq prev
+	//Sequence prev;
+	
+	//Dispatcher().iterate(itSeq, [=prev,&] (Sequence & seq)
+	//Dispatcher().iterate(itp, [&] (std::pair<Sequence,Sequence> & pp)
+
+	//{
+	//	printf("---\n");
+		
+	//	printf("%s  id %i    %s  id %i   \n",seq.getCommentShort().c_str(), seq.getIndex(),
+	//		   				  seq.getCommentShort().c_str(), seq.getIndex());
+		
+		
+	//	printf("%s  id %i \n",seq.getCommentShort().c_str(), seq.getIndex());
+		
+	//	itSeq.next();
+//		if(itSeq.isDone()){
+//			throw Exception("Wrong breakpoint file: odd number of sequences...");
+//		}
+		//printf("%s\n",seq.getCommentShort().c_str());
+
+	//}
+	//					 );
+	
+	printf("-------- sequential loop ---------\n");
 	// We loop over sequences.
+	/*
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
 		
@@ -326,7 +490,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 			targetSequence.substr(0,object->_kmerSize); //prefix of size _kmerSize
 		}
 
-		object->gapFill<span>(sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
+		object->gapFill<span>(0,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
 //		printf("filledseq nb %i \n",filledSequences.size());
 //		printf("filledseq %s \n", (*(filledSequences.begin())).c_str()  );
 		
@@ -334,7 +498,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if(filledSequences.size()==0){
 			string sourceSequence2 = revcomp_sequence(targetSequence);
 			string targetSequence2 = revcomp_sequence(sourceSequence);
-			object->gapFill<span>(sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
+			object->gapFill<span>(0,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
 		}
 		
 		//Checks if all sequences are roughly the same :
@@ -364,16 +528,17 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if (nbBreakpointsProgressDone > 50)   {  object->_progress->inc (nbBreakpointsProgressDone);  nbBreakpointsProgressDone = 0;  }
 	}
 
-	object->_progress->finish ();
+	 */
+	//object->_progress->finish ();
 
-	object->_nb_breakpoints = nbBreakpoints;
+	//object->_nb_breakpoints = nbBreakpoints;
 
-	cout << "nb breakpoints=" << nbBreakpoints <<endl;
+	cout << "nb breakpoints=" << object->_nb_breakpoints <<endl;
 }
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
-void Filler::gapFill(string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bool reversed ){
+void Filler::gapFill(int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bool reversed ){
 
 
 	//object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
@@ -383,11 +548,13 @@ void Filler::gapFill(string sourceSequence, string targetSequence, set<filled_in
 	// todo put these two above lines in fillBreakpoints and pass object extension in param
 
 	//Build contigs and output them in a file in fasta format
-	string contig_file_name = "contigs.fasta" + Stringify::format("%i",getpid());
+	string contig_file_name = "contigs.fasta" + Stringify::format("%i",getpid()) + "_t" + Stringify::format("%i",tid);
 	extension.construct_linear_seqs(sourceSequence,targetSequence,contig_file_name,false); //last param : swf=stopWhenFound
+	//std::cout << contig_file_name << std::endl;
 
     // connect the contigs into a graph
-	string contig_graph_file_prefix="contig_graph" + Stringify::format("%i",getpid());
+	string contig_graph_file_prefix="contig_graph" + Stringify::format("%i",getpid())  + "_t" + Stringify::format("%i",tid);
+	//std::cout << contig_graph_file_prefix << std::endl;
 	GraphOutputDot<span> graph_output(_kmerSize,contig_graph_file_prefix);
 	graph_output.load_nodes_extremities(contig_file_name);
 	graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
@@ -459,6 +626,8 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 	
 	//printf("found %zu seq \n",filledSequences.size());
 	
+	flockfile(_insert_file);
+	
 	int nbInsertions = 0;
 	int nbTotalInsertions = 0;
 
@@ -512,11 +681,14 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 	}
 	
 	if(nbInsertions>0){
-		_nb_filled_breakpoints++;
+		__sync_fetch_and_add(& _nb_filled_breakpoints,1);
 		if(nbInsertions>1){
-			_nb_multiple_fill++;
+			__sync_fetch_and_add(& _nb_multiple_fill,1);
 		}
 	}
+	
+	funlockfile(_insert_file);
+
 
 
 }
