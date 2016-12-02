@@ -426,8 +426,13 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	//faire en pthread, itSeq next à la main pour remplir buffer ?
 	
 	int nb_living=0;
-	Dispatcher().iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),1000);
+	//printf("avant dispatcher  %i  %i \n",  Dispatcher(object->getInput()->getInt(STR_NB_CORES)).getExecutionUnitsNumber(),object->getInput()->getInt(STR_NB_CORES));
 	
+	
+	
+	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),1000);
+	//printf("apres dispatcher \n");
+
 	//il va falloir le faire avec vrai functor pour varibale qui memorise la seq prev
 	//Sequence prev;
 	
@@ -452,7 +457,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	//}
 	//					 );
 	
-	printf("-------- sequential loop ---------\n");
+	//printf("-------- sequential loop ---------\n");
 	// We loop over sequences.
 	/*
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
