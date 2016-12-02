@@ -282,9 +282,7 @@ public:
 			//printf("%s  id %i  %s  id %i   tid %i  \n",previousSeq.getCommentShort().c_str(), previousSeq.getIndex()
 			//	   ,sequence.getCommentShort().c_str(), sequence.getIndex(), _tid);
 			
-			
 			{
-				
 				
 				string sourceSequence =  string(_previousSeq.getDataBuffer(),_previousSeq.getDataSize());//previously L
 				string breakpointName = string(_previousSeq.getCommentShort());
@@ -334,7 +332,6 @@ public:
 					;
 				//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 				
-				
 				// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
 				_object->writeFilledBreakpoint(filledSequences,breakpointName);
 				
@@ -361,7 +358,7 @@ public:
 		_nb_living =nb_living;
 		_tid =  __sync_fetch_and_add (_nb_living, 1);
 		_nb_breakpoints = 0;
-		printf("creating thread id %i \n",_tid);
+		//printf("creating thread id %i \n",_tid);
 
 	}
 	
@@ -374,7 +371,7 @@ public:
 		_nb_breakpoints = 0;
 		_tid =  __sync_fetch_and_add (_nb_living, 1);
 
-		printf("CC creating thread id %i \n",_tid);
+	//	printf("CC creating thread id %i \n",_tid);
 
 	}
 	
@@ -421,42 +418,11 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	object->_progress->init ();
 	
 	
-	printf("-------- parall loop ---------\n");
-
-	//faire en pthread, itSeq next à la main pour remplir buffer ?
-	
 	int nb_living=0;
-	//printf("avant dispatcher  %i  %i \n",  Dispatcher(object->getInput()->getInt(STR_NB_CORES)).getExecutionUnitsNumber(),object->getInput()->getInt(STR_NB_CORES));
 	
-	
-	
-	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),1000);
-	//printf("apres dispatcher \n");
+	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),50);
 
-	//il va falloir le faire avec vrai functor pour varibale qui memorise la seq prev
-	//Sequence prev;
-	
-	//Dispatcher().iterate(itSeq, [=prev,&] (Sequence & seq)
-	//Dispatcher().iterate(itp, [&] (std::pair<Sequence,Sequence> & pp)
 
-	//{
-	//	printf("---\n");
-		
-	//	printf("%s  id %i    %s  id %i   \n",seq.getCommentShort().c_str(), seq.getIndex(),
-	//		   				  seq.getCommentShort().c_str(), seq.getIndex());
-		
-		
-	//	printf("%s  id %i \n",seq.getCommentShort().c_str(), seq.getIndex());
-		
-	//	itSeq.next();
-//		if(itSeq.isDone()){
-//			throw Exception("Wrong breakpoint file: odd number of sequences...");
-//		}
-		//printf("%s\n",seq.getCommentShort().c_str());
-
-	//}
-	//					 );
-	
 	//printf("-------- sequential loop ---------\n");
 	// We loop over sequences.
 	/*
