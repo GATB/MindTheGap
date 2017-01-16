@@ -86,6 +86,9 @@ Finder::Finder ()  : Tool ("MindTheGap find")
 
     IOptionsParser* inputParser = new OptionsParser("Input / output");
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
+	inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT_TMP, "prefix for output temporary files", false, "."));
+	
+	
     inputParser->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", false,""));
     inputParser->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
@@ -204,7 +207,7 @@ void Finder::execute ()
 
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
-		getInput()->add(0,STR_URI_OUTPUT_TMP, ".");
+		//getInput()->add(0,STR_URI_OUTPUT_TMP, ".");
         getInput()->add(0,STR_BLOOM_TYPE, "basic"); //neighbor basic cache
         getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //DO NOT use cascading : generates too many FP inside  pas bien car bcp plus de FP non critique au milieur trou
         getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
