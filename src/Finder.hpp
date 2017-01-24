@@ -58,7 +58,9 @@ public:
     // Constructor
     Finder ();
     ~Finder ();
-    
+	
+	void FinderHelp();
+
     const char* _mtg_version;
     size_t _kmerSize;
     Graph _graph;

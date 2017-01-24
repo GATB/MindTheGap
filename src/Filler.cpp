@@ -29,6 +29,17 @@
 // We define some constant strings for names of command line parameters
 static const char* STR_FOO = "-foo";
 
+
+void HelpFiller(void* target)
+{
+	if(target!=NULL)
+	{
+		Filler * obj = (Filler *) target;
+		obj->FillerHelp();
+	}
+}
+
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -48,10 +59,14 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
 	_nb_multiple_fill = 0;
 
 
+	setHelp(&HelpFiller);
+	setHelpTarget(this);
+	
+	
     setParser (new OptionsParser ("MindTheGap fill"));
 
 	IOptionsParser* generalParser = new OptionsParser("General");
-	generalParser->push_front (new OptionNoParam (STR_HELP, "help", false));
+	//generalParser->push_front (new OptionNoParam (STR_HELP, "help", false));
 	// generalParser->push_back (new OptionNoParam (STR_VERSION, "version", false)); // move this option in the main.cpp
 	generalParser->push_front (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
 	generalParser->push_front (new OptionOneParam (STR_MAX_MEMORY, "max memory for graph building (in MBytes)", false, "2000"));
@@ -83,6 +98,17 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     
 }
 
+
+
+void Filler::FillerHelp()
+{
+	cout << endl << "Usage:  MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) -bkpt <breakpoints.fa> [options]" << endl;
+	OptionsHelpVisitor v(cout);
+	getParser()->accept(v);
+	throw Exception(); // to get out with EXIT_FAILURE
+}
+
+
 /*********************************************************************
 ** METHOD  :
 ** PURPOSE :
@@ -94,12 +120,6 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
 void Filler::execute ()
 {
     
-	if (getInput()->get(STR_HELP) != 0){
-		cout << endl << "Usage:  MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) -bkpt <breakpoints.fa> [options]" << endl;
-		OptionsHelpVisitor v(cout);
-		getParser()->accept(v);
-		throw Exception(); // to get out with EXIT_FAILURE
-	}
 
     if ((getInput()->get(STR_URI_GRAPH) != 0 && getInput()->get(STR_URI_INPUT) != 0) || (getInput()->get(STR_URI_GRAPH) == 0 && getInput()->get(STR_URI_INPUT) == 0))
     {
