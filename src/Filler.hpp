@@ -82,6 +82,9 @@ public:
 	
 	string _insert_file_name;
 	FILE * _insert_file;
+	
+	string _insert_info_file_name;
+	FILE * _insert_info_file;
 
     int _max_depth;
     int _max_nodes;
