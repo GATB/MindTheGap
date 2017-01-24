@@ -38,6 +38,16 @@ Finder::~Finder()
     // delete _graph ?
 }
 
+
+
+void HelpFinder(void* target)
+{
+	if(target!=NULL)
+	{
+		Finder * obj = (Finder *) target;
+		obj->FinderHelp();
+	}
+}
 /*********************************************************************
  ** METHOD  :
  ** PURPOSE :
@@ -72,12 +82,15 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _snp = true;
     _backup = false;
     _deletion = true;
-    
+	
+	setHelp(&HelpFinder);
+	setHelpTarget(this);
+	
     // Option parser, with several sub-parsers
     setParser (new OptionsParser ("MindTheGap find"));
 
     IOptionsParser* generalParser = new OptionsParser("General");
-    generalParser->push_front (new OptionNoParam (STR_HELP, "help", false));
+	
     // generalParser->push_back (new OptionNoParam (STR_VERSION, "version", false)); // move this option in the main.cpp
     generalParser->push_front (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
     generalParser->push_front (new OptionOneParam (STR_MAX_MEMORY, "max memory for graph building (in MBytes)", false, "2000"));
@@ -89,7 +102,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
 	inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT_TMP, "prefix for output temporary files", false, "."));
 	
 	
-    inputParser->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", false,""));
+    inputParser->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", true,""));
     inputParser->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
 
@@ -151,6 +164,15 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     
 }
 
+
+void Finder::FinderHelp()
+{
+	cout << endl << "Usage:  MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
+	OptionsHelpVisitor v(cout);
+	getParser()->accept(v);
+	throw Exception(); // to get out with EXIT_FAILURE
+}
+
 /*********************************************************************
  ** METHOD  :
  ** PURPOSE :
@@ -162,12 +184,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
 void Finder::execute ()
 {
     
-    if (getInput()->get(STR_HELP) != 0){
-	cout << endl << "Usage:  MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
-	OptionsHelpVisitor v(cout);
-	getParser()->accept(v);
-	throw Exception(); // to get out with EXIT_FAILURE
-    }
+
 
     // Checks mandatory options
     if ((getInput()->get(STR_URI_GRAPH) != 0 && getInput()->get(STR_URI_INPUT) != 0) || (getInput()->get(STR_URI_GRAPH) == 0 && getInput()->get(STR_URI_INPUT) == 0))

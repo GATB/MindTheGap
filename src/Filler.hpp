@@ -67,7 +67,8 @@ public:
 
     // Constructor
     Filler ();
-	
+	void FillerHelp();
+
 	const char* _mtg_version;
 
 	
