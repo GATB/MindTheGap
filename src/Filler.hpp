@@ -102,12 +102,12 @@ public:
 	//these two func moved to public because need access from functor gapfillerFunctor
 	/** writes a given breakpoint in the output file
 	 */
-	void writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName);
+	void writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring);
 
 	/** Fill one gap
 	 */
 	template<size_t span>
-	void gapFill(int tid,string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences, bool begin_kmer_repeated, bool end_kmer_repeated
+	void gapFill(std::string & infostring,int tid,string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences, bool begin_kmer_repeated, bool end_kmer_repeated
 				 ,bool reversed =false);
 
 	gatb::core::tools::dp::IteratorListener* _progress;

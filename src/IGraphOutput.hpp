@@ -102,7 +102,7 @@ public:
     virtual ~IGraphOutput() {}
 
     /** */
-    void load_nodes_extremities (const std::string& linear_seqs_name);
+    void load_nodes_extremities (const std::string& linear_seqs_name,std::string & infostring);
 
     /** */
     id_els construct_graph (const std::string& linear_seqs_name, const std::string& direction);

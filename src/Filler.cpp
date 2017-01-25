@@ -451,17 +451,17 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	object->_progress->init ();
 	
 	
-	int nb_living=0;
+	//int nb_living=0;
 	
-	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),50);
+	//Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),50);
 
 
 	//printf("-------- sequential loop ---------\n");
 	// We loop over sequences.
-	/*
+	
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
-		
+		string infostring;
 
 		//iterate by pair of sequences (WARNING : no verification same breakpoint id)
 		string sourceSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously L
@@ -494,7 +494,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 			targetSequence.substr(0,object->_kmerSize); //prefix of size _kmerSize
 		}
 
-		object->gapFill<span>(0,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
+		object->gapFill<span>(infostring,0,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
 //		printf("filledseq nb %i \n",filledSequences.size());
 //		printf("filledseq %s \n", (*(filledSequences.begin())).c_str()  );
 		
@@ -502,7 +502,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if(filledSequences.size()==0){
 			string sourceSequence2 = revcomp_sequence(targetSequence);
 			string targetSequence2 = revcomp_sequence(sourceSequence);
-			object->gapFill<span>(0,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
+			object->gapFill<span>(infostring,0,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
 		}
 		
 		//Checks if all sequences are roughly the same :
@@ -522,7 +522,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		
 
 		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
-		object->writeFilledBreakpoint(filledSequences,breakpointName);
+		object->writeFilledBreakpoint(filledSequences,breakpointName,infostring);
 
 		// We increase the breakpoint counter.
 		nbBreakpoints++;
@@ -532,10 +532,8 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if (nbBreakpointsProgressDone > 50)   {  object->_progress->inc (nbBreakpointsProgressDone);  nbBreakpointsProgressDone = 0;  }
 	}
 
-	 */
-	//object->_progress->finish ();
-
-	//object->_nb_breakpoints = nbBreakpoints;
+	object->_progress->finish ();
+	object->_nb_breakpoints = nbBreakpoints;
 
 	cout << "nb breakpoints=" << object->_nb_breakpoints <<endl;
 }
@@ -560,7 +558,7 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 	string contig_graph_file_prefix="contig_graph" + Stringify::format("%i",getpid())  + "_t" + Stringify::format("%i",tid);
 	//std::cout << contig_graph_file_prefix << std::endl;
 	GraphOutputDot<span> graph_output(_kmerSize,contig_graph_file_prefix);
-	graph_output.load_nodes_extremities(contig_file_name);
+	graph_output.load_nodes_extremities(contig_file_name,infostring);
 	graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
 	graph_output.close();
 
@@ -588,6 +586,7 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 	GraphAnalysis graph = GraphAnalysis(graph_output.get_dot_file_name(),_kmerSize);
 	graph.debug = false;
 
+	infostring +=   Stringify::format ("\t%d", terminal_nodes.size()) ;
 	if(terminal_nodes.size()==0)
 	{
 		//if(verb)
@@ -624,7 +623,7 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 
 }
 
-void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName, string info){
+void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName, std::string info){
 	
 	//printf("-- writeFilledBreakpoint --\n");
 	
@@ -694,6 +693,14 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 	funlockfile(_insert_file);
 
 
+	//breakpoint name  info
+	flockfile(_insert_info_file);
+	
+	fprintf(_insert_info_file,"%s\t%s\n",breakpointName.c_str(),info.c_str());
+	
+	funlockfile(_insert_info_file);
+	
+	
 
 }
 
