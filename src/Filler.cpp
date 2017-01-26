@@ -350,6 +350,9 @@ public:
 					_object->gapFill<span>(infostring,_tid,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
 				}
 				
+				infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
+				
 				//Checks if all sequences are roughly the same :
 				if (all_consensuses_almost_identical(filledSequences,90))
 				{
@@ -363,6 +366,9 @@ public:
 				}
 				else
 					;
+				
+				infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
 				//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 				
 				// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
@@ -505,6 +511,8 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 			object->gapFill<span>(infostring,0,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
 		}
 		
+		infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
 		//Checks if all sequences are roughly the same :
 		if (all_consensuses_almost_identical(filledSequences,90))
 		{
@@ -519,7 +527,8 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		else
 			;
 		//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
-		
+		infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
 
 		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
 		object->writeFilledBreakpoint(filledSequences,breakpointName,infostring);
