@@ -237,6 +237,8 @@ void Finder::execute ()
         getInput()->add(0,STR_MINIMIZER_TYPE, "0");
         getInput()->add(0,STR_HISTOGRAM_MAX, "10000");
         getInput()->add(0,STR_KMER_ABUNDANCE_MIN_THRESHOLD,"3");
+        getInput()->add(0,STR_STORAGE_TYPE,"hdf5");
+
         //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //DONOT uncomment this line, otherwise solid kmers are stored in file ./.h5 outside from the considered graph h5 file.
         
         //Warning if kmer size >128 cascading debloom does not work

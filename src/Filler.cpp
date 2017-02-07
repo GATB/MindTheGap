@@ -173,6 +173,7 @@ void Filler::execute ()
         getInput()->add(0,STR_MINIMIZER_TYPE, "0");
         getInput()->add(0,STR_HISTOGRAM_MAX, "10000");
         getInput()->add(0,STR_KMER_ABUNDANCE_MIN_THRESHOLD,"3");
+        getInput()->add(0,STR_STORAGE_TYPE,"hdf5");
         //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //surtout ne pas decommenter cette ligne, sinon les kmers solids sont stockes dans le fichier ./.h5 et les infos ne sont plus dans le output.h5
         
         //Warning if kmer size >128 cascading debloom does not work
