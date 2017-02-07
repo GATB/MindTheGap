@@ -51,7 +51,7 @@ IGraphOutput<span>::IGraphOutput (size_t kmerSize, const string& prefix)
 ** REMARKS :
 *********************************************************************/
 template<size_t span>
-void IGraphOutput<span>::load_nodes_extremities (const string& linear_seqs_name)
+void IGraphOutput<span>::load_nodes_extremities (const string& linear_seqs_name,std::string & infostring)
 {
     kmer_links.clear();
 
@@ -59,7 +59,7 @@ void IGraphOutput<span>::load_nodes_extremities (const string& linear_seqs_name)
     IBank* Nodes = Bank::open (linear_seqs_name);    LOCAL (Nodes);
 
     long nb_nodes = first_id_els.node;
-
+	long totalnt =0;
     DEBUG (("[GraphOutput::load_nodes_extremities]  kmerSize=%ld  name=%s\n", _modelKmerMinusOne.getKmerSize(), linear_seqs_name.c_str()));
 
     Iterator<Sequence>* itSeq = Nodes->iterator();   LOCAL (itSeq);
@@ -67,7 +67,7 @@ void IGraphOutput<span>::load_nodes_extremities (const string& linear_seqs_name)
     {
         char* rseq    = itSeq->item().getDataBuffer();
         int   readlen = itSeq->item().getDataSize();
-
+		totalnt  += readlen;
         DEBUG (("[GraphOutput::load_nodes_extremities]  seq.size=%ld\n", readlen));
 
         ModelKmer leftKmer  = _modelKmerMinusOne.codeSeed (rseq, Data::ASCII, 0);
@@ -78,7 +78,10 @@ void IGraphOutput<span>::load_nodes_extremities (const string& linear_seqs_name)
 
         nb_nodes++;
     }
-
+	
+	infostring +=  Stringify::format ("\t%i", nb_nodes) ;
+	infostring +=  Stringify::format ("\t%i", totalnt) ;
+	
     DEBUG (("[GraphOutput::load_nodes_extremities]  nbNodes=%ld\n", nb_nodes));
 }
 
