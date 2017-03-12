@@ -27,7 +27,7 @@
 /********************************************************************************/
 
 // We define some constant strings for names of command line parameters
-static const char* STR_FOO = "-foo";
+//static const char* STR_FOO = "-foo";
 
 
 void HelpFiller(void* target)
@@ -166,7 +166,7 @@ void Filler::execute ()
         getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_INTEGER_PRECISION, "0");
-        getInput()->add(0,STR_MPHF_TYPE, "none");
+       // getInput()->add(0,STR_MPHF_TYPE, "none");
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_MINIMIZER_SIZE, "8");
         getInput()->add(0,STR_REPARTITION_TYPE, "0");
@@ -193,6 +193,9 @@ void Filler::execute ()
         _graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
         _kmerSize = _graph.getKmerSize();
     }
+
+	//retrieve storage
+	 _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_OUTPUT)+".h5");
 
 	
 	_insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.fasta";
@@ -234,7 +237,7 @@ void Filler::execute ()
 	
     //getInfo()->add(1,"version",getVersion());
 	getInfo()->add(1,"version",_mtg_version);
-	getInfo()->add(1,"gatb-core-library",STR_LIBRARY_VERSION);
+	getInfo()->add(1,"gatb-core-library",System::info().getVersion().c_str());
 	getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
 	
     //getInfo()->add (1, &LibraryInfo::getInfo());
@@ -331,7 +334,7 @@ public:
 				
 				//Initialize set of filled sequences
 				set<filled_insertion_t> filledSequences;
-				
+				std::vector<filled_insertion_t> filledSequences_vec; //todo
 				// Resize to kmer-size :
 				if(sourceSequence.size()> _object->_kmerSize ){
 					sourceSequence.substr(sourceSequence.size()- _object->_kmerSize,_object->_kmerSize); //suffix of size _kmerSize
@@ -372,7 +375,7 @@ public:
 				//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 				
 				// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
-				_object->writeFilledBreakpoint(filledSequences,breakpointName,infostring);
+				_object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
 				
 				// We increase the breakpoint counter.
 				_nb_breakpoints++;
@@ -432,16 +435,55 @@ private:
 };
 
 
+template<size_t span>
+struct Count2TypeAdaptor  {  typename Kmer<span>::Type& operator() (typename Kmer<span>::Count& c)  { return c.value; }  };
+
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
 void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 {
 	//TODO count the number of filled insertions (in an attribute of class Filler), to output results in resumeResults()
 
+	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
+	//typedef typename gatb::core::kmer::impl::Kmer<span>::Type  Type;
+
+	
+	//retrieve mphf
+	
+	typedef typename Kmer<span>::Count Count;
+	typedef typename Kmer<span>::Type  Type;
+	
+	/** We get the dsk group in the storage. */
+	Group& dskGroup = object->_storage->getGroup("dsk");
+	
+	/** We get the iterable for the solid counts and solid kmers. */
+	Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
+	Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
+	
+	MPHFAlgorithm<span> mphf_algo (
+								   dskGroup,
+								   "mphf",
+								   solidCounts,
+								   solidKmers,
+								   1,  // loading using 1 thread
+								   false  /* build=true, load=false */
+								   );
+	
+	typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
+
+	AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
+	//data.setAbundance (mphf_algo.getAbundanceMap());
+	//data.setNodeState (mphf_algo.getNodeStateMap());
+	//data.setAdjacency (mphf_algo.getAdjacencyMap());
+
+	
+	
+	
 	// We create an iterator over the breakpoint bank.
 	BankFasta::Iterator itSeq (*object->_breakpointBank);
 
 	
+
 
 	int nbBreakpoints=0;
 
@@ -490,7 +532,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		
 		//Initialize set of filled sequences
 		set<filled_insertion_t> filledSequences;
-
+		std::vector<filled_insertion_t> filledSequences_vec;
 		// Resize to kmer-size :
 		if(sourceSequence.size()>object->_kmerSize){
 			sourceSequence.substr(sourceSequence.size()-object->_kmerSize,object->_kmerSize); //suffix of size _kmerSize
@@ -529,9 +571,41 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 		infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
-
+/////////compute coverage of filed sequences
+		ModelCanonical model (object->_kmerSize);
+		for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+		{
+			
+		    typename ModelCanonical::Iterator itk (model);
+			Data data ((char*)it->seq.c_str());
+			itk.setData (data);
+			std::vector<unsigned int> vec_abundances;
+			// We iterate the kmers of this seq
+			u_int64_t sum = 0;
+			int nbkmers =0;
+			
+			for (itk.first(); !itk.isDone(); itk.next())
+			{
+				u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
+				unsigned int cov = abundancemap->at(raw_kmerval);
+				sum+= cov; nbkmers++;
+	
+				vec_abundances.push_back(cov);
+//				std::cout << "kmer " << model.toString(it->value()) << ",  value " << it->value() << std::endl;
+				
+			}
+			
+			filled_insertion_t current_insertion = *it;
+			current_insertion.median_coverage = median(vec_abundances);
+			current_insertion.avg_coverage  = sum /(float) nbkmers;
+			//creating vector because cannot modify elem in set filledSequences.. why was it a set and not a vector ?
+			filledSequences_vec.push_back(current_insertion);
+			//compute median
+		}
+		/////////////////////////////
+		
 		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
-		object->writeFilledBreakpoint(filledSequences,breakpointName,infostring);
+		object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
 
 		// We increase the breakpoint counter.
 		nbBreakpoints++;
@@ -632,7 +706,7 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 
 }
 
-void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName, std::string info){
+void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string info){
 	
 	//printf("-- writeFilledBreakpoint --\n");
 	
@@ -643,7 +717,7 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 	int nbInsertions = 0;
 	int nbTotalInsertions = 0;
 
-	for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+	for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 	{
 		string insertion = it->seq;
 		int llen = insertion.length() ;
@@ -651,7 +725,7 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 	}
 	
 	
-	for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+	for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 	{
 		string insertion = it->seq;
 		int llen = insertion.length() ;// - (int) R.length() - (int) L.length() - 2*hetmode;
@@ -683,7 +757,9 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 			//const char * end_header = strstr(breakpointName.c_str(), "kmer_");
 
 			// bkpt%i insertion_len_%d_%s
-			fprintf(_insert_file,">%s_len_%d_qual_%i   %s\n",breakpointName.c_str(),llen,qual,solu_i.c_str());
+			fprintf(_insert_file,">%s_len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
+					breakpointName.c_str(),llen,qual,solu_i.c_str()
+					,it->avg_coverage,it->median_coverage);
 
 			//fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
 			//todo check  revcomp here

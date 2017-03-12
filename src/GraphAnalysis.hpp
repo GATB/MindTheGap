@@ -21,13 +21,9 @@
 
 
 //USE_NEW_CXX variable defined in CMakeList.txt of gatb-core : depending on the compil version unordered_map is not in the same location...
-#ifdef USE_NEW_CXX 
-    #include <unordered_map>
-    #define NS_TR1_PREFIX std
-#else
-    #include <tr1/unordered_map>
-	#define NS_TR1_PREFIX std::tr1
-#endif
+#include <unordered_map>
+#define NS_TR1_PREFIX std
+
 
 #include <set>
 #include <vector>

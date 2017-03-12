@@ -24,7 +24,6 @@
 #include <gatb/gatb_core.hpp>
 /********************************************************************************/
 
-#ifdef USE_NEW_CXX 
     #include <unordered_map>
     #include <functional>
 
@@ -32,15 +31,7 @@
     #define NS_TR1_END
 
     #define NS_TR1_PREFIX std
-#else
-    #include <tr1/unordered_map>
-    #include <tr1/functional>
 
-    #define NS_TR1_BEGIN  namespace tr1  {
-    #define NS_TR1_END    }
-
-    #define NS_TR1_PREFIX std::tr1
-#endif
 
 /********************************************************************************/
 

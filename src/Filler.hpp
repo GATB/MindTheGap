@@ -63,6 +63,8 @@ public:
 class Filler : public Tool
 {
 
+
+	
 public:
 
     // Constructor
@@ -79,6 +81,8 @@ public:
     int _nb_breakpoints;
 	int _nb_filled_breakpoints;
 	int _nb_multiple_fill;
+
+	Storage* _storage;
 
 	
 	string _insert_file_name;
@@ -102,7 +106,7 @@ public:
 	//these two func moved to public because need access from functor gapfillerFunctor
 	/** writes a given breakpoint in the output file
 	 */
-	void writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring);
+	void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring);
 
 	/** Fill one gap
 	 */
