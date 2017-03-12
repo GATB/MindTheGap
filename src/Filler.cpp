@@ -196,7 +196,7 @@ void Filler::execute ()
     }
 
 	//retrieve storage
-	 _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_OUTPUT)+".h5");
+	 _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_GRAPH));
 
 	
 	_insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.fasta";
@@ -455,10 +455,13 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	typedef typename Kmer<span>::Type  Type;
 	
 	/** We get the dsk group in the storage. */
+
 	Group& dskGroup = object->_storage->getGroup("dsk");
-	
+
 	/** We get the iterable for the solid counts and solid kmers. */
+	
 	Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
+
 	Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
 	
 	MPHFAlgorithm<span> mphf_algo (
@@ -467,15 +470,13 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 								   solidCounts,
 								   solidKmers,
 								   1,  // loading using 1 thread
-								   false  /* build=true, load=false */
+								   false  // build=true, load=false
 								   );
-	
 	typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
 
 	AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
-	//data.setAbundance (mphf_algo.getAbundanceMap());
-	//data.setNodeState (mphf_algo.getNodeStateMap());
-	//data.setAdjacency (mphf_algo.getAdjacencyMap());
+	
+	
 
 	
 	
@@ -512,9 +513,10 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	{
 		string infostring;
 
+		string seedk;
 		//iterate by pair of sequences (WARNING : no verification same breakpoint id)
 		string sourceSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously L
-
+		seedk = sourceSequence;
 		string breakpointName = string(itSeq->getCommentShort());
 
 		bool begin_kmer_repeated = itSeq->getComment().find("REPEATED") !=  std::string::npos;
@@ -551,6 +553,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if(filledSequences.size()==0){
 			string sourceSequence2 = revcomp_sequence(targetSequence);
 			string targetSequence2 = revcomp_sequence(sourceSequence);
+			seedk = sourceSequence2;
 			object->gapFill<span>(infostring,0,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
 		}
 		
@@ -572,38 +575,41 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 		infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
-/////////compute coverage of filed sequences
+		
+		/////////compute coverage of filled sequences
 		ModelCanonical model (object->_kmerSize);
 		for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 		{
-			
 		    typename ModelCanonical::Iterator itk (model);
-			Data data ((char*)it->seq.c_str());
+			std::string cseq = seedk + it->seq;
+			Data data ((char*)cseq.c_str());
+
 			itk.setData (data);
 			std::vector<unsigned int> vec_abundances;
 			// We iterate the kmers of this seq
+
 			u_int64_t sum = 0;
 			int nbkmers =0;
 			
 			for (itk.first(); !itk.isDone(); itk.next())
 			{
-				u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
-				unsigned int cov = abundancemap->at(raw_kmerval);
+				//u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
+				unsigned int cov =  (*abundancemap)[itk->value()];
 				sum+= cov; nbkmers++;
-	
 				vec_abundances.push_back(cov);
-//				std::cout << "kmer " << model.toString(it->value()) << ",  value " << it->value() << std::endl;
-				
 			}
 			
 			filled_insertion_t current_insertion = *it;
+
 			current_insertion.median_coverage = median(vec_abundances);
 			current_insertion.avg_coverage  = sum /(float) nbkmers;
+
 			//creating vector because cannot modify elem in set filledSequences.. why was it a set and not a vector ?
 			filledSequences_vec.push_back(current_insertion);
-			//compute median
 		}
 		/////////////////////////////
+		
+		
 		
 		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
 		object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
