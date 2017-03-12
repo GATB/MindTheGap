@@ -173,6 +173,7 @@ void Filler::execute ()
         getInput()->add(0,STR_MINIMIZER_TYPE, "0");
         getInput()->add(0,STR_HISTOGRAM_MAX, "10000");
         getInput()->add(0,STR_KMER_ABUNDANCE_MIN_THRESHOLD,"3");
+        getInput()->add(0,STR_STORAGE_TYPE,"hdf5");
         //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //surtout ne pas decommenter cette ligne, sinon les kmers solids sont stockes dans le fichier ./.h5 et les infos ne sont plus dans le output.h5
         
         //Warning if kmer size >128 cascading debloom does not work
@@ -632,13 +633,18 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 	//todo check param dontOutputFirstNucl=false ??
 	// todo put these two above lines in fillBreakpoints and pass object extension in param
 
+	string rev_str=""; //used to have distinct contig file names for forward and reverse extension (usefull if investigating one breakpoint and code lines with remove command are commented)
+	if(reversed){
+		rev_str="_rev";
+	}
+
 	//Build contigs and output them in a file in fasta format
-	string contig_file_name = "contigs.fasta" + Stringify::format("%i",getpid()) + "_t" + Stringify::format("%i",tid);
+	string contig_file_name = "contigs.fasta" +rev_str+ Stringify::format("%i",getpid()) + "_t" + Stringify::format("%i",tid);
 	extension.construct_linear_seqs(sourceSequence,targetSequence,contig_file_name,false); //last param : swf=stopWhenFound
 	//std::cout << contig_file_name << std::endl;
 
     // connect the contigs into a graph
-	string contig_graph_file_prefix="contig_graph" + Stringify::format("%i",getpid())  + "_t" + Stringify::format("%i",tid);
+	string contig_graph_file_prefix="contig_graph" +rev_str+ Stringify::format("%i",getpid())  + "_t" + Stringify::format("%i",tid);
 	//std::cout << contig_graph_file_prefix << std::endl;
 	GraphOutputDot<span> graph_output(_kmerSize,contig_graph_file_prefix);
 	graph_output.load_nodes_extremities(contig_file_name,infostring);
