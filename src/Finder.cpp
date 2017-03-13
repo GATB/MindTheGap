@@ -230,7 +230,7 @@ void Finder::execute ()
         getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_INTEGER_PRECISION, "0");
-        getInput()->add(0,STR_MPHF_TYPE, "none");
+      //  getInput()->add(0,STR_MPHF_TYPE, "none");
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_MINIMIZER_SIZE, "8");
         getInput()->add(0,STR_REPARTITION_TYPE, "0");
@@ -385,7 +385,7 @@ void Finder::execute ()
 
     // Printing result informations (ie. add info to getInfo(), in Tool Info is printed automatically after end of execute() method
     getInfo()->add(1,"version",_mtg_version);
-    getInfo()->add(1,"gatb-core-library",STR_LIBRARY_VERSION);
+    getInfo()->add(1,"gatb-core-library",System::info().getVersion().c_str());
     getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
     //getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();

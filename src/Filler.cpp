@@ -27,7 +27,7 @@
 /********************************************************************************/
 
 // We define some constant strings for names of command line parameters
-static const char* STR_FOO = "-foo";
+//static const char* STR_FOO = "-foo";
 
 
 void HelpFiller(void* target)
@@ -166,7 +166,7 @@ void Filler::execute ()
         getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_INTEGER_PRECISION, "0");
-        getInput()->add(0,STR_MPHF_TYPE, "none");
+       // getInput()->add(0,STR_MPHF_TYPE, "none");
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_MINIMIZER_SIZE, "8");
         getInput()->add(0,STR_REPARTITION_TYPE, "0");
@@ -195,6 +195,9 @@ void Filler::execute ()
         _kmerSize = _graph.getKmerSize();
     }
 
+	//retrieve storage
+	 _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_GRAPH));
+
 	
 	_insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.fasta";
 	_insert_file = fopen(_insert_file_name.c_str(), "w");
@@ -202,6 +205,14 @@ void Filler::execute ()
 		string message = "Cannot open file "+ _insert_file_name + " for writting";
 		throw Exception(message.c_str());
 	}
+	
+	_insert_info_file_name = getInput()->getStr(STR_URI_OUTPUT)+".info.txt";
+	_insert_info_file = fopen(_insert_info_file_name.c_str(), "w");
+	if(_insert_info_file == NULL){
+		string message = "Cannot open file "+ _insert_info_file_name + " for writting";
+		throw Exception(message.c_str());
+	}
+	
 	
 	
     //Getting the breakpoint sequences
@@ -223,10 +234,11 @@ void Filler::execute ()
     // We gather some statistics.
 
 	fclose(_insert_file);
+	fclose(_insert_info_file);
 	
     //getInfo()->add(1,"version",getVersion());
 	getInfo()->add(1,"version",_mtg_version);
-	getInfo()->add(1,"gatb-core-library",STR_LIBRARY_VERSION);
+	getInfo()->add(1,"gatb-core-library",System::info().getVersion().c_str());
 	getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
 	
     //getInfo()->add (1, &LibraryInfo::getInfo());
@@ -283,6 +295,8 @@ void Filler::resumeResults(double seconds){
 	getInfo()->add(3,"multiple_sequence","%i", _nb_multiple_fill);
 	getInfo()->add(1,"Time", "%.1f s",seconds);
 	getInfo()->add(1,"Output file","%s",_insert_file_name.c_str());
+	getInfo()->add(1,"Output file info","%s",_insert_info_file_name.c_str());
+	
 
 }
 
@@ -308,6 +322,8 @@ public:
 				string sourceSequence =  string(_previousSeq.getDataBuffer(),_previousSeq.getDataSize());//previously L
 				string breakpointName = string(_previousSeq.getCommentShort());
 				
+				string infostring;
+				
 				bool begin_kmer_repeated = _previousSeq.getComment().find("REPEATED") !=  std::string::npos;
 				
 				
@@ -319,7 +335,7 @@ public:
 				
 				//Initialize set of filled sequences
 				set<filled_insertion_t> filledSequences;
-				
+				std::vector<filled_insertion_t> filledSequences_vec; //todo
 				// Resize to kmer-size :
 				if(sourceSequence.size()> _object->_kmerSize ){
 					sourceSequence.substr(sourceSequence.size()- _object->_kmerSize,_object->_kmerSize); //suffix of size _kmerSize
@@ -329,14 +345,17 @@ public:
 					targetSequence.substr(0,_object->_kmerSize); //prefix of size _kmerSize
 				}
 				
-				_object->gapFill<span>(_tid,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
+				_object->gapFill<span>(infostring,_tid,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
 				
 				//Can be modified : could do in reverse mode even if filledSequences is not empty (new filled sequences are inserted into the set : to verify)
 				if(filledSequences.size()==0){
 					string sourceSequence2 = revcomp_sequence(targetSequence);
 					string targetSequence2 = revcomp_sequence(sourceSequence);
-					_object->gapFill<span>(_tid,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
+					_object->gapFill<span>(infostring,_tid,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
 				}
+				
+				infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
 				
 				//Checks if all sequences are roughly the same :
 				if (all_consensuses_almost_identical(filledSequences,90))
@@ -351,10 +370,13 @@ public:
 				}
 				else
 					;
+				
+				infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
 				//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 				
 				// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
-				_object->writeFilledBreakpoint(filledSequences,breakpointName);
+				_object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
 				
 				// We increase the breakpoint counter.
 				_nb_breakpoints++;
@@ -414,16 +436,56 @@ private:
 };
 
 
+template<size_t span>
+struct Count2TypeAdaptor  {  typename Kmer<span>::Type& operator() (typename Kmer<span>::Count& c)  { return c.value; }  };
+
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
 void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 {
 	//TODO count the number of filled insertions (in an attribute of class Filler), to output results in resumeResults()
 
+	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
+	//typedef typename gatb::core::kmer::impl::Kmer<span>::Type  Type;
+
+	
+	//retrieve mphf
+	
+	typedef typename Kmer<span>::Count Count;
+	typedef typename Kmer<span>::Type  Type;
+	
+	/** We get the dsk group in the storage. */
+
+	Group& dskGroup = object->_storage->getGroup("dsk");
+
+	/** We get the iterable for the solid counts and solid kmers. */
+	
+	Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
+
+	Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
+	
+	MPHFAlgorithm<span> mphf_algo (
+								   dskGroup,
+								   "mphf",
+								   solidCounts,
+								   solidKmers,
+								   1,  // loading using 1 thread
+								   false  // build=true, load=false
+								   );
+	typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
+
+	AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
+	
+	
+
+	
+	
+	
 	// We create an iterator over the breakpoint bank.
 	BankFasta::Iterator itSeq (*object->_breakpointBank);
 
 	
+
 
 	int nbBreakpoints=0;
 
@@ -439,21 +501,22 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	object->_progress->init ();
 	
 	
-	int nb_living=0;
+	//int nb_living=0;
 	
-	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),50);
+	//Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),50);
 
 
 	//printf("-------- sequential loop ---------\n");
 	// We loop over sequences.
-	/*
+	
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
-		
+		string infostring;
 
+		string seedk;
 		//iterate by pair of sequences (WARNING : no verification same breakpoint id)
 		string sourceSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously L
-
+		seedk = sourceSequence;
 		string breakpointName = string(itSeq->getCommentShort());
 
 		bool begin_kmer_repeated = itSeq->getComment().find("REPEATED") !=  std::string::npos;
@@ -472,7 +535,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		
 		//Initialize set of filled sequences
 		set<filled_insertion_t> filledSequences;
-
+		std::vector<filled_insertion_t> filledSequences_vec;
 		// Resize to kmer-size :
 		if(sourceSequence.size()>object->_kmerSize){
 			sourceSequence.substr(sourceSequence.size()-object->_kmerSize,object->_kmerSize); //suffix of size _kmerSize
@@ -482,7 +545,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 			targetSequence.substr(0,object->_kmerSize); //prefix of size _kmerSize
 		}
 
-		object->gapFill<span>(0,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
+		object->gapFill<span>(infostring,0,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
 //		printf("filledseq nb %i \n",filledSequences.size());
 //		printf("filledseq %s \n", (*(filledSequences.begin())).c_str()  );
 		
@@ -490,9 +553,12 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if(filledSequences.size()==0){
 			string sourceSequence2 = revcomp_sequence(targetSequence);
 			string targetSequence2 = revcomp_sequence(sourceSequence);
-			object->gapFill<span>(0,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
+			seedk = sourceSequence2;
+			object->gapFill<span>(infostring,0,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
 		}
 		
+		infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
 		//Checks if all sequences are roughly the same :
 		if (all_consensuses_almost_identical(filledSequences,90))
 		{
@@ -507,10 +573,46 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		else
 			;
 		//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
-		
+		infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
+		
+		/////////compute coverage of filled sequences
+		ModelCanonical model (object->_kmerSize);
+		for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+		{
+		    typename ModelCanonical::Iterator itk (model);
+			std::string cseq = seedk + it->seq;
+			Data data ((char*)cseq.c_str());
+
+			itk.setData (data);
+			std::vector<unsigned int> vec_abundances;
+			// We iterate the kmers of this seq
+
+			u_int64_t sum = 0;
+			int nbkmers =0;
+			
+			for (itk.first(); !itk.isDone(); itk.next())
+			{
+				//u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
+				unsigned int cov =  (*abundancemap)[itk->value()];
+				sum+= cov; nbkmers++;
+				vec_abundances.push_back(cov);
+			}
+			
+			filled_insertion_t current_insertion = *it;
+
+			current_insertion.median_coverage = median(vec_abundances);
+			current_insertion.avg_coverage  = sum /(float) nbkmers;
+
+			//creating vector because cannot modify elem in set filledSequences.. why was it a set and not a vector ?
+			filledSequences_vec.push_back(current_insertion);
+		}
+		/////////////////////////////
+		
+		
+		
 		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
-		object->writeFilledBreakpoint(filledSequences,breakpointName);
+		object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
 
 		// We increase the breakpoint counter.
 		nbBreakpoints++;
@@ -520,17 +622,15 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		if (nbBreakpointsProgressDone > 50)   {  object->_progress->inc (nbBreakpointsProgressDone);  nbBreakpointsProgressDone = 0;  }
 	}
 
-	 */
-	//object->_progress->finish ();
-
-	//object->_nb_breakpoints = nbBreakpoints;
+	object->_progress->finish ();
+	object->_nb_breakpoints = nbBreakpoints;
 
 	cout << "nb breakpoints=" << object->_nb_breakpoints <<endl;
 }
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
 template<size_t span>
-void Filler::gapFill(int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bool reversed ){
+void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bool reversed ){
 
 
 	//object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
@@ -539,16 +639,21 @@ void Filler::gapFill(int tid, string sourceSequence, string targetSequence, set<
 	//todo check param dontOutputFirstNucl=false ??
 	// todo put these two above lines in fillBreakpoints and pass object extension in param
 
+	string rev_str=""; //used to have distinct contig file names for forward and reverse extension (usefull if investigating one breakpoint and code lines with remove command are commented)
+	if(reversed){
+		rev_str="_rev";
+	}
+
 	//Build contigs and output them in a file in fasta format
-	string contig_file_name = "contigs.fasta" + Stringify::format("%i",getpid()) + "_t" + Stringify::format("%i",tid);
+	string contig_file_name = "contigs.fasta" +rev_str+ Stringify::format("%i",getpid()) + "_t" + Stringify::format("%i",tid);
 	extension.construct_linear_seqs(sourceSequence,targetSequence,contig_file_name,false); //last param : swf=stopWhenFound
 	//std::cout << contig_file_name << std::endl;
 
     // connect the contigs into a graph
-	string contig_graph_file_prefix="contig_graph" + Stringify::format("%i",getpid())  + "_t" + Stringify::format("%i",tid);
+	string contig_graph_file_prefix="contig_graph" +rev_str+ Stringify::format("%i",getpid())  + "_t" + Stringify::format("%i",tid);
 	//std::cout << contig_graph_file_prefix << std::endl;
 	GraphOutputDot<span> graph_output(_kmerSize,contig_graph_file_prefix);
-	graph_output.load_nodes_extremities(contig_file_name);
+	graph_output.load_nodes_extremities(contig_file_name,infostring);
 	graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
 	graph_output.close();
 
@@ -576,6 +681,7 @@ void Filler::gapFill(int tid, string sourceSequence, string targetSequence, set<
 	GraphAnalysis graph = GraphAnalysis(graph_output.get_dot_file_name(),_kmerSize);
 	graph.debug = false;
 
+	infostring +=   Stringify::format ("\t%d", terminal_nodes.size()) ;
 	if(terminal_nodes.size()==0)
 	{
 		//if(verb)
@@ -612,7 +718,7 @@ void Filler::gapFill(int tid, string sourceSequence, string targetSequence, set<
 
 }
 
-void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName){
+void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string info){
 	
 	//printf("-- writeFilledBreakpoint --\n");
 	
@@ -623,7 +729,7 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 	int nbInsertions = 0;
 	int nbTotalInsertions = 0;
 
-	for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+	for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 	{
 		string insertion = it->seq;
 		int llen = insertion.length() ;
@@ -631,7 +737,7 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 	}
 	
 	
-	for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+	for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
 	{
 		string insertion = it->seq;
 		int llen = insertion.length() ;// - (int) R.length() - (int) L.length() - 2*hetmode;
@@ -663,7 +769,9 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 			//const char * end_header = strstr(breakpointName.c_str(), "kmer_");
 
 			// bkpt%i insertion_len_%d_%s
-			fprintf(_insert_file,">%s_len_%d_qual_%i   %s\n",breakpointName.c_str(),llen,qual,solu_i.c_str());
+			fprintf(_insert_file,">%s_len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
+					breakpointName.c_str(),llen,qual,solu_i.c_str()
+					,it->avg_coverage,it->median_coverage);
 
 			//fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
 			//todo check  revcomp here
@@ -682,6 +790,14 @@ void Filler::writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, str
 	funlockfile(_insert_file);
 
 
+	//breakpoint name  info
+	flockfile(_insert_info_file);
+	
+	fprintf(_insert_info_file,"%s\t%s\n",breakpointName.c_str(),info.c_str());
+	
+	funlockfile(_insert_info_file);
+	
+	
 
 }
 

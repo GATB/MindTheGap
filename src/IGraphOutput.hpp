@@ -24,7 +24,6 @@
 #include <gatb/gatb_core.hpp>
 /********************************************************************************/
 
-#ifdef USE_NEW_CXX 
     #include <unordered_map>
     #include <functional>
 
@@ -32,15 +31,7 @@
     #define NS_TR1_END
 
     #define NS_TR1_PREFIX std
-#else
-    #include <tr1/unordered_map>
-    #include <tr1/functional>
 
-    #define NS_TR1_BEGIN  namespace tr1  {
-    #define NS_TR1_END    }
-
-    #define NS_TR1_PREFIX std::tr1
-#endif
 
 /********************************************************************************/
 
@@ -102,7 +93,7 @@ public:
     virtual ~IGraphOutput() {}
 
     /** */
-    void load_nodes_extremities (const std::string& linear_seqs_name);
+    void load_nodes_extremities (const std::string& linear_seqs_name,std::string & infostring);
 
     /** */
     id_els construct_graph (const std::string& linear_seqs_name, const std::string& direction);

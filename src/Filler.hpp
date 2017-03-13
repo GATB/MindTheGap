@@ -63,6 +63,8 @@ public:
 class Filler : public Tool
 {
 
+
+	
 public:
 
     // Constructor
@@ -80,9 +82,14 @@ public:
 	int _nb_filled_breakpoints;
 	int _nb_multiple_fill;
 
+	Storage* _storage;
+
 	
 	string _insert_file_name;
 	FILE * _insert_file;
+	
+	string _insert_info_file_name;
+	FILE * _insert_info_file;
 
     int _max_depth;
     int _max_nodes;
@@ -99,12 +106,12 @@ public:
 	//these two func moved to public because need access from functor gapfillerFunctor
 	/** writes a given breakpoint in the output file
 	 */
-	void writeFilledBreakpoint(set<filled_insertion_t>& filledSequences, string breakpointName);
+	void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring);
 
 	/** Fill one gap
 	 */
 	template<size_t span>
-	void gapFill(int tid,string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences, bool begin_kmer_repeated, bool end_kmer_repeated
+	void gapFill(std::string & infostring,int tid,string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences, bool begin_kmer_repeated, bool end_kmer_repeated
 				 ,bool reversed =false);
 
 	gatb::core::tools::dp::IteratorListener* _progress;

@@ -203,3 +203,19 @@ bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int i
     }
     return true;
 }
+
+
+double median(std::vector<unsigned int> &v)
+{
+	size_t n = v.size() / 2;
+	std::nth_element(v.begin(), v.begin()+n, v.end());
+	unsigned int vn = v[n];
+	if(v.size()%2 == 1)
+	{
+		return vn;
+	}else
+	{
+		std::nth_element(v.begin(), v.begin()+n-1, v.end());
+		return 0.5*(vn+v[n-1]);
+	}
+}

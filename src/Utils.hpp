@@ -24,6 +24,7 @@
 #include <string>
 #include <set>
 #include <stdlib.h>
+#include <vector>
 
 using namespace std;
 
@@ -40,7 +41,10 @@ public:
 	int nb_errors_in_anchor;
 	bool is_anchor_repeated;
 	
+	float avg_coverage;
+	float median_coverage;
 	
+
 	//required to be inserted in std::set
 	bool operator< (const filled_insertion_t & other) const
 	{
@@ -91,6 +95,6 @@ float needleman_wunsch(string a, string b, int * nbmatch,int * nbmis,int * nbgap
  */
 bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int identity_threshold);
 
-
+double median(std::vector<unsigned int> &v);
 
 #endif /* _Utils_HPP_ */
