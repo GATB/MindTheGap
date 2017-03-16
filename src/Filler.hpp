@@ -76,24 +76,32 @@ public:
 	
     size_t _kmerSize;
     Graph _graph;
+
     int _nbCores;
+
     BankFasta* _breakpointBank;
+
+    //to print some statistics at the end
     int _nb_breakpoints;
 	int _nb_filled_breakpoints;
 	int _nb_multiple_fill;
 
+	//useful to compute average abundance of each filled sequence
 	Storage* _storage;
 
-	
+	//output file with filled sequences
 	string _insert_file_name;
 	FILE * _insert_file;
 	
+	//output file with statistics about each attempt of gap-filling
 	string _insert_info_file_name;
 	FILE * _insert_info_file;
 
+	//parameters for dbg traversal (stop criteria)
     int _max_depth;
     int _max_nodes;
 
+    //parameters for looking for the target sequence in the contig graph, with some mismatches and/or gaps
     int _nb_mis_allowed;
     int _nb_gap_allowed;
 
@@ -135,7 +143,7 @@ private:
 
 
     /**
-     * returns the nodes containing the targetSequence
+     * returns the nodes containing the targetSequence (can be an approximate match)
      */
     set< info_node_t >  find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed, bool anchor_is_repeated);
 

@@ -183,6 +183,8 @@ void Filler::execute ()
         
         _graph = Graph::create (getInput());
         _kmerSize = getInput()->getInt(STR_KMER_SIZE);
+    	//retrieve storage of kmer counts to build the emphf and compute abundance of filled sequences (stored in the .h5 newly created file)
+        _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_OUTPUT)+".h5");
         
     }
     
@@ -193,12 +195,12 @@ void Filler::execute ()
         
         _graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
         _kmerSize = _graph.getKmerSize();
+    	//retrieve storage of kmer counts to build the emphf and compute abundance of filled sequences
+        _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_GRAPH));
     }
 
-	//retrieve storage
-	 _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_GRAPH));
-
 	
+    // Output file names
 	_insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.fasta";
 	_insert_file = fopen(_insert_file_name.c_str(), "w");
 	if(_insert_file == NULL){
@@ -228,21 +230,22 @@ void Filler::execute ()
     // According to the kmer size,  we call one fillBreakpoints method.
     Integer::apply<fillBreakpoints,Filler*> (_kmerSize, this);
     time_t end_time = time(0);
-    double seconds=difftime(end_time,start_time);
 
-    //cout << "in MTG Fill" <<endl;
-    // We gather some statistics.
-
+    //job is done, closing the output files
 	fclose(_insert_file);
 	fclose(_insert_info_file);
 	
+    // We gather some info/statistics to print in stdout
+
     //getInfo()->add(1,"version",getVersion());
 	getInfo()->add(1,"version",_mtg_version);
 	getInfo()->add(1,"gatb-core-library",System::info().getVersion().c_str());
 	getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
-	
-    //getInfo()->add (1, &LibraryInfo::getInfo());
-    resumeParameters();
+	//getInfo()->add (1, &LibraryInfo::getInfo());
+
+	resumeParameters();
+
+    double seconds=difftime(end_time,start_time);
     resumeResults(seconds);
 }
 
@@ -287,6 +290,7 @@ void Filler::resumeParameters(){
 }
 
 void Filler::resumeResults(double seconds){
+
 	getInfo()->add(0,"Results");
 	getInfo()->add(1,"Breakpoints");
 	getInfo()->add(2,"nb_input","%i", _nb_breakpoints);
@@ -297,7 +301,6 @@ void Filler::resumeResults(double seconds){
 	getInfo()->add(1,"Output file","%s",_insert_file_name.c_str());
 	getInfo()->add(1,"Output file info","%s",_insert_info_file_name.c_str());
 	
-
 }
 
 
@@ -443,13 +446,11 @@ struct Count2TypeAdaptor  {  typename Kmer<span>::Type& operator() (typename Kme
 template<size_t span>
 void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 {
-	//TODO count the number of filled insertions (in an attribute of class Filler), to output results in resumeResults()
+
+	//retrieve the AbundanceMap : mphf with the abundance for each kmer
 
 	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
 	//typedef typename gatb::core::kmer::impl::Kmer<span>::Type  Type;
-
-	
-	//retrieve mphf
 	
 	typedef typename Kmer<span>::Count Count;
 	typedef typename Kmer<span>::Type  Type;
@@ -476,20 +477,17 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 	AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
 	
+	//end mphf stuffs
 	
 
-	
-	
 	
 	// We create an iterator over the breakpoint bank.
 	BankFasta::Iterator itSeq (*object->_breakpointBank);
 
-	
-
-
+	//init the breakpoint counter
 	int nbBreakpoints=0;
 
-	
+
 	
 	u_int64_t nbBreakpointsEstimated = object->_breakpointBank->estimateNbItems()  / 2 ;  // 2 seq per breakpoint
 	u_int64_t nbBreakpointsProgressDone = 0;
@@ -507,13 +505,14 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
 
 	//printf("-------- sequential loop ---------\n");
+
 	// We loop over sequences.
-	
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
-		string infostring;
+		string infostring; //to store statistics of the gap-filling : size of the graph, cumulated length of contigs, number of filled sequences, etc.
 
-		string seedk;
+		string seedk;//usefull for coverage info
+
 		//iterate by pair of sequences (WARNING : no verification same breakpoint id)
 		string sourceSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously L
 		seedk = sourceSequence;
@@ -536,6 +535,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		//Initialize set of filled sequences
 		set<filled_insertion_t> filledSequences;
 		std::vector<filled_insertion_t> filledSequences_vec;
+
 		// Resize to kmer-size :
 		if(sourceSequence.size()>object->_kmerSize){
 			sourceSequence.substr(sourceSequence.size()-object->_kmerSize,object->_kmerSize); //suffix of size _kmerSize
@@ -546,8 +546,9 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		}
 
 		object->gapFill<span>(infostring,0,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
-//		printf("filledseq nb %i \n",filledSequences.size());
-//		printf("filledseq %s \n", (*(filledSequences.begin())).c_str()  );
+
+		//		printf("filledseq nb %i \n",filledSequences.size());
+		//		printf("filledseq %s \n", (*(filledSequences.begin())).c_str()  );
 		
 		//Can be modified : could do in reverse mode even if filledSequences is not empty (new filled sequences are inserted into the set : to verify)
 		if(filledSequences.size()==0){
@@ -610,8 +611,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		/////////////////////////////
 		
 		
-		
-		// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
+		//write the results into output files
 		object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
 
 		// We increase the breakpoint counter.
@@ -625,7 +625,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	object->_progress->finish ();
 	object->_nb_breakpoints = nbBreakpoints;
 
-	cout << "nb breakpoints=" << object->_nb_breakpoints <<endl;
+	//cout << "nb breakpoints=" << object->_nb_breakpoints <<endl;
 }
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
@@ -639,30 +639,32 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 	//todo check param dontOutputFirstNucl=false ??
 	// todo put these two above lines in fillBreakpoints and pass object extension in param
 
+	//prepare temporary file names
 	string rev_str=""; //used to have distinct contig file names for forward and reverse extension (usefull if investigating one breakpoint and code lines with remove command are commented)
 	if(reversed){
 		rev_str="_rev";
 	}
+	string file_name_suffix=rev_str+ Stringify::format("%i",getpid()) + "_t" + Stringify::format("%i",tid); //to have unique file names when breakpoints are treated in parallel
+	string contig_file_name = "contigs.fasta" + file_name_suffix;
+	string contig_graph_file_prefix="contig_graph" + file_name_suffix;
+	//std::cout << contig_file_name << std::endl;
+	//std::cout << contig_graph_file_prefix << std::endl;
+
 
 	//Build contigs and output them in a file in fasta format
-	string contig_file_name = "contigs.fasta" +rev_str+ Stringify::format("%i",getpid()) + "_t" + Stringify::format("%i",tid);
 	extension.construct_linear_seqs(sourceSequence,targetSequence,contig_file_name,false); //last param : swf=stopWhenFound
-	//std::cout << contig_file_name << std::endl;
 
-    // connect the contigs into a graph
-	string contig_graph_file_prefix="contig_graph" +rev_str+ Stringify::format("%i",getpid())  + "_t" + Stringify::format("%i",tid);
-	//std::cout << contig_graph_file_prefix << std::endl;
+    // connect the contigs into a graph and write the resulting graph in a temporary file
 	GraphOutputDot<span> graph_output(_kmerSize,contig_graph_file_prefix);
 	graph_output.load_nodes_extremities(contig_file_name,infostring);
 	graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
 	graph_output.close();
 
+	//find targetSequence in nodes of the contig graph
 	int nb_mis_allowed = _nb_mis_allowed;
 	if(begin_kmer_repeated || end_kmer_repeated)
 		nb_mis_allowed=0;
-	
 	//printf("nb_mis_allowed %i \n",nb_mis_allowed);
-	//find targetSequence in nodes of the contig graph
 	set< info_node_t > terminal_nodes_with_endpos = find_nodes_containing_R(targetSequence, contig_file_name, nb_mis_allowed, _nb_gap_allowed, begin_kmer_repeated || end_kmer_repeated);
 	
 
@@ -697,6 +699,7 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 	//now this func also cuts the last node just before the beginning of the right anchor
 	set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
 	
+	//if reversed, reverse-complement each filled sequence
 	if(reversed)
 	{
 		set<filled_insertion_t>::iterator its;
@@ -708,8 +711,6 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 		return;
 	}
 		
-	
-
 	filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
 
 
