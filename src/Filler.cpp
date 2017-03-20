@@ -547,7 +547,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	
 	int nb_living=0;
 	
-	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap),50);
+	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap),100);
 
 
 	//printf("-------- sequential loop ---------\n");
