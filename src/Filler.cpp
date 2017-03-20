@@ -387,7 +387,7 @@ public:
 
 				//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 				
-				/*
+				
 				/////////compute coverage of filled sequences
 				ModelCanonical model (_object->_kmerSize);
 				for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
@@ -420,7 +420,7 @@ public:
 					filledSequences_vec.push_back(current_insertion);
 				}
 				/////////////////////////////
-				*/
+				
 				
 				
 				// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
@@ -672,7 +672,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	}
 */
 	object->_progress->finish ();
-	object->_nb_breakpoints = nbBreakpoints;
+	object->_nb_breakpoints = object->_nb_breakpoints ;//nbBreakpoints;
 
 	//cout << "nb breakpoints=" << object->_nb_breakpoints <<endl;
 }
