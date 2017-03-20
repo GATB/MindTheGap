@@ -390,11 +390,6 @@ void Finder::execute ()
     //getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
     resumeResults(seconds);
-	printf("Launch second phase with this command:\n");
-	if (getInput()->get(STR_URI_GRAPH) != 0)
-		printf("MindTheGap fill -graph %s -bkpt \n",getInput()->getStr(STR_URI_GRAPH).c_str(),_breakpoint_file_name.c_str());
-	else
-		printf("MindTheGap fill -graph %s -bkpt \n",getInput()->getStr(STR_URI_OUTPUT).c_str(),_breakpoint_file_name.c_str());
 }
 
 void Finder::resumeParameters(){

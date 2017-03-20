@@ -24,6 +24,7 @@
 #include <limits> // for numeric_limits
 
 #define PRINT_DEBUG
+#define PARALL
 /********************************************************************************/
 
 // We define some constant strings for names of command line parameters
@@ -545,17 +546,18 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	object->_progress->init ();
 	
 	
+#ifdef PARALL
 	int nb_living=0;
 	
 	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap),100);
 
+	object->_nb_breakpoints = object->_nb_breakpoints ;
+
+#else
 
 	//printf("-------- sequential loop ---------\n");
 
 	// We loop over sequences.
-
-	
-	/*
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
 		string infostring; //to store statistics of the gap-filling : size of the graph, cumulated length of contigs, number of filled sequences, etc.
@@ -670,9 +672,10 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		nbBreakpointsProgressDone++;
 		if (nbBreakpointsProgressDone > 50)   {  object->_progress->inc (nbBreakpointsProgressDone);  nbBreakpointsProgressDone = 0;  }
 	}
-*/
+	object->_nb_breakpoints = nbBreakpoints;
+
+#endif
 	object->_progress->finish ();
-	object->_nb_breakpoints = object->_nb_breakpoints ;//nbBreakpoints;
 
 	//cout << "nb breakpoints=" << object->_nb_breakpoints <<endl;
 }
