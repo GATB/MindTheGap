@@ -307,6 +307,13 @@ void Filler::resumeResults(double seconds){
 template<size_t span>
 class gapfillerFunctor
 {
+	
+	typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
+	typedef typename Kmer<span>::Count Count;
+	typedef typename Kmer<span>::Type  Type;
+	typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
+
+	
 public:
 	void operator() (Sequence& sequence)
 	{
@@ -323,6 +330,8 @@ public:
 			{
 				
 				string sourceSequence =  string(_previousSeq.getDataBuffer(),_previousSeq.getDataSize());//previously L
+				string seedk = sourceSequence; //used for voerage computation
+
 				string breakpointName = string(_previousSeq.getCommentShort());
 				
 				string infostring;
@@ -378,6 +387,42 @@ public:
 
 				//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 				
+				/*
+				/////////compute coverage of filled sequences
+				ModelCanonical model (_object->_kmerSize);
+				for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+				{
+					typename ModelCanonical::Iterator itk (model);
+					std::string cseq = seedk + it->seq;
+					Data data ((char*)cseq.c_str());
+					
+					itk.setData (data);
+					std::vector<unsigned int> vec_abundances;
+					// We iterate the kmers of this seq
+					
+					u_int64_t sum = 0;
+					int nbkmers =0;
+					
+					for (itk.first(); !itk.isDone(); itk.next())
+					{
+						//u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
+						unsigned int cov =  (*_abundancemap)[itk->value()];
+						sum+= cov; nbkmers++;
+						vec_abundances.push_back(cov);
+					}
+					
+					filled_insertion_t current_insertion = *it;
+					
+					current_insertion.median_coverage = median(vec_abundances);
+					current_insertion.avg_coverage  = sum /(float) nbkmers;
+					
+					//creating vector because cannot modify elem in set filledSequences.. why was it a set and not a vector ?
+					filledSequences_vec.push_back(current_insertion);
+				}
+				/////////////////////////////
+				*/
+				
+				
 				// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
 				_object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
 				
@@ -398,7 +443,7 @@ public:
 	}
 	
 	//constructor
-	gapfillerFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints) : _object(object),_global_nb_breakpoints(global_nb_breakpoints)
+	gapfillerFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints, AbundanceMap* abundancemap) : _object(object),_global_nb_breakpoints(global_nb_breakpoints),_abundancemap(abundancemap)
 	{
 	//	_progress = progress;
 		_nb_living =nb_living;
@@ -416,6 +461,7 @@ public:
 	//	_progress = r._progress;
 		_nb_breakpoints = 0;
 		_tid =  __sync_fetch_and_add (_nb_living, 1);
+		_abundancemap = r._abundancemap;
 
 	//	printf("CC creating thread id %i \n",_tid);
 
@@ -432,6 +478,7 @@ private:
 	int _nb_breakpoints;
 	int * _global_nb_breakpoints;
 	int * _nb_living;
+	AbundanceMap* _abundancemap;
 	//gatb::core::tools::dp::IteratorListener* _progress;
 	Sequence _previousSeq;
 	u_int64_t _nbBreakpointsProgressDone = 0;
@@ -480,7 +527,6 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	//end mphf stuffs
 	
 
-	
 	// We create an iterator over the breakpoint bank.
 	BankFasta::Iterator itSeq (*object->_breakpointBank);
 
@@ -499,14 +545,17 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	object->_progress->init ();
 	
 	
-	//int nb_living=0;
+	int nb_living=0;
 	
-	//Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),50);
+	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap),50);
 
 
 	//printf("-------- sequential loop ---------\n");
 
 	// We loop over sequences.
+
+	
+	/*
 	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
 	{
 		string infostring; //to store statistics of the gap-filling : size of the graph, cumulated length of contigs, number of filled sequences, etc.
@@ -621,7 +670,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 		nbBreakpointsProgressDone++;
 		if (nbBreakpointsProgressDone > 50)   {  object->_progress->inc (nbBreakpointsProgressDone);  nbBreakpointsProgressDone = 0;  }
 	}
-
+*/
 	object->_progress->finish ();
 	object->_nb_breakpoints = nbBreakpoints;
 
