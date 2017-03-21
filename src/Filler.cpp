@@ -194,7 +194,7 @@ void Filler::execute ()
     {
         //fprintf(log,"Loading the graph from file %s\n",getInput()->getStr(STR_URI_GRAPH).c_str());
 		
-		printf("__load graph __\n");
+		//printf("__load graph __\n");
 
         _graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
         _kmerSize = _graph.getKmerSize();
@@ -327,8 +327,8 @@ public:
 		else
 		{
 			//compute pair
-			printf("%s  id %i  %s  id %i   tid %i  \n",_previousSeq.getCommentShort().c_str(), _previousSeq.getIndex()
-				   ,sequence.getCommentShort().c_str(), sequence.getIndex(), _tid);
+		//	printf("%s  id %i  %s  id %i   tid %i  \n",_previousSeq.getCommentShort().c_str(), _previousSeq.getIndex()
+		//		   ,sequence.getCommentShort().c_str(), sequence.getIndex(), _tid);
 			
 			{
 				
@@ -510,7 +510,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	Group& dskGroup = object->_storage->getGroup("dsk");
 
 	/** We get the iterable for the solid counts and solid kmers. */
-	printf("__load MPHF __\n");
+	//printf("__load MPHF __\n");
 	Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
 
 	Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
