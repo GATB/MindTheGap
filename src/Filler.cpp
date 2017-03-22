@@ -24,7 +24,6 @@
 #include <limits> // for numeric_limits
 
 #define PRINT_DEBUG
-#define PARALL
 /********************************************************************************/
 
 // We define some constant strings for names of command line parameters
@@ -425,7 +424,6 @@ public:
 				/////////////////////////////
 				
 				
-				
 				// TODO ecrire les resultats dans le fichier (method) : attention checker si mode Une ou Multiple Solutions
 				_object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
 				
@@ -448,7 +446,6 @@ public:
 	//constructor
 	gapfillerFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints, AbundanceMap* abundancemap) : _object(object),_global_nb_breakpoints(global_nb_breakpoints),_abundancemap(abundancemap)
 	{
-	//	_progress = progress;
 		_nb_living =nb_living;
 		_tid =  __sync_fetch_and_add (_nb_living, 1);
 		_nb_breakpoints = 0;
@@ -461,7 +458,6 @@ public:
 		_nb_living = r._nb_living;
 		_object= r._object;
 		_global_nb_breakpoints = r._global_nb_breakpoints;
-	//	_progress = r._progress;
 		_nb_breakpoints = 0;
 		_tid =  __sync_fetch_and_add (_nb_living, 1);
 		_abundancemap = r._abundancemap;
@@ -482,7 +478,6 @@ private:
 	int * _global_nb_breakpoints;
 	int * _nb_living;
 	AbundanceMap* _abundancemap;
-	//gatb::core::tools::dp::IteratorListener* _progress;
 	Sequence _previousSeq;
 	u_int64_t _nbBreakpointsProgressDone = 0;
 
@@ -548,138 +543,14 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	object->_progress->init ();
 	
 	
-#ifdef PARALL
 	int nb_living=0;
 	
-	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap),100);
+	Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap),30);
 
 	object->_nb_breakpoints = object->_nb_breakpoints ;
 
-#else
-
-	//printf("-------- sequential loop ---------\n");
-
-	// We loop over sequences.
-	for (itSeq.first(); !itSeq.isDone(); itSeq.next())
-	{
-		string infostring; //to store statistics of the gap-filling : size of the graph, cumulated length of contigs, number of filled sequences, etc.
-
-		string seedk;//usefull for coverage info
-
-		//iterate by pair of sequences (WARNING : no verification same breakpoint id)
-		string sourceSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously L
-		seedk = sourceSequence;
-		string breakpointName = string(itSeq->getCommentShort());
-
-		bool begin_kmer_repeated = itSeq->getComment().find("REPEATED") !=  std::string::npos;
-		itSeq.next();
-		if(itSeq.isDone()){
-			throw Exception("Wrong breakpoint file: odd number of sequences...");
-		}
-
-		string targetSequence =  string(itSeq->getDataBuffer(),itSeq->getDataSize());//previously R
-		
-		string breakpointName_R = string(itSeq->getCommentShort());
-		bool end_kmer_repeated = itSeq->getComment().find("REPEATED") !=  std::string::npos;
-
-		
-		//printf("break %i L : %s  R: %s   %i %i \n",nbBreakpoints,sourceSequence.c_str(),targetSequence.c_str(),begin_kmer_repeated, end_kmer_repeated);
-		
-		//Initialize set of filled sequences
-		set<filled_insertion_t> filledSequences;
-		std::vector<filled_insertion_t> filledSequences_vec;
-
-		// Resize to kmer-size :
-		if(sourceSequence.size()>object->_kmerSize){
-			sourceSequence.substr(sourceSequence.size()-object->_kmerSize,object->_kmerSize); //suffix of size _kmerSize
-		}
-
-		if(targetSequence.size()>object->_kmerSize){
-			targetSequence.substr(0,object->_kmerSize); //prefix of size _kmerSize
-		}
-
-		object->gapFill<span>(infostring,0,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
-
-		//		printf("filledseq nb %i \n",filledSequences.size());
-		//		printf("filledseq %s \n", (*(filledSequences.begin())).c_str()  );
-		
-		//Can be modified : could do in reverse mode even if filledSequences is not empty (new filled sequences are inserted into the set : to verify)
-		if(filledSequences.size()==0){
-			string sourceSequence2 = revcomp_sequence(targetSequence);
-			string targetSequence2 = revcomp_sequence(sourceSequence);
-			seedk = sourceSequence2;
-			object->gapFill<span>(infostring,0,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
-		}
-		
-		infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
-
-		//Checks if all sequences are roughly the same :
-		if (all_consensuses_almost_identical(filledSequences,90))
-		{
-			//if(verb)     printf(" [SUCCESS]\n");
-			if (filledSequences.size() > 1) {
-				//				stringstream ss;
-				//				ss << "cons" <<filledSequences.size();
-				//				breakpointName=breakpointName+ss.str();
-				filledSequences.erase(++(filledSequences.begin()),filledSequences.end()); // keep only one consensus sequence
-			}
-		}
-		else
-			;
-		//if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
-		infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
-
-		
-		/////////compute coverage of filled sequences
-		ModelCanonical model (object->_kmerSize);
-		for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
-		{
-		    typename ModelCanonical::Iterator itk (model);
-			std::string cseq = seedk + it->seq;
-			Data data ((char*)cseq.c_str());
-
-			itk.setData (data);
-			std::vector<unsigned int> vec_abundances;
-			// We iterate the kmers of this seq
-
-			u_int64_t sum = 0;
-			int nbkmers =0;
-			
-			for (itk.first(); !itk.isDone(); itk.next())
-			{
-				//u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
-				unsigned int cov =  (*abundancemap)[itk->value()];
-				sum+= cov; nbkmers++;
-				vec_abundances.push_back(cov);
-			}
-			
-			filled_insertion_t current_insertion = *it;
-
-			current_insertion.median_coverage = median(vec_abundances);
-			current_insertion.avg_coverage  = sum /(float) nbkmers;
-
-			//creating vector because cannot modify elem in set filledSequences.. why was it a set and not a vector ?
-			filledSequences_vec.push_back(current_insertion);
-		}
-		/////////////////////////////
-		
-		
-		//write the results into output files
-		object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
-
-		// We increase the breakpoint counter.
-		nbBreakpoints++;
-
-		//progress bar
-		nbBreakpointsProgressDone++;
-		if (nbBreakpointsProgressDone > 50)   {  object->_progress->inc (nbBreakpointsProgressDone);  nbBreakpointsProgressDone = 0;  }
-	}
-	object->_nb_breakpoints = nbBreakpoints;
-
-#endif
 	object->_progress->finish ();
 
-	//cout << "nb breakpoints=" << object->_nb_breakpoints <<endl;
 }
 
 //template method : enabling to deal with all sizes of kmer <KSIZE_4
