@@ -90,7 +90,7 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
         }
         if (nb_numbers_seen == 2)
         {
-            char label[3];
+            char label[100]; //needs to be large enough for the regexp below
             sscanf(line.c_str(), "%*d %*s %*d %*[^\"]%*[\"]%s%*[\"]",label); // ugly regexp to get the label of the edge
             label[2]='\0';
             
