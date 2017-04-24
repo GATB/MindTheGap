@@ -33,28 +33,28 @@ static const char* STR_FILL = "fill";
 
 void displayVersion(std::ostream& os){
 
-	os << "* * * * * * * * * * * * * * * * * * * * * *" << endl;
-	os << "* MindTheGap version "<< MTG_VERSION << "                *" << endl; //<< " AGPL licence" <<endl;
-	os << "* Using gatb-core version " << System::info().getVersion() <<  "           *" << endl;
-	os << "* Supported kmer sizes <" << KSIZE_STRING << "   *" << endl;
-	os << "* * * * * * * * * * * * * * * * * * * * * *" << endl;
+    os << "* * * * * * * * * * * * * * * * * * * * * *" << endl;
+    os << "* MindTheGap version "<< MTG_VERSION << "                *" << endl; //<< " AGPL licence" <<endl;
+    os << "* Using gatb-core version " << System::info().getVersion() <<  "           *" << endl;
+    os << "* Supported kmer sizes <" << KSIZE_STRING << "   *" << endl;
+    os << "* * * * * * * * * * * * * * * * * * * * * *" << endl;
 }
 
 void displayHelp(std::ostream& os){
 
-	os << endl <<"MindTheGap version "<< MTG_VERSION << endl << endl;
-	os << "Usage: MindTheGap <module> [module options]" <<endl << endl;
-	os << "[MindTheGap modules]" << endl;
-	os << "    find     :    insertion breakpoint detection" << endl;
-	os << "                  usage: MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
-	os << "                  help: MindTheGap find -help"<< endl;
-	os << "    fill     :    gap-filler or insertion assembly"<< endl;
-	os << "                  usage: MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) -bkpt <breakpoints.fa> [options]" << endl;
-	os << "                  help: MindTheGap fill -help"<< endl;
-	os << "[Common options]" << endl;
-	os << "    -help    :    display this help menu" << endl;
-	os << "    -version :    display current version" << endl;
-	os << endl;
+    os << endl <<"MindTheGap version "<< MTG_VERSION << endl << endl;
+    os << "Usage: MindTheGap <module> [module options]" <<endl << endl;
+    os << "[MindTheGap modules]" << endl;
+    os << "    find     :    insertion breakpoint detection" << endl;
+    os << "                  usage: MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
+    os << "                  help: MindTheGap find -help"<< endl;
+    os << "    fill     :    gap-filler or insertion assembly"<< endl;
+    os << "                  usage: MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) -bkpt <breakpoints.fa> or -contig <contig.fa> [options]" << endl;
+    os << "                  help: MindTheGap fill -help"<< endl;
+    os << "[Common options]" << endl;
+    os << "    -help    :    display this help menu" << endl;
+    os << "    -version :    display current version" << endl;
+    os << endl;
 
 }
 
@@ -62,20 +62,20 @@ void displayHelp(std::ostream& os){
 int main (int argc, char* argv[])
 {
 
-    
+
     if(argc<2){
-    	displayHelp(cout);
-    	return EXIT_FAILURE;
+        displayHelp(cout);
+        return EXIT_FAILURE;
     }
 
     if(strcmp(argv[1],STR_VERSION)==0  ||  strcmp(argv[1],"-v")==0 ){
-    	displayVersion(cout);
+        displayVersion(cout);
         return EXIT_FAILURE;
     }
 
     if(strcmp(argv[1],STR_HELP)==0){
-    	displayHelp(cout);
-    	return EXIT_FAILURE;
+        displayHelp(cout);
+        return EXIT_FAILURE;
     }
 
     if ((strcmp(argv[1],STR_FIND) != 0 && strcmp(argv[1],STR_FILL) != 0 ) || (strcmp(argv[1],STR_FIND) == 0 && strcmp(argv[1],STR_FILL) == 0 ))
@@ -84,20 +84,20 @@ int main (int argc, char* argv[])
         return EXIT_FAILURE;
 
     }
-    
+
     if (strcmp(argv[1],STR_FIND) == 0)
     {
         try
         {
-        	Finder finder = Finder();
-        	finder._mtg_version = MTG_VERSION;
+            Finder finder = Finder();
+            finder._mtg_version = MTG_VERSION;
             finder.run (argc-1, argv+1);
         }
         catch (Exception& e)
         {
-        	if(strcmp(e.getMessage(),"")!=0){
-        		std::cout << std::endl << "EXCEPTION: " << e.getMessage() << std::endl;
-        	}
+            if(strcmp(e.getMessage(),"")!=0){
+                std::cout << std::endl << "EXCEPTION: " << e.getMessage() << std::endl;
+            }
             return EXIT_FAILURE;
         }
     }
@@ -106,20 +106,20 @@ int main (int argc, char* argv[])
         {
             try
             {
-				Filler filler = Filler();
-				filler._mtg_version = MTG_VERSION;
+                Filler filler = Filler();
+                filler._mtg_version = MTG_VERSION;
                 filler.run (argc-1, argv+1);
             }
             catch (Exception& e)
             {
-            	if(strcmp(e.getMessage(),"")!=0){
-            		std::cout << std::endl << "EXCEPTION: " << e.getMessage() << std::endl;
-            	}
+                if(strcmp(e.getMessage(),"")!=0){
+                    std::cout << std::endl << "EXCEPTION: " << e.getMessage() << std::endl;
+                }
                 return EXIT_FAILURE;
             }
         }
 
     return EXIT_SUCCESS;
-    
+
 }
 

@@ -29,12 +29,15 @@
 
 using namespace std;
 
+#include <unordered_map>
+typedef pair<string, bool> bkpt_t;
+typedef unordered_map<string, bkpt_t> bkpt_dict_t;
+
 class filled_insertion_t
 {
 public:
 	
-	filled_insertion_t(string insert, int nb_errors, bool anchor_repeated_in_ref) : nb_errors_in_anchor(nb_errors),is_anchor_repeated(anchor_repeated_in_ref)
-	{
+    filled_insertion_t(string insert, int nb_errors, bool anchor_repeated_in_ref, bkpt_t targetId) : nb_errors_in_anchor(nb_errors),is_anchor_repeated(anchor_repeated_in_ref), targetId_anchor(targetId)	{
 		seq = insert;
 	}
 	
@@ -44,13 +47,16 @@ public:
 	
 	float avg_coverage;
 	float median_coverage;
-	
+    bkpt_t targetId_anchor;
 
-	//required to be inserted in std::set
-	bool operator< (const filled_insertion_t & other) const
-	{
-		return (seq < other.seq);
-	}
+    //required to be inserted in set
+    bool operator< (const filled_insertion_t & other) const
+    {
+        if (this->targetId_anchor != other.targetId_anchor)
+            return this->targetId_anchor < other.targetId_anchor;
+        else
+            return this->seq < other.seq;
+    }
 	
 	int compute_qual() const
 	{
