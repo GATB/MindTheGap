@@ -93,11 +93,13 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
             char label[100]; //needs to be large enough for the regexp below
             sscanf(line.c_str(), "%*d %*s %*d %*[^\"]%*[\"]%s%*[\"]",label); // ugly regexp to get the label of the edge
             label[2]='\0';
-
+            assert(label[0]==label[1]);
             if (label[0] == 'R')
-                node_a = revcomp_node(node_a);
+               // node_a = revcomp_node(node_a);
+                continue;
             if (label[1] == 'R')
-                node_b = revcomp_node(node_b);
+                //node_b = revcomp_node(node_b);
+                continue;
 
             if (out_edges[node_a].find(node_b) == out_edges[node_a].end())
             {
@@ -218,6 +220,7 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
                 node -= nb_nodes;
 
             string node_sequence = node_sequences[node];
+            //Mettre abondance
 
             if (revcomp)
             {

@@ -615,7 +615,6 @@ void Filler::fillContig<span>::operator () (Filler* object)
     // We create an iterator over the breakpoint bank.
     BankFasta::Iterator itSeq (*object->_breakpointBank);
     bkpt_dict_t seedDictionary;
-    bkpt_dict_t targetDictionary;
     bkpt_dict_t all_targetDictionary;
     int nbBreakpoints=0;
 
@@ -652,11 +651,12 @@ void Filler::fillContig<span>::operator () (Filler* object)
             string sourceSequence = it->first;
             string seedk = sourceSequence;
             string seedName = it->second.first;
-
+            //cout << "Seed " << seedName << endl;
             string infostring;
             bool begin_kmer_repeated = false;
             bool reverse = false;
             string targetSequence;
+            bkpt_dict_t targetDictionary;
 
         for (auto its=all_targetDictionary.begin(); its !=all_targetDictionary.end(); ++its)
             {
@@ -667,10 +667,12 @@ void Filler::fillContig<span>::operator () (Filler* object)
                     if(its->second.second) tempName += "_Rc";
                     targetSequence.append(its->first);
                     targetDictionary.insert({its->first,its->second});
+                    //cout << "Source : " << seedName << " Cible : " << targetName << endl;
                 }
             }
-
-
+        if(it->second.second) seedName += "_Rc";
+       // cout << seedName << endl;
+       // cout << "SeedSeq" << seedk << endl;
         bool end_kmer_repeated = false;
 
         set<filled_insertion_t> filledSequences;
@@ -732,70 +734,72 @@ void Filler::fillContig<span>::operator () (Filler* object)
 
                 //if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
 
-        int compteur =0;
-        string previous_id;
-        bool previous_bool;
-        string actual_id;
-        bool actual_bool;
-        set<filled_insertion_t>  temp_filledSequences;
-        std::vector<filled_insertion_t>  final_filledSequences;
+//        int compteur =0;
+//        string previous_id;
+//        bool previous_bool;
+//        string actual_id;
+//        bool actual_bool;
+//        set<filled_insertion_t>  temp_filledSequences;
+//        std::vector<filled_insertion_t>  final_filledSequences;
 
-        for (std::vector<filled_insertion_t>::iterator iter=filledSequences_vec.begin(); iter!=filledSequences_vec.end(); ++iter)
-        {
+//        for (std::vector<filled_insertion_t>::iterator iter=filledSequences_vec.begin(); iter!=filledSequences_vec.end(); ++iter)
+//        {
+//            cout << " source " << seedName << "  target " << iter->targetId_anchor.first <<"   " << iter->targetId_anchor.second << endl;
+//            cout << " sequence " << iter-> seq << endl;
+//        }
+//           if (filledSequences.size()==1)
+//                final_filledSequences.push_back(*iter);
+//           else
+//            {
+//           if (compteur==0)
+//            {
+//              previous_id=iter->targetId_anchor.first;
+//              previous_bool= iter->targetId_anchor.second;
+//              compteur+=1;
 
-           if (filledSequences.size()==1)
-                final_filledSequences.push_back(*iter);
-           else
-            {
-           if (compteur==0)
-            {
-              previous_id=iter->targetId_anchor.first;
-              previous_bool= iter->targetId_anchor.second;
-              compteur+=1;
+//                continue;
+//            }
+//           else
+//           {
+//               actual_id=iter->targetId_anchor.first;
+//               actual_bool= iter->targetId_anchor.second;
+//               if (actual_id == previous_id && actual_bool==previous_bool)
+//               {
+//                   temp_filledSequences.insert(*iter);
+//                   compteur+=1;
+//                   continue;
+//                   }
+//               else
+//               {
 
-                continue;
-            }
-           else
-           {
-               actual_id=iter->targetId_anchor.first;
-               actual_bool= iter->targetId_anchor.second;
-               if (actual_id == previous_id && actual_bool==previous_bool)
-               {
-                   temp_filledSequences.insert(*iter);
-                   compteur+=1;
-                   continue;
-                   }
-               else
-               {
+//                   if (all_consensuses_almost_identical(temp_filledSequences,90))
+//                   {
+//                       //if(verb)     printf(" [SUCCESS]\n");
+//                       if (temp_filledSequences.size() > 1)
+//                       {
+//                           temp_filledSequences.erase(++(temp_filledSequences.begin()),temp_filledSequences.end()); // keep only one consensus sequence
+//                        }
+//                   }
 
-                   if (all_consensuses_almost_identical(temp_filledSequences,90))
-                   {
-                       //if(verb)     printf(" [SUCCESS]\n");
-                       if (temp_filledSequences.size() > 1)
-                       {
-                           temp_filledSequences.erase(++(temp_filledSequences.begin()),temp_filledSequences.end()); // keep only one consensus sequence
-                        }
-                   }
+//                   for (const filled_insertion_t& filled_seq : temp_filledSequences)
+//                   {
+//                       final_filledSequences.push_back(filled_seq);
+//                       cout << " size : " << final_filledSequences.size();
 
-                   for (const filled_insertion_t& filled_seq : temp_filledSequences)
-                   {
-                       final_filledSequences.push_back(filled_seq);
+//                   }
+//                   previous_id = actual_id ;
+//                   previous_bool = actual_bool;
+//                   temp_filledSequences.clear();
+//                   temp_filledSequences.insert(*iter);
+//                   compteur+=1;
+//                   continue;
+//                }
 
-                   }
-                   previous_id = actual_id ;
-                   previous_bool = actual_bool;
-                   temp_filledSequences.clear();
-                   temp_filledSequences.insert(*iter);
-                   compteur+=1;
-                   continue;
-                }
+//           }
+//        }
+//    }
 
-           }
-        }
-    }
-        if(it->second.second) seedName += "_Rc";
-
-        object->writeFilledBreakpoint(final_filledSequences,seedName,infostring);
+        object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring);
 
         // We increase the breakpoint counter.
         //_nb_breakpoints++;
@@ -875,8 +879,8 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
 
 
-//    remove(contig_file_name.c_str());
-//    remove((contig_graph_file_prefix+".graph").c_str());
+    remove(contig_file_name.c_str());
+    remove((contig_graph_file_prefix+".graph").c_str());
 
 }
 
@@ -1032,7 +1036,7 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
             if(targetId.second) {
                 targetName.append("_Rc");
             }
-            fprintf(_insert_file,">%s_%s_len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
+            fprintf(_insert_file,">%s;%s;len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
                     seedName.c_str(), targetName.c_str(),llen,qual,solu_i.c_str()
                     ,it->avg_coverage,it->median_coverage);
 
@@ -1200,13 +1204,13 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
     {
 
     int anchor_size = _kmerSize;
+    //cout << "anchor" << anchor_size << endl;
         nodelen = (*itSeq)->getDataSize();
         if (nodelen < _kmerSize )
         {
             nodeNb++;
             continue;
         }
-
     nodeseq =  (*itSeq)->getDataBuffer();
    // cout << "node " << nodeseq << endl;
 
@@ -1220,8 +1224,9 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
         best_match = 0;
         for (auto it=targetDictionary.begin(); it !=targetDictionary.end() && !arret; ++it)
             {
-
+                string ide = (it->second).first;
                 const char * anchor =(it->first).c_str();
+
                 int nbmatch=0;
 
                 for (int i = 0; i < anchor_size; i++)
@@ -1229,12 +1234,16 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
                     nbmatch += identNT(nodeseq[j+i], anchor[i]);
                 }
 
+
                 if (nbmatch > best_match && nbmatch >=(anchor_size - nb_mis_allowed))
                 {
+                    //cout << "nb match" << nbmatch << endl;
+                    //cout << " target seq" << anchor << endl;
                     best_id = it->second;
                     position=j;
                     best_match = nbmatch;
-                    if(nbmatch == anchor_size) {
+                    if (nbmatch == anchor_size) {
+                        //cout << "nb match all " << nbmatch << endl;
                         arret = true;
                         break;
                     }
@@ -1246,7 +1255,9 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
 
         if (best_match != 0)
         {
-            //cout << "path unexact" << best_id << endl;
+            //cout << endl;
+            //cout << "cible" << best_id.first << " position " << position << "nodeId" << nodeNb << "  len " << nodelen << endl;
+            //cout << " nodeseq" << nodeseq << endl;
             terminal_nodes.insert(   (info_node_t) {(int)nodeNb,(int)position, anchor_size - best_match,anchor_is_repeated, best_id}   ); // nodeNb,  j pos of beginning of right anchor
         }
 
