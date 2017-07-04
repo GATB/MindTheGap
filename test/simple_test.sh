@@ -40,7 +40,7 @@ run_test_vcf()
 # param : reads_file ref_file true_result prefix
 	$bindir/MindTheGap find -in $1 -ref $2 -kmer-size 31 -out output/$4_find $5 1> output/$4_find.out 2> output/$4_find.err
 
-	./compare_vcf.sh output/$4_find.othervariants.vcf  $3 1> /dev/null 2>&1
+	sh compare_vcf.sh output/$4_find.othervariants.vcf  $3 1> /dev/null 2>&1
 
 	var=$?
 	if [ $var -eq 0 ]

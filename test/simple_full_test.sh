@@ -37,7 +37,7 @@ ${bindir}/MindTheGap find -in ../data/reads_r1.fastq,../data/reads_r2.fastq -ref
 ################################################################################
 
 # Checking the .othervariants.vcf :
-./compare_vcf.sh $outputPrefix.othervariants.vcf $goldPrefix.othervariants.vcf 1> /dev/null 2>&1
+sh compare_vcf.sh $outputPrefix.othervariants.vcf $goldPrefix.othervariants.vcf 1> /dev/null 2>&1
 var=$?
 
 if [ $var -eq 0 ]
