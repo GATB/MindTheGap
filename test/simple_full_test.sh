@@ -30,7 +30,7 @@ mkdir $testDir
 ################################################################################
 # we launch the find module
 ################################################################################
-${bindir}/MindTheGap find -in ../data/reads_r1.fastq,../data/reads_r2.fastq -ref ../data/reference.fasta -out $outputPrefix >$outputPrefix.out 2> /dev/null
+${bindir}/MindTheGap find -in ../data/reads_r1.fastq,../data/reads_r2.fastq -ref ../data/reference.fasta -out $outputPrefix >$outputPrefix.out -nb-cores 1 2> /dev/null
 
 ################################################################################
 # we check the results 
@@ -64,12 +64,19 @@ fi
 ################################################################################
 # we launch the find module
 ################################################################################
-${bindir}/MindTheGap fill -graph $outputPrefix.h5 -bkpt $outputPrefix.breakpoints -out $outputPrefix >>$outputPrefix.out 2> /dev/null
+${bindir}/MindTheGap fill -graph $outputPrefix.h5 -bkpt $outputPrefix.breakpoints -out $outputPrefix -nb-cores 1 >>$outputPrefix.out 2> /dev/null
 
 ################################################################################
 # we check the results 
 ################################################################################
-diff --ignore-matching-lines=">" $outputPrefix.insertions.fasta $goldPrefix.insertions.fasta 1> /dev/null 2>&1
+tmp1=$outputPrefix.insertions.fasta.tmp
+tmp2=$testDir/tmp2
+
+grep -v "^>" $outputPrefix.insertions.fasta > $tmp1
+grep -v "^>" $goldPrefix.insertions.fasta > $tmp2
+
+
+diff $tmp1 $tmp2 1> /dev/null 2>&1
 var=$?
 
 if [ $var -eq 0 ]

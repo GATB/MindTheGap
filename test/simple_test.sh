@@ -22,8 +22,15 @@ run_test()
 
     $bindir/MindTheGap fill -bkpt output/$4_find.breakpoints -graph output/$4_find.h5  -out output/$4_fill 1> output/$4_fill.out 2> output/$4_fill.err
 
-    diff --ignore-matching-lines=">" output/$4_fill.insertions.fasta $3 1> /dev/null 2>&1
+    tmp1=output/$4_fill.insertions.fasta.tmp
+    tmp2=output/tmp2
 
+    grep -v "^>" output/$4_fill.insertions.fasta > $tmp1
+    grep -v "^>" $3 > $tmp2
+
+
+    diff $tmp1 $tmp2 1> /dev/null 2>&1
+    
 	var=$?
     if [ $var -eq 0 ]
     then
