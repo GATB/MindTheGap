@@ -193,12 +193,15 @@ void Filler::execute ()
     {
         //fprintf(log,"Loading the graph from file %s\n",getInput()->getStr(STR_URI_GRAPH).c_str());
 		
-		//printf("__load graph __\n");
 
+    	fprintf(stderr,"Loading the graph..."); //TODO better a progress bar
+    	fflush(stderr);
         _graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
         _kmerSize = _graph.getKmerSize();
     	//retrieve storage of kmer counts to build the emphf and compute abundance of filled sequences
         _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_GRAPH));
+        fprintf(stderr,"done\n");
+        fflush(stderr);
     }
 
 	
@@ -492,6 +495,9 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	typedef typename Kmer<span>::Count Count;
 	typedef typename Kmer<span>::Type  Type;
 	
+	fprintf(stderr,"Loading kmer abundances..."); //TODO better a progress bar (gatb-core)
+	fflush(stderr);
+
 	/** We get the dsk group in the storage. */
 
 	Group& dskGroup = object->_storage->getGroup("dsk");
@@ -515,7 +521,8 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
 	
 	//end mphf stuffs
-	
+	fprintf(stderr,"done\n");
+	fflush(stderr);
 
 	// We create an iterator over the breakpoint bank.
 	BankFasta::Iterator itSeq (*object->_breakpointBank);
@@ -529,7 +536,7 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 	u_int64_t nbBreakpointsProgressDone = 0;
 	
 	object->setProgress (new ProgressSynchro (
-									  object->createIteratorListener (nbBreakpointsEstimated, "Filling breakpoints"),
+									  object->createIteratorListener (nbBreakpointsEstimated, "Filling the breakpoints"),
 									  System::thread().newSynchronizer())
 				 );
 	object->_progress->init ();
@@ -606,6 +613,8 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 	{
 		//if(verb)
 			//printf("Right anchor not found.. gapfillling failed... \n");
+		remove(contig_file_name.c_str());
+		remove((contig_graph_file_prefix+".graph").c_str());
 		return ;
 	}
 
@@ -626,11 +635,10 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 			filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor,its->is_anchor_repeated );
 			filledSequences.insert ( rev_insert);
 		}
-		return;
 	}
-		
-	filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
-
+	else{
+		filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
+	}
 
 	remove(contig_file_name.c_str());
 	remove((contig_graph_file_prefix+".graph").c_str());
