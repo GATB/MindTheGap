@@ -94,10 +94,15 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
             sscanf(line.c_str(), "%*d %*s %*d %*[^\"]%*[\"]%s%*[\"]",label); // ugly regexp to get the label of the edge
             label[2]='\0';
             
-            if (label[0] == 'R')
-                node_a = revcomp_node(node_a);
-            if (label[1] == 'R')
-                node_b = revcomp_node(node_b);
+            //Here we have only FF overlaps between contigs (+ bugs if uses the R overlaps)
+            if (label[0] == 'R'){
+                //node_a = revcomp_node(node_a);
+            	continue;
+            }
+            if (label[1] == 'R'){
+                //node_b = revcomp_node(node_b);
+            	continue;
+            }
 
             if (out_edges[node_a].find(node_b) == out_edges[node_a].end())  
             {
