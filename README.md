@@ -14,9 +14,9 @@ MindTheGap  performs detection and assembly of DNA insertion variants in NGS rea
 
 ## Requirements
 
-CMake 2.6+; see http://www.cmake.org/cmake/resources/software.html
+CMake 3.1+; see http://www.cmake.org/cmake/resources/software.html
 
-c++ compiler; compilation was tested with gcc and g++ version>=4.5 (Linux) and clang version>=4.1 (Mac OSX).
+C++/11 capable compiler (e.g. gcc 4.7+, clang 3.5+, Apple/clang 6.0+)
 
 ## Getting the latest source code with git
 
@@ -137,7 +137,8 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     
     `MindTheGap fill` generates the following output files:
     * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences that were successfully assembled. The location of each insertion on the reference genome can be found in its fasta header, together with the insertion length and quality score. 
-    * an insertion variant file (`.insertions.vcf`) in vcf format. This file resumes insertion position information already contained in the fasta file, but in a vcf format. It is not self-sufficient, inserted sequences if larger than XX bp are not written in the vcf but are referred to their fasta id in the fasta file.
+    * an insertion variant file (`.insertions.vcf`) in vcf format [not yet implemented, coming soon...]. This file resumes insertion position information already contained in the fasta file, but in a vcf format. It is not self-sufficient, inserted sequences if larger than XX bp are not written in the vcf but are referred to their fasta id in the fasta file.
+    * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint. 
 
     Warning: the output in vcf of insertion variants is not yet implemented, coming soon...
 	
@@ -175,14 +176,16 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     
     MindTheGap fill outputs a file in fasta format containing the obtained inserted sequences. Breakpoint kmers are not included in the output sequences. For each insertion breakpoint for which the filling succeeded, one can find in this file either one or several sequences with the following header:
     
-        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_59_qual_50
+        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_59_qual_50_avg_cov_21.69_median_cov_17.00
         #same info as in the breakpoint file
         #len_59 : the length in bp of the inserted sequence, here 59 bp
         #qual_50 : quality of 50 (quality scores range from 0 to 50, 50 being the best quality) 
+        #avg_cov_21.69 : average abundance of the filled sequence (average of all its kmer abundances)
+        #median_cov_17.00 : median abundance of the filled sequence (median of all its kmer abundances)
 
     If more than one sequence are assembled for a given breakpoint, the header is as follows:
     
-        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57_qual_15 solution 2/3
+        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57_qual_15_avg_cov_21.69_median_cov_17.00 solution 2/3
         #this is the second sequence out of 3
 
     **Quality scores**:
@@ -193,6 +196,14 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     * `qual=15`: if multiple sequences can be assembled for a given breakpoint (note that to output multiple sequences, they must differ from each other significantly, ie. <90% id)
     * `qual=25`: if one of the breakpoint kmer is repeated in the reference genome (REPEATED field in the breakpoint file)
     * `qual=50`: otherwise.
+
+    **Info file**:
+
+    For each breakpoint, some informations about the filling process are given in the file `.info.txt`, whether it has been successfully filled or not. This can help understand why some breakpoints could not be filled. Here are the description of the columns:
+    * column 1 : breakpoint name       
+    * column 2-4 : number of nodes in the contig graph, total nt assembled, number of nodes containing the right breakpoint kmer
+    * (optionnally) column 5-7 : same informations as in column 2-4 but for the filling process in the reverse direction from right to left kmer, activated only if the filling failed in the forward direction
+    * last 2 columns : number of filled sequences before comparison, number of output filled sequences (1 if all sequences are similar enough pairwisely)
  
  
 

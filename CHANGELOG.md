@@ -4,6 +4,18 @@
 ## [Unreleased]
 
 --------------------------------------------------------------------------------
+## [2.0.2] - 2017-07-06
+
+Some new features:
+* the Fill module is now parallelized and can use several cores
+* additional information is output by the fill module:
+	* the abundance of each filled sequence is now computed and written in the fasta file
+	* a log file is output giving details about each gap-filling process
+
+Bug fix:
+* some gap-filled sequences were incorrect (this happened only for multiple filled sequences in rare cases)
+
+--------------------------------------------------------------------------------
 ## [2.0.1] - 2016-07-21
 
 This is a bug-fix release :
