@@ -233,6 +233,7 @@ void Filler::execute ()
            _breakpointBank = new BankFasta(getInput()->getStr(STR_URI_CONTIG));
 
         }
+    
     //Getting other parameters
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_depth = getInput()->getInt(STR_MAX_DEPTH);
@@ -610,8 +611,7 @@ void Filler::fillContig<span>::operator () (Filler* object)
     AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
 
     //end mphf stuffs
-
-
+    
     // We create an iterator over the breakpoint bank.
     BankFasta::Iterator itSeq (*object->_breakpointBank);
     bkpt_dict_t seedDictionary;
@@ -630,9 +630,10 @@ void Filler::fillContig<span>::operator () (Filler* object)
         object->_progress->init ();
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
-
+            
              // create seed and targetDictionary
                 std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
+            if(seedSequence.size() > (2*kmerSize)){
                 std::string seedSequence_f = seedSequence.substr(seedSequence.size()-(2*kmerSize), kmerSize);
                 std::string name = string(itSeq->getCommentShort());
                 std::string targetSequence_f =seedSequence.substr(kmerSize,kmerSize);
@@ -645,7 +646,12 @@ void Filler::fillContig<span>::operator () (Filler* object)
                 all_targetDictionary.insert ({{targetSequence_f, std::make_pair(name, false)},
                                           {targetSequence_Rc_f, std::make_pair(name, true)}
                                          });
+            }
+            else{
+                cerr << "Warning contig not used (too short): " << string(itSeq->getCommentShort()) << " of size "<< seedSequence.size() << " nt" << endl;
+            }
         }
+
         for (auto it=seedDictionary.begin(); it !=seedDictionary.end(); ++it)
         {
             string sourceSequence = it->first;
