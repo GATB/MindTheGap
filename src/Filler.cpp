@@ -240,7 +240,7 @@ void Filler::execute ()
     _max_nodes = getInput()->getInt(STR_MAX_NODES);
     // Now do the job
     time_t start_time = time(0);
-    // According to the kmer size,  we call one fillBreakpoints method.
+    /* // According to the kmer size,  we call one fillBreakpoints method.
     if (getInput()->get(STR_URI_BKPT) != 0)
        {
          Integer::apply<fillBreakpoints,Filler*> (_kmerSize, this);
@@ -252,6 +252,9 @@ void Filler::execute ()
        // cout << endl << "Test" << endl;
 
         }
+        */
+
+    Integer::apply<fillAny,Filler*> (_kmerSize, this);
     time_t end_time = time(0);
 
     //job is done, closing the output files
@@ -380,7 +383,7 @@ public:
             targetDictionary.insert ({targetSequence, std::make_pair(breakpointName_R, false)});
 
             //_object->gapFill<span>(infostring,_tid,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
-            _object->contigGapFill<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary);
+            _object->contigGapFill<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, false);
 
             //If gap-filling failed in one direction, try the other direction (from target to source in revcomp)
             if(filledSequences.size()==0){
@@ -392,7 +395,7 @@ public:
 
 
                 //_object->GapFill<span>(infostring,_tid,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
-                _object->contigGapFill<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary);
+                _object->contigGapFill<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, false);
 
             }
 
@@ -572,6 +575,273 @@ void Filler::fillBreakpoints<span>::operator ()  (Filler* object)
 
     object->_progress->finish ();
 
+}
+
+// fill use for both -contig and -bkpt
+template<size_t span>
+void Filler::fillAny<span>::operator () (Filler* object)
+{
+    //retrieve the AbundanceMap : mphf with the abundance for each kmer
+    size_t kmerSize = object->_kmerSize;
+
+    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
+    //typedef typename gatb::core::kmer::impl::Kmer<span>::Type  Type;
+
+    typedef typename Kmer<span>::Count Count;
+    typedef typename Kmer<span>::Type  Type;
+
+    /** We get the dsk group in the storage. */
+
+    Group& dskGroup = object->_storage->getGroup("dsk");
+
+    /** We get the iterable for the solid counts and solid kmers. */
+    //printf("__load MPHF __\n");
+    Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
+
+    Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
+
+    MPHFAlgorithm<span> mphf_algo (
+                                   dskGroup,
+                                   "mphf",
+                                   solidCounts,
+                                   solidKmers,
+                                   1,  // loading using 1 thread
+                                   false  // build=true, load=false
+                                   );
+    typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
+
+    AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
+
+    //end mphf stuffs
+
+    BankFasta::Iterator itSeq (*object->_breakpointBank);
+    int nbBreakpoints=0;
+
+    if (object->getInput()->get(STR_URI_CONTIG) != nullptr){
+
+        bkpt_dict_t seedDictionary;
+        bkpt_dict_t all_targetDictionary;
+
+        u_int64_t nbBreakpointsEstimated = object->_breakpointBank->estimateNbItems() ;  // 2 seq per breakpoint
+        u_int64_t nbBreakpointsProgressDone = 0;
+
+        object->setProgress (new ProgressSynchro (
+                                          object->createIteratorListener (nbBreakpointsEstimated, "Filling breakpoints"),
+                                          System::thread().newSynchronizer())
+                     );
+        object->_progress->init ();
+        for (itSeq.first(); !itSeq.isDone(); itSeq.next())
+        {
+
+             // create seed and targetDictionary
+                std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
+            if(seedSequence.size() > (2*kmerSize)){
+                std::string seedSequence_f = seedSequence.substr(seedSequence.size()-(2*kmerSize), kmerSize);
+                std::string name = string(itSeq->getCommentShort());
+                std::string targetSequence_f =seedSequence.substr(kmerSize,kmerSize);
+                std::string seedSequence_Rc = revcomp_sequence(seedSequence);
+                std::string seedSequence_Rc_f= seedSequence_Rc.substr(seedSequence_Rc.size() - (2 *kmerSize),kmerSize);
+                std::string targetSequence_Rc_f = seedSequence_Rc.substr(kmerSize,kmerSize);
+                seedDictionary.insert ({{seedSequence_f,std::make_pair(name, false)},
+                                        {seedSequence_Rc_f,std::make_pair(name, true)}
+                                       });
+                all_targetDictionary.insert ({{targetSequence_f, std::make_pair(name, false)},
+                                          {targetSequence_Rc_f, std::make_pair(name, true)}
+                                         });
+            }
+            else{
+                cerr << "Warning contig not used (too short): " << string(itSeq->getCommentShort()) << " of size "<< seedSequence.size() << " nt" << endl;
+            }
+        }
+
+
+        object->_nb_breakpoints = object->_nb_breakpoints ;
+
+        object->_progress->finish ();
+
+
+        for (auto it=seedDictionary.begin(); it !=seedDictionary.end(); ++it)
+        {
+            string sourceSequence = it->first;
+            string seedk = sourceSequence;
+            string seedName = it->second.first;
+            //cout << "Seed " << seedName << endl;
+            string infostring;
+            bool begin_kmer_repeated = false;
+            bool reverse = false;
+            string targetSequence;
+            bkpt_dict_t targetDictionary;
+
+        for (auto its=all_targetDictionary.begin(); its !=all_targetDictionary.end(); ++its)
+            {
+                string& targetName= its->second.first;
+                string tempName = targetName;
+                if (targetName.compare(seedName) != 0 )
+                {
+                    if(its->second.second) tempName += "_Rc";
+                    targetSequence.append(its->first);
+                    targetDictionary.insert({its->first,its->second});
+                    //cout << "Source : " << seedName << " Cible : " << targetName << endl;
+                }
+            }
+        if(it->second.second) seedName += "_Rc";
+        // cout << seedName << endl;
+        // cout << "SeedSeq" << seedk << endl;
+        bool end_kmer_repeated = false;
+
+        set<filled_insertion_t> filledSequences;
+        std::vector<filled_insertion_t> filledSequences_vec; //todo remove the set, keep only the vector
+
+        object->contigGapFill<span>(infostring,0, sourceSequence, targetSequence,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, false );
+
+
+
+
+         infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
+        /////////compute coverage of filled sequences
+        ModelCanonical model (object->_kmerSize);
+        for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+        {
+            typename ModelCanonical::Iterator itk (model);
+            std::string cseq = seedk + it->seq;
+            Data data ((char*)cseq.c_str());
+            bkpt_t cible = it->targetId_anchor;
+            string cibles = cible.first;
+            itk.setData (data);
+            std::vector<unsigned int> vec_abundances;
+            // We iterate the kmers of this seq
+
+            u_int64_t sum = 0;
+            int nbkmers =0;
+            int compt=0;
+            for (itk.first(); !itk.isDone(); itk.next())
+            {
+                //u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
+                compt+=1;
+                if(abundancemap->getCode(itk->value()) == ULLONG_MAX) {
+                    cerr << "Cibles " << cibles << " " << compt << endl;
+                    cerr << "Unknown kmer : " << model.toString(itk->value()) << endl;
+                } else {
+                    unsigned int cov =  (*abundancemap)[itk->value()];
+                    sum+= cov; nbkmers++;
+                    vec_abundances.push_back(cov);
+                }
+            }
+
+            filled_insertion_t current_insertion = *it;
+
+            current_insertion.median_coverage = median(vec_abundances);
+            current_insertion.avg_coverage  = sum /(float) nbkmers;
+
+            filledSequences_vec.push_back(current_insertion);
+        }
+
+
+        //sort vector
+//        sort(filledSequences_vec.begin(), filledSequences_vec.end(), [](filled_insertion_t a, filled_insertion_t b) {
+//            return a.targetId_anchor < b.targetId_anchor;
+//        });
+
+
+                infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
+                //if(verb)   printf(" [MULTIPLE SOLUTIONS]\n");
+
+//        int compteur =0;
+//        string previous_id;
+//        bool previous_bool;
+//        string actual_id;
+//        bool actual_bool;
+//        set<filled_insertion_t>  temp_filledSequences;
+//        std::vector<filled_insertion_t>  final_filledSequences;
+
+//        for (std::vector<filled_insertion_t>::iterator iter=filledSequences_vec.begin(); iter!=filledSequences_vec.end(); ++iter)
+//        {
+//            cout << " source " << seedName << "  target " << iter->targetId_anchor.first <<"   " << iter->targetId_anchor.second << endl;
+//            cout << " sequence " << iter-> seq << endl;
+//        }
+//           if (filledSequences.size()==1)
+//                final_filledSequences.push_back(*iter);
+//           else
+//            {
+//           if (compteur==0)
+//            {
+//              previous_id=iter->targetId_anchor.first;
+//              previous_bool= iter->targetId_anchor.second;
+//              compteur+=1;
+
+//                continue;
+//            }
+//           else
+//           {
+//               actual_id=iter->targetId_anchor.first;
+//               actual_bool= iter->targetId_anchor.second;
+//               if (actual_id == previous_id && actual_bool==previous_bool)
+//               {
+//                   temp_filledSequences.insert(*iter);
+//                   compteur+=1;
+//                   continue;
+//                   }
+//               else
+//               {
+
+//                   if (all_consensuses_almost_identical(temp_filledSequences,90))
+//                   {
+//                       //if(verb)     printf(" [SUCCESS]\n");
+//                       if (temp_filledSequences.size() > 1)
+//                       {
+//                           temp_filledSequences.erase(++(temp_filledSequences.begin()),temp_filledSequences.end()); // keep only one consensus sequence
+//                        }
+//                   }
+
+//                   for (const filled_insertion_t& filled_seq : temp_filledSequences)
+//                   {
+//                       final_filledSequences.push_back(filled_seq);
+//                       cout << " size : " << final_filledSequences.size();
+
+//                   }
+//                   previous_id = actual_id ;
+//                   previous_bool = actual_bool;
+//                   temp_filledSequences.clear();
+//                   temp_filledSequences.insert(*iter);
+//                   compteur+=1;
+//                   continue;
+//                }
+
+//           }
+//        }
+//    }
+
+        object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring);
+
+        // We increase the breakpoint counter.
+        //_nb_breakpoints++;
+
+           }
+    }
+
+
+    if (object->getInput()->get(STR_URI_BKPT) != nullptr){
+        u_int64_t nbBreakpointsEstimated = object->_breakpointBank->estimateNbItems()  / 2 ;  // 2 seq per breakpoint
+        u_int64_t nbBreakpointsProgressDone = 0;
+
+        object->setProgress (new ProgressSynchro (
+                                          object->createIteratorListener (nbBreakpointsEstimated, "Filling breakpoints"),
+                                          System::thread().newSynchronizer())
+                     );
+        object->_progress->init ();
+
+
+        int nb_living=0;
+
+        Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap),30);
+        //WARNING : 30 = number of sequences sent to each thread, keep it *even* (2 sequences for one breakpoint)
+
+        object->_nb_breakpoints = object->_nb_breakpoints ;
+
+        object->_progress->finish ();
+    }
 }
 
 
@@ -815,7 +1085,7 @@ void Filler::fillContig<span>::operator () (Filler* object)
     }
 
 template<size_t span>
-void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bkpt_dict_t targetDictionary ){
+void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bkpt_dict_t targetDictionary, bool reverse ){
 
     //object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
     BranchingTerminator terminator (_graph);
@@ -884,103 +1154,27 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
     filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
 
-
-    remove(contig_file_name.c_str());
-    remove((contig_graph_file_prefix+".graph").c_str());
-
-}
-
-
-//template method : enabling to deal with all sizes of kmer <KSIZE_4
-template<size_t span>
-void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bool reversed ){
-
-
-    //object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
-    BranchingTerminator terminator (_graph);
-    IterativeExtensions<span> extension (_graph, terminator, TRAVERSAL_CONTIG, ExtendStopMode_until_max_depth, SearchMode_Breadth, false, _max_depth, _max_nodes);
-    //todo check param dontOutputFirstNucl=false ??
-    // todo put these two above lines in fillBreakpoints and pass object extension in param
-
-    //prepare temporary file names
-    string rev_str=""; //used to have distinct contig file names for forward and reverse extension (usefull if investigating one breakpoint and code lines with remove command are commented)
-    if(reversed){
-        rev_str="_rev";
-    }
-    string file_name_suffix=rev_str+ Stringify::format("%i",getpid()) + "_t" + Stringify::format("%i",tid); //to have unique file names when breakpoints are treated in parallel
-    string contig_file_name = "contigs.fasta" + file_name_suffix;
-    string contig_graph_file_prefix="contig_graph" + file_name_suffix;
-    //std::cout << contig_file_name << std::endl;
-    //std::cout << contig_graph_file_prefix << std::endl;
-
-
-    //Build contigs and output them in a file in fasta format
-    extension.construct_linear_seqs(sourceSequence,targetSequence,contig_file_name,false); //last param : swf=stopWhenFound
-
-    // connect the contigs into a graph and write the resulting graph in a temporary file
-    GraphOutputDot<span> graph_output(_kmerSize,contig_graph_file_prefix);
-    graph_output.load_nodes_extremities(contig_file_name,infostring);
-    graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
-    graph_output.close();
-
-    //find targetSequence in nodes of the contig graph
-    int nb_mis_allowed = _nb_mis_allowed;
-    if(begin_kmer_repeated || end_kmer_repeated)
-        nb_mis_allowed=0;
-    //printf("nb_mis_allowed %i \n",nb_mis_allowed);
-    set< info_node_t > terminal_nodes_with_endpos = find_nodes_containing_R(targetSequence, contig_file_name, nb_mis_allowed, _nb_gap_allowed, begin_kmer_repeated || end_kmer_repeated);
-
-
-    //printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
-
-    //also convert it to list of node id for traditional use
-    set<int> terminal_nodes;
-    for (set< info_node_t >::iterator it = terminal_nodes_with_endpos.begin(); it != terminal_nodes_with_endpos.end(); it++)
-    {
-        terminal_nodes.insert((*it).node_id);
-    }
-
-
-    // analyze the graph to find a satisfying gap sequence between L and R
-
-    GraphAnalysis graph = GraphAnalysis(graph_output.get_dot_file_name(),_kmerSize);
-    graph.debug = false;
-
-    infostring +=   Stringify::format ("\t%d", terminal_nodes.size()) ;
-    if(terminal_nodes.size()==0)
-    {
-        //if(verb)
-            //printf("Right anchor not found.. gapfillling failed... \n");
-        return ;
-    }
-
-    //if(verb)    fprintf(stderr," analysis..");
-    bool success;
-    set<unlabeled_path> paths = graph.find_all_paths(terminal_nodes, success);
-
-
-    //now this func also cuts the last node just before the beginning of the right anchor
-    set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
-
     //if reversed, reverse-complement each filled sequence
-    if(reversed)
-    {
-        set<filled_insertion_t>::iterator its;
-        for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
+        if(reverse)
         {
-            filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor,its->is_anchor_repeated );
-            filledSequences.insert ( rev_insert);
+            set<filled_insertion_t>::iterator its;
+            for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
+            {
+                filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor,its->is_anchor_repeated );
+                filledSequences.insert ( rev_insert);
+            }
         }
-        return;
-    }
-
-    filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
-
+        else{
+            filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
+        }
 
     remove(contig_file_name.c_str());
     remove((contig_graph_file_prefix+".graph").c_str());
 
 }
+
+
+
 
 void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences,  string seedName, std::string info){
 

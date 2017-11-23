@@ -125,7 +125,7 @@ public:
                  ,bool reversed =false);
 
     template<size_t span>
-    void contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bkpt_dict_t targetDictionary );
+    void contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bkpt_dict_t targetDictionary,bool reverse );
 
     gatb::core::tools::dp::IteratorListener* _progress;
 
@@ -146,6 +146,8 @@ private:
     struct fillBreakpoints {  void operator ()  (Filler* object); };
     template<size_t span>
     struct fillContig { void operator () (Filler* object); };
+    template<size_t span>
+    struct fillAny { void operator () (Filler* object); };
 
 
     /**
