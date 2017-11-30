@@ -531,7 +531,7 @@ public:
 
 
                 //_object->GapFill<span>(infostring,_tid,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
-                _object->contigGapFill<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, false);
+                _object->contigGapFill<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, true);
 
             }
 
@@ -682,7 +682,6 @@ void Filler::fillAny<span>::operator () (Filler* object)
     typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
 
     AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
-
     //end mphf stuffs
 
     BankFasta::Iterator itSeq (*object->_breakpointBank);
@@ -784,8 +783,6 @@ void Filler::fillAny<span>::operator () (Filler* object)
 
     }
 }
-
-
 
 template<size_t span>
 void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bkpt_dict_t targetDictionary, bool reverse ){
@@ -972,9 +969,6 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
 
 
 }
-
-
-
 
 set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetDictionary, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed, bool anchor_is_repeated)
 {
