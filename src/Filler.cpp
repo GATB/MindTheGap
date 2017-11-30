@@ -329,6 +329,142 @@ void Filler::resumeResults(double seconds){
 
 }
 
+
+template<size_t span>
+class contigFunctor
+{
+
+    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
+    typedef typename Kmer<span>::Count Count;
+    typedef typename Kmer<span>::Type  Type;
+    typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
+
+public:
+    void operator() (Sequence& sequence)
+    {
+    string sourceSequence = sequence.getDataBuffer();
+    string seedk = sourceSequence;
+    string seedName = sequence.getComment();
+    string infostring;
+    bool begin_kmer_repeated = false;
+    bool end_kmer_repeated = false;
+    bool reverse = false;
+    string conc_targetSequence;
+    bkpt_dict_t targetDictionary;
+
+    for (auto its=_all_targetDictionary.begin(); its !=_all_targetDictionary.end(); ++its)
+    {
+        string& targetName= its->second.first;
+        string tempName = targetName;
+        if(its->second.second) tempName += "_Rc";
+        if (tempName.compare(seedName) != 0 )
+        {
+            conc_targetSequence.append(its->first);
+            targetDictionary.insert({its->first,its->second});
+        }
+     }
+
+     set<filled_insertion_t> filledSequences;
+     std::vector<filled_insertion_t> filledSequences_vec; //todo remove the set, keep only the vector
+     _object->contigGapFill<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, false );
+
+     infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+
+     /////////compute coverage of filled sequences
+
+     ModelCanonical model (_object->_kmerSize);
+     for (set<filled_insertion_t>::iterator it2 = filledSequences.begin(); it2 != filledSequences.end() ; ++it2)
+     {
+        typename ModelCanonical::Iterator itk (model);
+        std::string cseq = seedk + it2->seq;
+
+        Data data ((char*)cseq.c_str());
+        bkpt_t cible = it2->targetId_anchor;
+        string cibles = cible.first;
+        itk.setData (data);
+        std::vector<unsigned int> vec_abundances;
+
+        // We iterate the kmers of this seq
+        u_int64_t sum = 0;
+        int nbkmers =0;
+        int compt=0;
+        for (itk.first(); !itk.isDone(); itk.next())
+        {
+            //u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
+            compt+=1;
+            if(_abundancemap->getCode(itk->value()) == ULLONG_MAX) {
+
+                cerr << "Cibles " << cibles << " " << compt << endl;
+                cerr << "Unknown kmer : " << model.toString(itk->value()) << endl;
+            } else {
+                unsigned int cov =  (*_abundancemap)[itk->value()];
+                sum+= cov; nbkmers++;
+                vec_abundances.push_back(cov);
+            }
+        }
+        filled_insertion_t current_insertion = *it2;
+
+        current_insertion.median_coverage = median(vec_abundances);
+        current_insertion.avg_coverage  = sum /(float) nbkmers;
+
+        filledSequences_vec.push_back(current_insertion);
+
+
+     }
+     _object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring);
+
+     _nb_breakpoints++;
+
+     //progress bar
+     _nbBreakpointsProgressDone++;
+     if (_nbBreakpointsProgressDone > 50)   {  _object->_progress->inc (_nbBreakpointsProgressDone);  _nbBreakpointsProgressDone = 0;  }
+    }
+
+
+    //constructor
+    contigFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints, AbundanceMap* abundancemap, bkpt_dict_t all_targetDictionary) : _object(object),_global_nb_breakpoints(global_nb_breakpoints),_abundancemap(abundancemap),_all_targetDictionary(all_targetDictionary)
+    {
+        _nb_living =nb_living;
+        _tid =  __sync_fetch_and_add (_nb_living, 1);
+        _nb_breakpoints = 0;
+        //printf("creating thread id %i \n",_tid);
+
+    }
+
+    contigFunctor(contigFunctor const &r)
+    {
+        _all_targetDictionary = r._all_targetDictionary;
+        _nb_living = r._nb_living;
+        _object= r._object;
+        _global_nb_breakpoints = r._global_nb_breakpoints;
+        _nb_breakpoints = 0;
+        _tid =  __sync_fetch_and_add (_nb_living, 1);
+        _abundancemap = r._abundancemap;
+
+        //printf("CC creating thread id %i \n",_tid);
+
+    }
+
+    ~contigFunctor()
+    {
+         __sync_fetch_and_add (_global_nb_breakpoints, _nb_breakpoints);
+    }
+private:
+    Filler* _object;
+    int _tid;
+    int _nb_breakpoints;
+    int * _global_nb_breakpoints;
+    int * _nb_living;
+
+    AbundanceMap* _abundancemap;
+    Sequence _previousSeq;
+    u_int64_t _nbBreakpointsProgressDone = 0;
+    bkpt_dict_t _all_targetDictionary;
+
+
+};
+
+
 template<size_t span>
 class gapfillerFunctor
 {
@@ -630,6 +766,12 @@ void Filler::fillAny<span>::operator () (Filler* object)
                                           System::thread().newSynchronizer())
                      );
         object->_progress->init ();
+
+
+        // seed sequences will be written on disk to create a seed Bank
+        ofstream myfile;
+        myfile.open ("seed_dictionary.fasta");
+
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
 
@@ -648,52 +790,60 @@ void Filler::fillAny<span>::operator () (Filler* object)
                 all_targetDictionary.insert ({{targetSequence_f, std::make_pair(name, false)},
                                           {targetSequence_Rc_f, std::make_pair(name, true)}
                                          });
+
+                // Output seed dictionary to a file
+                myfile << ">"+string(itSeq->getCommentShort())+"\n";
+                myfile << seedSequence_f << endl;
+                myfile << ">"+string(itSeq->getCommentShort())+"_Rc\n";
+                myfile << seedSequence_Rc_f << endl;
+
+
             }
             else{
                 cerr << "Warning contig not used (too short): " << string(itSeq->getCommentShort()) << " of size "<< seedSequence.size() << " nt" << endl;
             }
         }
+        myfile.close();
 
 
         object->_nb_breakpoints = object->_nb_breakpoints ;
 
         object->_progress->finish ();
 
+        BankFasta inbank ("seed_dictionary.fasta");
+        BankFasta::Iterator it (inbank);
 
-        for (auto it=seedDictionary.begin(); it !=seedDictionary.end(); ++it)
-        {
-            string sourceSequence = it->first;
+
+        int nb_living=0;
+        Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(it, contigFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap,all_targetDictionary),30);
+/*
+          for (it->first(); !it->isDone(); it->next())
+         {
+            string sourceSequence = it->item().getDataBuffer();
             string seedk = sourceSequence;
-            string seedName = it->second.first;
-            //cout << "Seed " << seedName << endl;
+            string seedName = it-> item().getComment();
             string infostring;
             bool begin_kmer_repeated = false;
+            bool end_kmer_repeated = false;
             bool reverse = false;
-            string targetSequence;
+            string conc_targetSequence;
             bkpt_dict_t targetDictionary;
-
-        for (auto its=all_targetDictionary.begin(); its !=all_targetDictionary.end(); ++its)
-            {
-                string& targetName= its->second.first;
-                string tempName = targetName;
-                if (targetName.compare(seedName) != 0 )
+            for (auto its=all_targetDictionary.begin(); its !=all_targetDictionary.end(); ++its)
                 {
-                    if(its->second.second) tempName += "_Rc";
-                    targetSequence.append(its->first);
-                    targetDictionary.insert({its->first,its->second});
-                    //cout << "Source : " << seedName << " Cible : " << targetName << endl;
-                }
+                    string& targetName= its->second.first;
+                    string tempName = targetName;
+                    if (targetName.compare(seedName) != 0 )
+                    {
+                        if(its->second.second) tempName += "_Rc";
+                        conc_targetSequence.append(its->first);
+                        targetDictionary.insert({its->first,its->second});
+                        //cout << "Source : " << seedName << " Cible : " << targetName << endl;
+                    }
             }
-        if(it->second.second) seedName += "_Rc";
-        // cout << seedName << endl;
-        // cout << "SeedSeq" << seedk << endl;
-        bool end_kmer_repeated = false;
+            set<filled_insertion_t> filledSequences;
+            std::vector<filled_insertion_t> filledSequences_vec; //todo remove the set, keep only the vector
 
-        set<filled_insertion_t> filledSequences;
-        std::vector<filled_insertion_t> filledSequences_vec; //todo remove the set, keep only the vector
-
-        object->contigGapFill<span>(infostring,0, sourceSequence, targetSequence,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, false );
-
+            object->contigGapFill<span>(infostring,0, sourceSequence, conc_targetSequence,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, false );
 
 
 
@@ -819,6 +969,12 @@ void Filler::fillAny<span>::operator () (Filler* object)
         //_nb_breakpoints++;
 
            }
+    */
+
+        object->_nb_breakpoints = object->_nb_breakpoints ;
+
+        object->_progress->finish ();
+
     }
 
 
@@ -839,8 +995,13 @@ void Filler::fillAny<span>::operator () (Filler* object)
         //WARNING : 30 = number of sequences sent to each thread, keep it *even* (2 sequences for one breakpoint)
 
         object->_nb_breakpoints = object->_nb_breakpoints ;
-
         object->_progress->finish ();
+
+
+
+
+
+
     }
 }
 
@@ -921,6 +1082,8 @@ void Filler::fillContig<span>::operator () (Filler* object)
                 cerr << "Warning contig not used (too short): " << string(itSeq->getCommentShort()) << " of size "<< seedSequence.size() << " nt" << endl;
             }
         }
+
+
 
         for (auto it=seedDictionary.begin(); it !=seedDictionary.end(); ++it)
         {
@@ -1095,7 +1258,9 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
 
     //prepare temporary file names
     string rev_str=""; //used to have distinct contig file names for forward and reverse extension (usefull if investigating one breakpoint and code lines with remove command are commented)
-
+    if (reverse){
+        rev_str="_rev";
+    }
 
     string file_name_suffix=rev_str+ Stringify::format("%i",getpid()) + "_t" + Stringify::format("%i",tid); //to have unique file names when breakpoints are treated in parallel
     string contig_file_name = "contigs.fasta" + file_name_suffix;
@@ -1153,7 +1318,6 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     //now this func also cuts the last node just before the beginning of the right anchor
     set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
     filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
-
     //if reversed, reverse-complement each filled sequence
         if(reverse)
         {
@@ -1170,6 +1334,7 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
 
     remove(contig_file_name.c_str());
     remove((contig_graph_file_prefix+".graph").c_str());
+
 
 }
 
