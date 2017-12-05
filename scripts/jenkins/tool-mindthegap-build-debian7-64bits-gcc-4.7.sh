@@ -58,8 +58,8 @@ JENKINS_TASK=tool-${TOOL_NAME}-build-debian7-64bits-gcc-4.7
 GIT_DIR=/scratchdir/builds/workspace/gatb-${TOOL_NAME}
 BUILD_DIR=/scratchdir/$JENKINS_TASK/gatb-${TOOL_NAME}/build
 
-#rm -rf $BUILD_DIR
-#mkdir -p $BUILD_DIR
+rm -rf $BUILD_DIR
+mkdir -p $BUILD_DIR
 
 #-----------------------------------------------
 # we need gatb-core submodule to be initialized
