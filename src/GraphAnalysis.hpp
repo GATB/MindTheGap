@@ -36,6 +36,7 @@ using namespace std;
 // path type
 typedef vector<int> unlabeled_path;
 
+
 class GraphAnalysis {
 
 public:
@@ -59,9 +60,10 @@ public:
 
     
 
-    set<unlabeled_path> find_all_paths(set<int> terminal_nodes, bool &success);
-    set<unlabeled_path> find_all_paths(int start_node, set<int> terminal_nodes, unlabeled_path current_path, int &nb_calls, bool &success);
+    set<pair<unlabeled_path,int>> find_all_paths(set<int> terminal_nodes, bool &success);
+    set<pair<unlabeled_path,int>> find_all_paths(int start_node, set<int> terminal_nodes, unlabeled_path current_path, int &nb_calls, bool &success);
     
     static int debug; // 0: no debug, 1: node id debug, 2: ful sequence debug; useful to see the sequences of the traversed paths
     set<filled_insertion_t> paths_to_sequences(set<unlabeled_path> paths, set< info_node_t > terminal_nodes_with_endpos); // is it also used in mapsembler  ?
 };
+

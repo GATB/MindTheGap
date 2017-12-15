@@ -37,16 +37,16 @@ class filled_insertion_t
 {
 public:
 	
-    filled_insertion_t(string insert, int nb_errors, bool anchor_repeated_in_ref, bkpt_t targetId) : nb_errors_in_anchor(nb_errors),is_anchor_repeated(anchor_repeated_in_ref), targetId_anchor(targetId)	{
+    filled_insertion_t(string insert, int nb_errors, bkpt_t targetId) : nb_errors_in_anchor(nb_errors), targetId_anchor(targetId)	{
 		seq = insert;
 	}
-    filled_insertion_t(string insert, int nb_errors, bool anchor_repeated_in_ref) : nb_errors_in_anchor(nb_errors),is_anchor_repeated(anchor_repeated_in_ref) {
+    filled_insertion_t(string insert, int nb_errors) : nb_errors_in_anchor(nb_errors) {
         seq = insert;
     }
 	
 	string seq;
 	int nb_errors_in_anchor;
-	bool is_anchor_repeated;
+    //bool is_anchor_repeated;
 	
 	float avg_coverage;
 	float median_coverage;
@@ -61,7 +61,7 @@ public:
             return this->seq < other.seq;
     }
 	
-	int compute_qual() const
+    int compute_qual(bool is_anchor_repeated) const
 	{
 		
 		if(is_anchor_repeated)

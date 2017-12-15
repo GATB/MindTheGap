@@ -114,40 +114,51 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
 }
 
 // wrapper
-set<unlabeled_path> GraphAnalysis::find_all_paths(set<int> terminal_nodes, bool &success)
+set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(set<int> terminal_nodes, bool &success)
 {
     success = true;
     unlabeled_path start_path;
     start_path.push_back(0);
     int nb_calls = 0;
-    set<unlabeled_path> paths = find_all_paths(0, terminal_nodes, start_path, nb_calls, success);
+
+
+    set<pair<unlabeled_path,int>> paths = find_all_paths(0, terminal_nodes, start_path, nb_calls, success);
     //std::cout << "PATHS0 \n"  << endl;
 
     return paths;
 }
 
 // precondition: terminal_nodes is non-empty
-set<unlabeled_path> GraphAnalysis::find_all_paths(int start_node, set<int> terminal_nodes, unlabeled_path current_path, int &nb_calls, bool &success)
+set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(int start_node, set<int> terminal_nodes, unlabeled_path current_path, int &nb_calls, bool &success)
 {
-    set<unlabeled_path> paths;
+    //cout << nb_calls << endl;
 
-
+    set<pair<unlabeled_path,int>> paths;
     // don't explore for too long
     if (nb_calls++ > 10000000)
     {
-       // printf("fail, max nb_calls reached \n");
+       printf("fail, max nb_calls reached \n");
 
         success = false;
 
         return paths;
     }
 
-    if (terminal_nodes.find(start_node) != terminal_nodes.end()) //stops when reaches one of the terminal nodes.
+    for (set<int>::iterator it_targets = terminal_nodes.begin() ; it_targets != terminal_nodes.end() ; it_targets++)
     {
-        paths.insert(current_path);
-        return paths;
-
+        //cout << *it_targets << endl;
+        if (*it_targets == start_node )
+        {
+            pair<unlabeled_path,int> found_path = make_pair(current_path,*it_targets);
+            paths.insert(found_path);
+            return paths;
+        }
     }
+//    if (terminal_nodes.find(start_node) != terminal_nodes.end()) //stops when reaches one of the terminal nodes.
+//    {
+//        paths.insert(current_path);
+//        return paths;
+//    }
     // visit all neighbors
     for(set<int>::iterator it_edge = out_edges[start_node].begin(); it_edge != out_edges[start_node].end(); it_edge++)
     {
@@ -167,14 +178,14 @@ set<unlabeled_path> GraphAnalysis::find_all_paths(int start_node, set<int> termi
 
 
             // recursive call
-            set<unlabeled_path> new_paths = find_all_paths(next_node, terminal_nodes, extended_path, nb_calls, success);
+            set<pair<unlabeled_path,int>> new_paths = find_all_paths(next_node, terminal_nodes, extended_path, nb_calls, success);
             paths.insert(new_paths.begin(), new_paths.end());
 
 
             // mark to stop we end up with too large breadth
             if (paths.size() >= max_breadth)
             {
-                //printf("fail, max breadth reached \n");
+                printf("fail, max breadth reached \n");
                 success = false;
             }
         }
@@ -246,7 +257,7 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
                     {
                         pos_anchor = (*it).pos;
                         errs_in_anchor = it->nb_errors;
-                        anchor_repeated_in_ref= it->anchor_is_repeated;
+                        //anchor_repeated_in_ref= it->anchor_is_repeated;
                         targetId_anchor = it ->targetId;
                         break;
                     }
@@ -302,7 +313,9 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
             printf(" sequence: %s\n",sequence.c_str());
 
         if(sequence.length()>0) // test filtrage ici ?
-           { sequences.insert(filled_insertion_t(sequence,errs_in_anchor,anchor_repeated_in_ref,targetId_anchor));
+           {
+            //sequences.insert(filled_insertion_t(sequence,errs_in_anchor,anchor_repeated_in_ref,targetId_anchor));
+            sequences.insert(filled_insertion_t(sequence,errs_in_anchor,targetId_anchor));
             //cout << targetId_anchor.first << endl;
             //cout  << sequence << endl;
 

@@ -346,11 +346,13 @@ public:
     string seedk = sourceSequence;
     string seedName = sequence.getComment();
     string infostring;
-    bool begin_kmer_repeated = false;
-    bool end_kmer_repeated = false;
+    //bool begin_kmer_repeated = false;
+    //bool end_kmer_repeated = false;
+    bool is_anchor_repeated = false;
     bool reverse = false;
     string conc_targetSequence;
     bkpt_dict_t targetDictionary;
+    int nb_mis_allowed = 2;
 
     for (auto its=_all_targetDictionary.begin(); its !=_all_targetDictionary.end(); ++its)
     {
@@ -366,7 +368,7 @@ public:
 
      set<filled_insertion_t> filledSequences;
      std::vector<filled_insertion_t> filledSequences_vec; //todo remove the set, keep only the vector
-     _object->contigGapFill<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, false );
+     _object->contigGapFill<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, nb_mis_allowed, targetDictionary, false );
 
      infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
@@ -411,7 +413,7 @@ public:
 
 
      }
-     _object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring);
+     _object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring,is_anchor_repeated);
 
      _nb_breakpoints++;
 
@@ -502,7 +504,13 @@ public:
 
             string breakpointName_R = string(sequence.getCommentShort());
             bool end_kmer_repeated = sequence.getComment().find("REPEATED") !=  std::string::npos;
+            bool is_anchor_repeated = begin_kmer_repeated || end_kmer_repeated;
 
+            int nb_mis_allowed = _nb_mis_allowed;
+            if(is_anchor_repeated){
+                nb_mis_allowed=0;
+            }
+            //printf("nb_mis_allowed %i \n",nb_mis_allowed);
 
             //Initialize set of filled sequences
             set<filled_insertion_t> filledSequences;
@@ -519,7 +527,7 @@ public:
             targetDictionary.insert ({targetSequence, std::make_pair(breakpointName_R, false)});
 
             //_object->gapFill<span>(infostring,_tid,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
-            _object->contigGapFill<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, false);
+            _object->contigGapFill<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, nb_mis_allowed, targetDictionary, false);
 
             //If gap-filling failed in one direction, try the other direction (from target to source in revcomp)
             if(filledSequences.size()==0){
@@ -531,7 +539,7 @@ public:
 
 
                 //_object->GapFill<span>(infostring,_tid,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
-                _object->contigGapFill<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, begin_kmer_repeated,end_kmer_repeated, targetDictionary, true);
+                _object->contigGapFill<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, nb_mis_allowed, targetDictionary, true);
 
             }
 
@@ -591,7 +599,7 @@ public:
             /////////////////////////////
 
 
-            _object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
+            _object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring,is_anchor_repeated);
 
             // We increase the breakpoint counter.
             _nb_breakpoints++;
@@ -637,6 +645,7 @@ private:
     int _nb_breakpoints;
     int * _global_nb_breakpoints;
     int * _nb_living;
+    int _nb_mis_allowed;
     AbundanceMap* _abundancemap;
     Sequence _previousSeq;
     u_int64_t _nbBreakpointsProgressDone = 0;
@@ -785,13 +794,13 @@ void Filler::fillAny<span>::operator () (Filler* object)
 }
 
 template<size_t span>
-void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,bool begin_kmer_repeated,bool end_kmer_repeated, bkpt_dict_t targetDictionary, bool reverse ){
+void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,int nb_mis_allowed, bkpt_dict_t targetDictionary, bool reverse ){
 
     //object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
     BranchingTerminator terminator (_graph);
     IterativeExtensions<span> extension (_graph, terminator, TRAVERSAL_CONTIG, ExtendStopMode_until_max_depth, SearchMode_Breadth, false, _max_depth, _max_nodes);
     //todo check param dontOutputFirstNucl=false ??
-    // todo put these two above lines in fillBreakpoints and pass object extension in param
+    //todo put these two above lines in fillBreakpoints and pass object extension in param
 
     //prepare temporary file names
     string rev_str=""; //used to have distinct contig file names for forward and reverse extension (usefull if investigating one breakpoint and code lines with remove command are commented)
@@ -815,23 +824,18 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
     graph_output.close();
 
-    //find targetSequence in nodes of the contig graph
-    int nb_mis_allowed = _nb_mis_allowed;
-    if(begin_kmer_repeated || end_kmer_repeated)
-        nb_mis_allowed=0;
-    //printf("nb_mis_allowed %i \n",nb_mis_allowed);
-    set< info_node_t > terminal_nodes_with_endpos = find_nodes_containing_multiple_R(targetDictionary, contig_file_name, nb_mis_allowed, _nb_gap_allowed, begin_kmer_repeated || end_kmer_repeated);
+   set< info_node_t > terminal_nodes_with_endpos = find_nodes_containing_multiple_R(targetDictionary, contig_file_name, nb_mis_allowed, _nb_gap_allowed);
 
-
-    //printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
+      //printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
 
     //also convert it to list of node id for traditional use
     set<int> terminal_nodes;
     for (set< info_node_t >::iterator it = terminal_nodes_with_endpos.begin(); it != terminal_nodes_with_endpos.end(); it++)
     {
         terminal_nodes.insert((*it).node_id);
-        //std::cout <<" NODE" << ((*it).node_id) << std::endl;
     }
+
+
 
 
     // analyze the graph to find a satisfying gap sequence between L and R
@@ -840,28 +844,53 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     graph.debug = true;
 
     infostring +=   Stringify::format ("\t%d", terminal_nodes.size()) ;
-    if(terminal_nodes.size()==0)
+    /*if(terminal_nodes.size()==0)
     {
         //if(verb)
             //printf("Right anchor not found.. gapfillling failed... \n");
         return ;
-    }
+    }*/
 
     //if(verb)    fprintf(stderr," analysis..");
     bool success;
-    set<unlabeled_path> paths = graph.find_all_paths(terminal_nodes, success);
+    set<pair<unlabeled_path,int>> paths = graph.find_all_paths(terminal_nodes, success);
 
+    // We build a map to sort paths leading to the same target
+    unordered_map<int,set<unlabeled_path>> paths_to_compare;
+    for (set<pair<unlabeled_path,int>>::iterator it = paths.begin(); it!=paths.end();it++)
+    {
+        paths_to_compare[it->second].insert(it->first);
+    }
+    set<filled_insertion_t> tmpSequences;
+    for (unordered_map<int,set<unlabeled_path>>::iterator it = paths_to_compare.begin(); it!=paths_to_compare.end();++it)
+    {
+        set<unlabeled_path> current_paths = it->second;
+        tmpSequences = graph.paths_to_sequences(current_paths,terminal_nodes_with_endpos);
+        // remove almost identical sequences
+        if (tmpSequences.size() > 1)
+        {
+            //if(verb)     printf(" [SUCCESS]\n");
+            if (all_consensuses_almost_identical(tmpSequences,90))
+            {
+                //				stringstream ss;
+                //				ss << "cons" <<filledSequences.size();
+                //				breakpointName=breakpointName+ss.str();
+                tmpSequences.erase(++(tmpSequences.begin()),tmpSequences.end()); // keep only one consensus sequence
+            }
+        }
 
+        filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
+    }
     //now this func also cuts the last node just before the beginning of the right anchor
-    set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
-    filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
+    //set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
+    //filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
     //if reversed, reverse-complement each filled sequence
         if(reverse)
         {
             set<filled_insertion_t>::iterator its;
             for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
             {
-                filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor,its->is_anchor_repeated );
+                filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor);
                 filledSequences.insert ( rev_insert);
             }
         }
@@ -878,7 +907,7 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
 
 
 
-void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences,  string seedName, std::string info){
+void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences,  string seedName, std::string info,bool is_anchor_repeated){
 
     //printf("-- writeFilledBreakpoint --\n");
 
@@ -919,7 +948,7 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
             osolu_i <<   "solution " <<    nbInsertions+1 << "/" << nbTotalInsertions ;
             string solu_i = nbTotalInsertions >1 ?  osolu_i.str() : "" ;
 
-            int qual = it->compute_qual();
+            int qual = it->compute_qual(is_anchor_repeated);
 
             if(filledSequences.size()>1 && qual>10) qual = 15; // if multiple solutions and 0 err or repeated in ref
 
@@ -970,7 +999,7 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
 
 }
 
-set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetDictionary, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed, bool anchor_is_repeated)
+set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetDictionary, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed)
 {
     bool debug = false;
     //set<int> terminal_nodes;
@@ -989,63 +1018,64 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
     // We loop over sequences.
     for (itSeq->first(); !itSeq->isDone(); itSeq->next())
     {
-
-    int anchor_size = _kmerSize;
-    //cout << "anchor" << anchor_size << endl;
+        int anchor_size = _kmerSize;
+        //cout << "anchor" << anchor_size << endl;
         nodelen = (*itSeq)->getDataSize();
         if (nodelen < _kmerSize )
         {
+            cout << "Toot short" << endl;
             nodeNb++;
             continue;
         }
-    nodeseq =  (*itSeq)->getDataBuffer();
-   // cout << "node " << nodeseq << endl;
+        nodeseq =  (*itSeq)->getDataBuffer();
+        // cout << "node " << nodeseq << endl;
 
 
-    int best_match=0;
-    bkpt_t best_id;
-    int position=0;
-    bool arret=false;
+        int best_match=0;
+        bkpt_t best_id;
+        int position=0;
+        bool arret=false;
         for (unsigned int j = 0; j < nodelen-_kmerSize+1 && !arret; j++)
         {
-        best_match = 0;
-        for (auto it=targetDictionary.begin(); it !=targetDictionary.end() && !arret; ++it)
-            {
-                string ide = (it->second).first;
-                const char * anchor =(it->first).c_str();
-
-                int nbmatch=0;
-
-                for (int i = 0; i < anchor_size; i++)
+            best_match = 0;
+            for (auto it=targetDictionary.begin(); it !=targetDictionary.end() && !arret; ++it)
                 {
-                    nbmatch += identNT(nodeseq[j+i], anchor[i]);
-                }
+                    string ide = (it->second).first;
+                    const char * anchor =(it->first).c_str();
 
+                    int nbmatch=0;
 
-                if (nbmatch > best_match && nbmatch >=(anchor_size - nb_mis_allowed))
-                {
-                    //cout << "nb match" << nbmatch << endl;
-                    //cout << " target seq" << anchor << endl;
-                    best_id = it->second;
-                    position=j;
-                    best_match = nbmatch;
-                    if (nbmatch == anchor_size) {
-                        //cout << "nb match all " << nbmatch << endl;
-                        arret = true;
-                        break;
+                    for (int i = 0; i < anchor_size; i++)
+                    {
+                        nbmatch += identNT(nodeseq[j+i], anchor[i]);
                     }
+
+
+                    if (nbmatch > best_match && nbmatch >=(anchor_size - nb_mis_allowed))
+                    {
+                        //cout << "nb match" << nbmatch << endl;
+                        //cout << " target seq" << anchor << endl;
+                        best_id = it->second;
+                        position=j;
+                        best_match = nbmatch;
+                        if (nbmatch == anchor_size) {
+                            //cout << "nb match all " << nbmatch << endl;
+                            arret = true;
+                            break;
+                        }
+                    }
+
+
                 }
 
-
-            }
         }
-
         if (best_match != 0)
         {
             //cout << endl;
             //cout << "cible" << best_id.first << " position " << position << "nodeId" << nodeNb << "  len " << nodelen << endl;
             //cout << " nodeseq" << nodeseq << endl;
-            terminal_nodes.insert(   (info_node_t) {(int)nodeNb,(int)position, anchor_size - best_match,anchor_is_repeated, best_id}   ); // nodeNb,  j pos of beginning of right anchor
+            terminal_nodes.insert((info_node_t) {(int)nodeNb,(int)position, anchor_size - best_match, best_id}); // nodeNb,  j pos of beginning of right anchor
+
         }
 
 
