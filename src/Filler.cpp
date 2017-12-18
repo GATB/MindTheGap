@@ -507,6 +507,7 @@ public:
             bool is_anchor_repeated = begin_kmer_repeated || end_kmer_repeated;
 
             int nb_mis_allowed = _nb_mis_allowed;
+
             if(is_anchor_repeated){
                 nb_mis_allowed=0;
             }
@@ -546,19 +547,19 @@ public:
             infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
 
-            //Checks if all sequences are roughly the same (if this is the case, keep only the first one)
-            if (all_consensuses_almost_identical(filledSequences,90))
-            {
-                //if(verb)     printf(" [SUCCESS]\n");
-                if (filledSequences.size() > 1) {
-                    //				stringstream ss;
-                    //				ss << "cons" <<filledSequences.size();
-                    //				breakpointName=breakpointName+ss.str();
-                    filledSequences.erase(++(filledSequences.begin()),filledSequences.end()); // keep only one consensus sequence
-                }
-            }
-            else
-                ;
+//            //Checks if all sequences are roughly the same (if this is the case, keep only the first one)
+//            if (all_consensuses_almost_identical(filledSequences,90))
+//            {
+//                //if(verb)     printf(" [SUCCESS]\n");
+//                if (filledSequences.size() > 1) {
+//                    //				stringstream ss;
+//                    //				ss << "cons" <<filledSequences.size();
+//                    //				breakpointName=breakpointName+ss.str();
+//                    filledSequences.erase(++(filledSequences.begin()),filledSequences.end()); // keep only one consensus sequence
+//                }
+//            }
+//            else
+//                ;
 
             infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
@@ -617,6 +618,7 @@ public:
         _nb_living =nb_living;
         _tid =  __sync_fetch_and_add (_nb_living, 1);
         _nb_breakpoints = 0;
+
         //printf("creating thread id %i \n",_tid);
 
     }
@@ -645,7 +647,7 @@ private:
     int _nb_breakpoints;
     int * _global_nb_breakpoints;
     int * _nb_living;
-    int _nb_mis_allowed;
+    int _nb_mis_allowed = 2; // To fix, should be read from global parameters
     AbundanceMap* _abundancemap;
     Sequence _previousSeq;
     u_int64_t _nbBreakpointsProgressDone = 0;
@@ -824,9 +826,9 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     graph_output.first_id_els = graph_output.construct_graph(contig_file_name,"LEFT");
     graph_output.close();
 
-   set< info_node_t > terminal_nodes_with_endpos = find_nodes_containing_multiple_R(targetDictionary, contig_file_name, nb_mis_allowed, _nb_gap_allowed);
+    set< info_node_t > terminal_nodes_with_endpos = find_nodes_containing_multiple_R(targetDictionary, contig_file_name, nb_mis_allowed, _nb_gap_allowed);
 
-      //printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
+    // printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
 
     //also convert it to list of node id for traditional use
     set<int> terminal_nodes;
@@ -834,9 +836,6 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     {
         terminal_nodes.insert((*it).node_id);
     }
-
-
-
 
     // analyze the graph to find a satisfying gap sequence between L and R
 
@@ -1010,7 +1009,6 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
     char * nodeseq;
     size_t nodelen;
 
-
     // heuristics: R has to be seen entirely in the node up to nb_mis_allowed errors, in the forward strand
 
     BankFasta::Iterator  * itSeq  =  new BankFasta::Iterator  (*Nodes);
@@ -1019,17 +1017,15 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
     for (itSeq->first(); !itSeq->isDone(); itSeq->next())
     {
         int anchor_size = _kmerSize;
-        //cout << "anchor" << anchor_size << endl;
+
         nodelen = (*itSeq)->getDataSize();
         if (nodelen < _kmerSize )
         {
-            cout << "Toot short" << endl;
+            cout << "Too short" << endl;
             nodeNb++;
             continue;
         }
         nodeseq =  (*itSeq)->getDataBuffer();
-        // cout << "node " << nodeseq << endl;
-
 
         int best_match=0;
         bkpt_t best_id;
@@ -1042,7 +1038,6 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
                 {
                     string ide = (it->second).first;
                     const char * anchor =(it->first).c_str();
-
                     int nbmatch=0;
 
                     for (int i = 0; i < anchor_size; i++)
@@ -1059,21 +1054,19 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
                         position=j;
                         best_match = nbmatch;
                         if (nbmatch == anchor_size) {
-                            //cout << "nb match all " << nbmatch << endl;
                             arret = true;
                             break;
                         }
                     }
-
-
                 }
-
         }
         if (best_match != 0)
         {
             //cout << endl;
             //cout << "cible" << best_id.first << " position " << position << "nodeId" << nodeNb << "  len " << nodelen << endl;
             //cout << " nodeseq" << nodeseq << endl;
+
+
             terminal_nodes.insert((info_node_t) {(int)nodeNb,(int)position, anchor_size - best_match, best_id}); // nodeNb,  j pos of beginning of right anchor
 
         }

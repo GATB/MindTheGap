@@ -137,7 +137,7 @@ set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(int start_node, set<
     // don't explore for too long
     if (nb_calls++ > 10000000)
     {
-       printf("fail, max nb_calls reached \n");
+       // printf("fail, max nb_calls reached \n");
 
         success = false;
 
@@ -146,7 +146,6 @@ set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(int start_node, set<
 
     for (set<int>::iterator it_targets = terminal_nodes.begin() ; it_targets != terminal_nodes.end() ; it_targets++)
     {
-        //cout << *it_targets << endl;
         if (*it_targets == start_node )
         {
             pair<unlabeled_path,int> found_path = make_pair(current_path,*it_targets);
@@ -185,7 +184,7 @@ set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(int start_node, set<
             // mark to stop we end up with too large breadth
             if (paths.size() >= max_breadth)
             {
-                printf("fail, max breadth reached \n");
+                // printf("fail, max breadth reached \n");
                 success = false;
             }
         }
