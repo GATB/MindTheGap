@@ -184,7 +184,7 @@ set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(int start_node, set<
             // mark to stop we end up with too large breadth
             if (paths.size() >= max_breadth)
             {
-                // printf("fail, max breadth reached \n");
+                //printf("fail, max breadth reached \n");
                 success = false;
             }
         }

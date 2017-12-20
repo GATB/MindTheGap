@@ -115,6 +115,10 @@ public:
     string _insert_file_name;
     FILE * _insert_file;
 
+    //output file in GFA format (fot -contig)
+    string _gfa_file_name;
+    FILE * _gfa_file;
+
     //output file with statistics about each attempt of gap-filling
     string _insert_info_file_name;
     FILE * _insert_info_file;
@@ -137,6 +141,7 @@ public:
     /** writes a given breakpoint in the output file
      */
     void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring, bool is_anchor_repeated);
+    void writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string SeedName, bool isRc);
 
     /** Fill one gap
      */

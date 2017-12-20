@@ -209,6 +209,15 @@ void Filler::execute ()
     // Output file names
     _insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.fasta";
     _insert_file = fopen(_insert_file_name.c_str(), "w");
+    if (getInput()->get(STR_URI_CONTIG) != nullptr)
+    {
+        _gfa_file_name = getInput()->getStr(STR_URI_OUTPUT)+".gfa";
+        _gfa_file = fopen(_gfa_file_name.c_str(),"w");
+        if(_gfa_file == NULL){
+            string message = "Cannot open file "+ _gfa_file_name + " for writting";
+            throw Exception(message.c_str());
+        }
+    }
     if(_insert_file == NULL){
         string message = "Cannot open file "+ _insert_file_name + " for writting";
         throw Exception(message.c_str());
@@ -346,13 +355,15 @@ public:
     string seedk = sourceSequence;
     string seedName = sequence.getComment();
     string infostring;
+    bool isRc = !seedName.compare (seedName.length() - 3, 3, "_Rc");
+
     //bool begin_kmer_repeated = false;
     //bool end_kmer_repeated = false;
     bool is_anchor_repeated = false;
     bool reverse = false;
     string conc_targetSequence;
     bkpt_dict_t targetDictionary;
-    int nb_mis_allowed = 2;
+    int nb_mis_allowed = 2; // To fix
 
     for (auto its=_all_targetDictionary.begin(); its !=_all_targetDictionary.end(); ++its)
     {
@@ -413,7 +424,9 @@ public:
 
 
      }
+     // Write insertions to file
      _object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring,is_anchor_repeated);
+     _object->writeToGFA(filledSequences_vec,sourceSequence,seedName,isRc);
 
      _nb_breakpoints++;
 
@@ -462,8 +475,6 @@ private:
     Sequence _previousSeq;
     u_int64_t _nbBreakpointsProgressDone = 0;
     bkpt_dict_t _all_targetDictionary;
-
-
 };
 
 
@@ -714,14 +725,17 @@ void Filler::fillAny<span>::operator () (Filler* object)
 
 
         // seed sequences will be written on disk to create a seed Bank
-        ofstream myfile;
-        myfile.open ("seed_dictionary.fasta");
-
+        // Original contigs written as nodes of the GFA file
+        ofstream seedFile;
+        seedFile.open ("seed_dictionary.fasta");
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
+            std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
+            // Write the contigs to GFA
+            fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getComment().c_str(),seedSequence.c_str());
 
              // create seed and targetDictionary
-                std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
+
             if(seedSequence.size() > (2*kmerSize)){
                 std::string seedSequence_f = seedSequence.substr(seedSequence.size()-(2*kmerSize), kmerSize);
                 std::string name = string(itSeq->getCommentShort());
@@ -737,10 +751,10 @@ void Filler::fillAny<span>::operator () (Filler* object)
                                          });
 
                 // Output seed dictionary to a file
-                myfile << ">"+string(itSeq->getCommentShort())+"\n";
-                myfile << seedSequence_f << endl;
-                myfile << ">"+string(itSeq->getCommentShort())+"_Rc\n";
-                myfile << seedSequence_Rc_f << endl;
+                seedFile << ">"+string(itSeq->getCommentShort())+"\n";
+                seedFile << seedSequence_f << endl;
+                seedFile << ">"+string(itSeq->getCommentShort())+"_Rc\n";
+                seedFile << seedSequence_Rc_f << endl;
 
 
             }
@@ -748,7 +762,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
                 cerr << "Warning contig not used (too short): " << string(itSeq->getCommentShort()) << " of size "<< seedSequence.size() << " nt" << endl;
             }
         }
-        myfile.close();
+        seedFile.close();
 
 
         object->_nb_breakpoints = object->_nb_breakpoints ;
@@ -993,10 +1007,61 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
     fprintf(_insert_info_file,"%s\t%s\n",seedName.c_str(),info.c_str());
 
     funlockfile(_insert_info_file);
-
-
-
 }
+
+
+void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string seedName, bool isRc ){
+
+    string seedDirection = "+";
+    string targetDirection;
+    string seedNameNode = seedName;
+    string targetNameNode;
+
+    if (isRc) // Seed contig has been read Rc
+    {
+        seedName = seedName.substr(0, seedName.size()-3);
+        seedDirection = "-";
+    }
+
+    flockfile(_gfa_file);
+
+    // Write gapfilling as GFA node + 2 edges
+    for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+    {
+        string insertion = it->seq;
+        int llen = insertion.length() ;// - (int) R.length() - (int) L.length() - 2*hetmode;
+
+        if(llen > 0)
+        {
+            // Add seed and target kmers to insertion seq
+            //insertion = sourceSequence + insertion + it->targetId
+            bkpt_t targetId = it->targetId_anchor;
+            string targetName = targetId.first;
+
+            if(targetId.second) {
+               targetDirection = "-";
+               targetNameNode = targetName + "_Rc";
+            } else {
+               targetDirection = "+";
+               targetNameNode = targetName;
+            }
+
+            // Write node
+            string nodeName = seedNameNode+"_"+targetNameNode+"_len_"+to_string(llen)+"_avgcov_"+to_string(it->avg_coverage); //+"_"+to_string(it->median_coverage);
+            fprintf(_gfa_file,"S\t%s\t%s\n",nodeName.c_str(),insertion.c_str());
+
+            // Write link between nodes
+
+            // From seed to gapfilling
+            fprintf(_gfa_file,"L\t%s\t%s\t%s\t+\t%iM\n",seedName.c_str(),seedDirection.c_str(),nodeName.c_str(),_kmerSize);
+
+            // From gapfilling to seed
+            fprintf(_gfa_file,"L\t%s\t+\t%s\t%s\t%iM\n",nodeName.c_str(),targetName.c_str(),targetDirection.c_str(),_kmerSize);
+        }
+    }
+    funlockfile(_gfa_file);
+}
+
 
 set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetDictionary, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed)
 {
