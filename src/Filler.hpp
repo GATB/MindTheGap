@@ -141,7 +141,7 @@ public:
     /** writes a given breakpoint in the output file
      */
     void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring, bool is_anchor_repeated);
-    void writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string SeedName, bool isRc);
+    void writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string SeedName, bool isRc,bool is_anchor_repeated);
 
     /** Fill one gap
      */

@@ -426,7 +426,7 @@ public:
      }
      // Write insertions to file
      _object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring,is_anchor_repeated);
-     _object->writeToGFA(filledSequences_vec,sourceSequence,seedName,isRc);
+     _object->writeToGFA(filledSequences_vec,sourceSequence,seedName,isRc,is_anchor_repeated);
 
      _nb_breakpoints++;
 
@@ -980,9 +980,13 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
             if(targetId.second) {
                 targetName.append("_Rc");
             }
-            fprintf(_insert_file,">%s;%s;len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
-                    seedName.c_str(), targetName.c_str(),llen,qual,solu_i.c_str()
-                    ,it->avg_coverage,it->median_coverage);
+            int cov = it->median_coverage + 0.5;
+            string insertionName = ">"+seedName+";"+targetName+";len_"+to_string(llen)+"_qual_"+to_string(qual)+"_median_cov_"+to_string(cov)+"\t"+solu_i+"\n";
+
+            fprintf(_insert_file,"%s",insertionName.c_str());
+//            fprintf(_insert_file,">%s;%s;len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
+//                    seedName.c_str(), targetName.c_str(),llen,qual,solu_i.c_str()
+//                    ,it->avg_coverage,it->median_coverage);
 
             //fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
             //todo check  revcomp here
@@ -1010,7 +1014,7 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
 }
 
 
-void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string seedName, bool isRc ){
+void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string seedName, bool isRc, bool is_anchor_repeated){
 
     string seedDirection = "+";
     string targetDirection;
@@ -1028,6 +1032,7 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
     // Write gapfilling as GFA node + 2 edges
     for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
     {
+        int qual = it->compute_qual(is_anchor_repeated);
         string insertion = it->seq;
         int llen = insertion.length() ;// - (int) R.length() - (int) L.length() - 2*hetmode;
 
@@ -1047,7 +1052,8 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
             }
 
             // Write node
-            string nodeName = seedNameNode+"_"+targetNameNode+"_len_"+to_string(llen)+"_avgcov_"+to_string(it->avg_coverage); //+"_"+to_string(it->median_coverage);
+            int cov = it->median_coverage + 0.5;
+            string nodeName = seedNameNode+";"+targetNameNode+";len_"+to_string(llen)+"_qual_"+to_string(qual)+"_median_cov_"+to_string(cov); // Name could be computed once for gfa and fasta
             fprintf(_gfa_file,"S\t%s\t%s\n",nodeName.c_str(),insertion.c_str());
 
             // Write link between nodes
