@@ -727,7 +727,8 @@ void Filler::fillAny<span>::operator () (Filler* object)
         // seed sequences will be written on disk to create a seed Bank
         // Original contigs written as nodes of the GFA file
         ofstream seedFile;
-        seedFile.open ("seed_dictionary.fasta");
+        string seedFileName = object->getInput()->getStr(STR_URI_OUTPUT)+"_seed_dictionary.fasta";
+        seedFile.open (seedFileName);
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
             std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
@@ -769,7 +770,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
 
         object->_progress->finish ();
 
-        BankFasta inbank ("seed_dictionary.fasta");
+        BankFasta inbank (seedFileName);
         BankFasta::Iterator it (inbank);
 
 
