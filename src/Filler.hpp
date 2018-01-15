@@ -32,6 +32,7 @@ using namespace std;
 
 
 static const char* STR_URI_CONTIG = "-contig";
+static const char* STR_CONTIG_OVERLAP = "-overlap";
 static const char* STR_URI_BKPT = "-bkpt";
 static const char* STR_MAX_DEPTH = "-max-length";
 static const char* STR_MAX_NODES = "-max-nodes";
@@ -130,6 +131,8 @@ public:
     //parameters for looking for the target sequence in the contig graph, with some mismatches and/or gaps
     int _nb_mis_allowed;
     int _nb_gap_allowed;
+
+    int _overlap_length;
 
 
     // Actual job done by the tool is here

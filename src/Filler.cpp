@@ -75,6 +75,7 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     generalParser->push_front (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
 
     IOptionsParser* inputParser = new OptionsParser("Input / output");
+    inputParser->push_front (new OptionOneParam (STR_CONTIG_OVERLAP, "Overlap between input contigs",  false, "0"));
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_BKPT, "breakpoint file", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_CONTIG, "contig file", false, ""));
@@ -729,9 +730,13 @@ void Filler::fillAny<span>::operator () (Filler* object)
         ofstream seedFile;
         string seedFileName = object->getInput()->getStr(STR_URI_OUTPUT)+"_seed_dictionary.fasta";
         seedFile.open (seedFileName);
+        int overlap = object->getInput()->getInt(STR_CONTIG_OVERLAP);
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
             std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
+            // Remove overlap supplied as parameter
+            seedSequence = seedSequence.substr(overlap, itSeq->getDataSize() - 2*overlap);
+
             // Write the contigs to GFA
             fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getComment().c_str(),seedSequence.c_str());
 
