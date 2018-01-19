@@ -105,6 +105,9 @@ float needleman_wunsch(string a, string b, int * nbmatch,int * nbmis,int * nbgap
  */
 bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int identity_threshold);
 
+set<filled_insertion_t> remove_almost_identical_solutions(set<filled_insertion_t> consensuses, int identity_threshold);
+
+
 double median(std::vector<unsigned int> &v);
 
 #endif /* _Utils_HPP_ */

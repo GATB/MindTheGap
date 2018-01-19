@@ -889,13 +889,7 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
         if (tmpSequences.size() > 1)
         {
             //if(verb)     printf(" [SUCCESS]\n");
-            if (all_consensuses_almost_identical(tmpSequences,90))
-            {
-                //				stringstream ss;
-                //				ss << "cons" <<filledSequences.size();
-                //				breakpointName=breakpointName+ss.str();
-                tmpSequences.erase(++(tmpSequences.begin()),tmpSequences.end()); // keep only one consensus sequence
-            }
+            tmpSequences = remove_almost_identical_solutions(tmpSequences,90);
         }
 
         filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
