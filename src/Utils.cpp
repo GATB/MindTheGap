@@ -209,6 +209,7 @@ set<filled_insertion_t> remove_almost_identical_solutions(set<filled_insertion_t
     // heuristic : add first seq to final set. Compare every seq to final_seq and add to final_set if different
     set<filled_insertion_t> final_set;
     final_set.insert(*consensuses.begin()  );
+
     for (set<filled_insertion_t>::iterator it_a=consensuses.begin(); it_a!=consensuses.end(); ++it_a) // could be improved : no need to compare first seq
     {
         for (set<filled_insertion_t>::iterator it_b=final_set.begin(); it_b!=final_set.end(); ++it_b){
@@ -217,6 +218,7 @@ set<filled_insertion_t> remove_almost_identical_solutions(set<filled_insertion_t
             }
         }
     }
+    return(final_set);
 }
 
 
