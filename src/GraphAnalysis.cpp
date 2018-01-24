@@ -114,7 +114,7 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
 }
 
 // wrapper
-set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(set<int> terminal_nodes, bool &success)
+set<pair<unlabeled_path,bkpt_t>> GraphAnalysis::find_all_paths(set< info_node_t > terminal_nodes_with_endpos, bool &success)
 {
     success = true;
     unlabeled_path start_path;
@@ -122,18 +122,18 @@ set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(set<int> terminal_no
     int nb_calls = 0;
 
 
-    set<pair<unlabeled_path,int>> paths = find_all_paths(0, terminal_nodes, start_path, nb_calls, success);
+    set<pair<unlabeled_path,bkpt_t>> paths = find_all_paths(0, terminal_nodes_with_endpos, start_path, nb_calls, success);
     //std::cout << "PATHS0 \n"  << endl;
 
     return paths;
 }
 
 // precondition: terminal_nodes is non-empty
-set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(int start_node, set<int> terminal_nodes, unlabeled_path current_path, int &nb_calls, bool &success)
+set<pair<unlabeled_path,bkpt_t>> GraphAnalysis::find_all_paths(int start_node, set< info_node_t > terminal_nodes_with_endpos, unlabeled_path current_path, int &nb_calls, bool &success)
 {
     //cout << nb_calls << endl;
 
-    set<pair<unlabeled_path,int>> paths;
+    set<pair<unlabeled_path,bkpt_t>> paths;
     // don't explore for too long
     if (nb_calls++ > 10000000)
     {
@@ -144,11 +144,11 @@ set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(int start_node, set<
         return paths;
     }
 
-    for (set<int>::iterator it_targets = terminal_nodes.begin() ; it_targets != terminal_nodes.end() ; it_targets++)
+    for (set< info_node_t >::iterator it_targets = terminal_nodes_with_endpos.begin() ; it_targets != terminal_nodes_with_endpos.end() ; it_targets++)
     {
-        if (*it_targets == start_node )
+        if (it_targets->node_id == start_node )
         {
-            pair<unlabeled_path,int> found_path = make_pair(current_path,*it_targets);
+            pair<unlabeled_path,bkpt_t> found_path = make_pair(current_path,it_targets->targetId);
             paths.insert(found_path);
             return paths;
         }
@@ -177,7 +177,7 @@ set<pair<unlabeled_path,int>> GraphAnalysis::find_all_paths(int start_node, set<
 
 
             // recursive call
-            set<pair<unlabeled_path,int>> new_paths = find_all_paths(next_node, terminal_nodes, extended_path, nb_calls, success);
+            set<pair<unlabeled_path,bkpt_t>> new_paths = find_all_paths(next_node, terminal_nodes_with_endpos, extended_path, nb_calls, success);
             paths.insert(new_paths.begin(), new_paths.end());
 
 

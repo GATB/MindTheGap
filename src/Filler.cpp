@@ -808,16 +808,11 @@ void Filler::fillAny<span>::operator () (Filler* object)
         object->_progress->finish ();
 
 
-
-
-
-
     }
 }
 
 template<size_t span>
 void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,int nb_mis_allowed, bkpt_dict_t targetDictionary, bool reverse ){
-
     //object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
     BranchingTerminator terminator (_graph);
     IterativeExtensions<span> extension (_graph, terminator, TRAVERSAL_CONTIG, ExtendStopMode_until_max_depth, SearchMode_Breadth, false, _max_depth, _max_nodes);
@@ -847,7 +842,6 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     graph_output.close();
 
     set< info_node_t > terminal_nodes_with_endpos = find_nodes_containing_multiple_R(targetDictionary, contig_file_name, nb_mis_allowed, _nb_gap_allowed);
-
     // printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
 
     //also convert it to list of node id for traditional use
@@ -872,16 +866,21 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
 
     //if(verb)    fprintf(stderr," analysis..");
     bool success;
-    set<pair<unlabeled_path,int>> paths = graph.find_all_paths(terminal_nodes, success);
+    set<pair<unlabeled_path,bkpt_t>> paths = graph.find_all_paths(terminal_nodes_with_endpos, success);
 
     // We build a map to sort paths leading to the same target
-    unordered_map<int,set<unlabeled_path>> paths_to_compare;
-    for (set<pair<unlabeled_path,int>>::iterator it = paths.begin(); it!=paths.end();it++)
+    unordered_map<string,set<unlabeled_path>> paths_to_compare;
+    for (set<pair<unlabeled_path,bkpt_t>>::iterator it = paths.begin(); it!=paths.end();it++)
     {
-        paths_to_compare[it->second].insert(it->first);
+        string key = it->second.first;
+        if (it->second.second){
+            key += "_Rc";
+        }
+        paths_to_compare[key].insert(it->first);
     }
     set<filled_insertion_t> tmpSequences;
-    for (unordered_map<int,set<unlabeled_path>>::iterator it = paths_to_compare.begin(); it!=paths_to_compare.end();++it)
+
+    for (unordered_map<string,set<unlabeled_path>>::iterator it = paths_to_compare.begin(); it!=paths_to_compare.end();++it)
     {
         set<unlabeled_path> current_paths = it->second;
         tmpSequences = graph.paths_to_sequences(current_paths,terminal_nodes_with_endpos);
@@ -913,7 +912,6 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
 
     remove(contig_file_name.c_str());
     remove((contig_graph_file_prefix+".graph").c_str());
-
 
 }
 
@@ -1081,7 +1079,6 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
     size_t nodelen;
 
     // heuristics: R has to be seen entirely in the node up to nb_mis_allowed errors, in the forward strand
-
     BankFasta::Iterator  * itSeq  =  new BankFasta::Iterator  (*Nodes);
 
     // We loop over sequences.
@@ -1119,8 +1116,8 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
 
                     if (nbmatch > best_match && nbmatch >=(anchor_size - nb_mis_allowed))
                     {
-                        //cout << "nb match" << nbmatch << endl;
-                        //cout << " target seq" << anchor << endl;
+                        // cout << "nb match" << nbmatch << endl;
+                        // cout << " target seq" << anchor << endl;
                         best_id = it->second;
                         position=j;
                         best_match = nbmatch;
