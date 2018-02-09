@@ -1072,6 +1072,8 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
 
             // From gapfilling to seed
             fprintf(_gfa_file,"L\t%s\t+\t%s\t%s\t%iM\n",nodeName.c_str(),targetName.c_str(),targetDirection.c_str(),_kmerSize);
+
+            nbInsertions++;
         }
     }
     funlockfile(_gfa_file);
