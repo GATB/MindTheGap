@@ -358,6 +358,8 @@ public:
     string infostring;
     bool isRc = !seedName.compare (seedName.length() - 3, 3, "_Rc");
 
+    //cout << seedName << endl;
+
     //bool begin_kmer_repeated = false;
     //bool end_kmer_repeated = false;
     bool is_anchor_repeated = false;
@@ -433,7 +435,7 @@ public:
 
      //progress bar
      _nbBreakpointsProgressDone++;
-     if (_nbBreakpointsProgressDone > 50)   {  _object->_progress->inc (_nbBreakpointsProgressDone);  _nbBreakpointsProgressDone = 0;  }
+     if (_nbBreakpointsProgressDone > 0)   {  _object->_progress->inc (_nbBreakpointsProgressDone);  _nbBreakpointsProgressDone = 0;  }
     }
 
 
@@ -715,16 +717,6 @@ void Filler::fillAny<span>::operator () (Filler* object)
         bkpt_dict_t seedDictionary;
         bkpt_dict_t all_targetDictionary;
 
-        u_int64_t nbBreakpointsEstimated = object->_breakpointBank->estimateNbItems() ;  // 2 seq per breakpoint
-        u_int64_t nbBreakpointsProgressDone = 0;
-
-        object->setProgress (new ProgressSynchro (
-                                          object->createIteratorListener (nbBreakpointsEstimated, "Filling breakpoints"),
-                                          System::thread().newSynchronizer())
-                     );
-        object->_progress->init ();
-
-
         // seed sequences will be written on disk to create a seed Bank
         // Original contigs written as nodes of the GFA file
         ofstream seedFile;
@@ -734,7 +726,8 @@ void Filler::fillAny<span>::operator () (Filler* object)
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
             std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
-            // Remove overlap supplied as parameter
+            // Remove overlap supplied as parameter 
+            // TODO : Remove small contigs
             seedSequence = seedSequence.substr(overlap, itSeq->getDataSize() - 2*overlap);
 
             // Write the contigs to GFA
@@ -770,10 +763,15 @@ void Filler::fillAny<span>::operator () (Filler* object)
         }
         seedFile.close();
 
+        u_int64_t nbBreakpointsEstimated = object->_breakpointBank->estimateNbItems() ;  // 2 seq per breakpoint
+        u_int64_t nbBreakpointsProgressDone = 0;
 
-        object->_nb_breakpoints = object->_nb_breakpoints ;
+        object->setProgress (new ProgressSynchro (
+                                              object->createIteratorListener (nbBreakpointsEstimated, "Filling the breakpoints"),
+                                              System::thread().newSynchronizer())
+                         );
+        object->_progress->init ();
 
-        object->_progress->finish ();
 
         BankFasta inbank (seedFileName);
         BankFasta::Iterator it (inbank);
@@ -879,7 +877,6 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
         paths_to_compare[key].insert(it->first);
     }
     set<filled_insertion_t> tmpSequences;
-
     for (unordered_map<string,set<unlabeled_path>>::iterator it = paths_to_compare.begin(); it!=paths_to_compare.end();++it)
     {
         set<unlabeled_path> current_paths = it->second;
@@ -1116,8 +1113,8 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
 
                     if (nbmatch > best_match && nbmatch >=(anchor_size - nb_mis_allowed))
                     {
-                        // cout << "nb match" << nbmatch << endl;
-                        // cout << " target seq" << anchor << endl;
+                        //cout << "nb match" << nbmatch << endl;
+                        //cout << " target seq" << anchor << endl;
                         best_id = it->second;
                         position=j;
                         best_match = nbmatch;
