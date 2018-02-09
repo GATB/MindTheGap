@@ -1023,6 +1023,15 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
     }
 
     flockfile(_gfa_file);
+    int nbInsertions = 0;
+    int nbTotalInsertions = 0;
+    //cout << "enter filled insertion t" << endl;
+    for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+    { // Duplicate of WriteFilledBreakpoint code
+        string insertion = it->seq;
+        int llen = insertion.length() ;
+        if(llen > 0) nbTotalInsertions++;
+    }
 
     // Write gapfilling as GFA node + 2 edges
     for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
@@ -1033,6 +1042,11 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
 
         if(llen > 0)
         {
+
+            std::ostringstream osolu_i;
+            osolu_i <<   "solution " <<    nbInsertions+1 << "/" << nbTotalInsertions ;
+            string solu_i = nbTotalInsertions >1 ?  osolu_i.str() : "" ;
+
             // Add seed and target kmers to insertion seq
             //insertion = sourceSequence + insertion + it->targetId
             bkpt_t targetId = it->targetId_anchor;
@@ -1048,7 +1062,7 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
 
             // Write node
             int cov = it->median_coverage + 0.5;
-            string nodeName = seedNameNode+";"+targetNameNode+";len_"+to_string(llen)+"_qual_"+to_string(qual)+"_median_cov_"+to_string(cov); // Name could be computed once for gfa and fasta
+            string nodeName = seedNameNode+";"+targetNameNode+";len_"+to_string(llen)+"_qual_"+to_string(qual)+"_median_cov_"+to_string(cov)+" "+solu_i; // Name could be computed once for gfa and fasta
             fprintf(_gfa_file,"S\t%s\t%s\n",nodeName.c_str(),insertion.c_str());
 
             // Write link between nodes
