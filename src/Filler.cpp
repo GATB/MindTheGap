@@ -763,7 +763,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
         }
         seedFile.close();
 
-        u_int64_t nbBreakpointsEstimated = object->_breakpointBank->estimateNbItems() ;  // 2 seq per breakpoint
+        u_int64_t nbBreakpointsEstimated = seedDictionary.size() ;  // Number of seeds to iterate
         u_int64_t nbBreakpointsProgressDone = 0;
 
         object->setProgress (new ProgressSynchro (
