@@ -726,12 +726,15 @@ void Filler::fillAny<span>::operator () (Filler* object)
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
             std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
-            // Remove overlap supplied as parameter 
+
+            // Write the contigs to GFA
+            // Contig has not been trimmed of overlap
+            fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getComment().c_str(),seedSequence.c_str());
+
+            // Remove overlap supplied as parameter
             // TODO : Remove small contigs
             seedSequence = seedSequence.substr(overlap, itSeq->getDataSize() - 2*overlap);
 
-            // Write the contigs to GFA
-            fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getComment().c_str(),seedSequence.c_str());
 
              // create seed and targetDictionary
 
@@ -1011,6 +1014,7 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
 
 void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string seedName, bool isRc, bool is_anchor_repeated){
 
+    int overlap = getInput()->getInt(STR_CONTIG_OVERLAP);
     string seedDirection = "+";
     string targetDirection;
     string seedNameNode = seedName;
@@ -1018,6 +1022,7 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
 
     if (isRc) // Seed contig has been read Rc
     {
+        // Remove "_Rc" tag of contig name
         seedName = seedName.substr(0, seedName.size()-3);
         seedDirection = "-";
     }
@@ -1068,10 +1073,10 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
             // Write link between nodes
 
             // From seed to gapfilling
-            fprintf(_gfa_file,"L\t%s\t%s\t%s\t+\t%iM\n",seedName.c_str(),seedDirection.c_str(),nodeName.c_str(),_kmerSize);
+            fprintf(_gfa_file,"L\t%s\t%s\t%s\t+\t%iM\n",seedName.c_str(),seedDirection.c_str(),nodeName.c_str(),_kmerSize+overlap);
 
             // From gapfilling to seed
-            fprintf(_gfa_file,"L\t%s\t+\t%s\t%s\t%iM\n",nodeName.c_str(),targetName.c_str(),targetDirection.c_str(),_kmerSize);
+            fprintf(_gfa_file,"L\t%s\t+\t%s\t%s\t%iM\n",nodeName.c_str(),targetName.c_str(),targetDirection.c_str(),_kmerSize+overlap);
 
             nbInsertions++;
         }
