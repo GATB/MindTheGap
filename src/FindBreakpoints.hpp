@@ -404,6 +404,13 @@ void FindBreakpoints<span>::operator()()
 		for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++
 			 ) //,m_het_kmer_begin_index_CB++, m_het_kmer_end_index++
 		{
+			if(!(*m_it_kmer).isValid())
+			{
+				this->m_solid_stretch_size = 0;
+			}
+			else 
+			{
+
 			//we need to convert the kmer in a node to query the graph.
 			Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
 			
@@ -419,7 +426,7 @@ void FindBreakpoints<span>::operator()()
 			
 			nbkmersdone++;
 			if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
-
+			}
 		}
 
 		//DEBUG
@@ -444,7 +451,7 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 	if(in_graph && is_valid)
 	{
 		//DEBUG
-		//cout<<"1";
+		cout<<"1";
 
 		m_solid_stretch_size++;
 		
@@ -475,21 +482,21 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 	if(!is_valid)
 	{
 		//DEBUG
-		//cout<<"n";
+		cout<<"n";
 
 		m_solid_stretch_size++;
-		if(this->m_previous_kmer.isValid() && in_graph)
+		/*if(this->m_previous_kmer.isValid() && in_graph)
 		{
 			this->m_kmer_begin = this->m_previous_kmer;
 			this->m_kmer_begin_is_repeated =  this->m_current_info.is_repeated ;
-		}
+		}*/
 	}
 	
 	// Kmer isn't in graph incremente gap size and reset solid size
 	if(!in_graph && is_valid)
 	{
 		//DEBUG
-		//cout<<"0";
+		cout<<"0";
 
 		if(this->m_solid_stretch_size==1)
 		{

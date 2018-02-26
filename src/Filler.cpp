@@ -22,7 +22,6 @@
 #include <Utils.hpp>
 #include <GraphAnalysis.hpp>
 #include <limits> // for numeric_limits
-
 #define PRINT_DEBUG
 /********************************************************************************/
 
@@ -414,9 +413,23 @@ public:
 					sum+= cov; nbkmers++;
 					vec_abundances.push_back(cov);
 				}
-
 				filled_insertion_t current_insertion = *it;
-
+				// token is used to split the header in order to get the size of fuzzy insertion (for the left normalization)
+				std::string token,subkmer;
+				std::istringstream iss(breakpointName);
+				std::vector<std::string> tokens;
+				// we split the header and put it in a vector tokens
+				while(getline(iss,token,'_'))
+					tokens.push_back(token);
+				// fuz keep the information about the fuzzy insertion size
+				int fuz=atoi(tokens[5].c_str());
+				//std::cout << tokens[4] <<std::endl;
+				// subkmer get the nth last nucleotide corresponding to the fuzzy size
+				subkmer =seedk.substr(seedk.size()-fuz,seedk.size());
+				//we update the insertion by adding subkmer in front of the insertion sequence
+				current_insertion.seq=subkmer+it->seq;
+				//std::cout << subkmer << std::endl;
+				//std::cout << current_insertion.seq << std::endl;	
 				current_insertion.median_coverage = median(vec_abundances);
 				current_insertion.avg_coverage  = sum /(float) nbkmers;
 

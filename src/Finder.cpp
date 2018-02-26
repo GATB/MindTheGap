@@ -387,7 +387,7 @@ void Finder::execute ()
     getInfo()->add(1,"version",_mtg_version);
     getInfo()->add(1,"gatb-core-library",System::info().getVersion().c_str());
     getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
-    //getInfo()->add (1, &LibraryInfo::getInfo());
+    getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
     resumeResults(seconds);
 }
