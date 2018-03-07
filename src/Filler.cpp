@@ -352,8 +352,10 @@ class contigFunctor
 public:
     void operator() (Sequence& sequence)
     {
-    string sourceSequence = sequence.getDataBuffer();
+
+    string sourceSequence = string(sequence.getDataBuffer(),sequence.getDataSize());
     string seedk = sourceSequence;
+
     string seedName = sequence.getComment();
     string infostring;
     bool isRc = !seedName.compare (seedName.length() - 3, 3, "_Rc");
@@ -380,10 +382,12 @@ public:
         }
      }
 
+        
      set<filled_insertion_t> filledSequences;
      std::vector<filled_insertion_t> filledSequences_vec; //todo remove the set, keep only the vector
      _object->contigGapFill<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, nb_mis_allowed, targetDictionary, false );
 
+        
      infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
      /////////compute coverage of filled sequences
@@ -418,6 +422,8 @@ public:
                 vec_abundances.push_back(cov);
             }
         }
+         
+        
         filled_insertion_t current_insertion = *it2;
 
         current_insertion.median_coverage = median(vec_abundances);
@@ -430,6 +436,7 @@ public:
      // Write insertions to file
      _object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring,is_anchor_repeated);
      _object->writeToGFA(filledSequences_vec,sourceSequence,seedName,isRc,is_anchor_repeated);
+        
 
      _nb_breakpoints++;
 
@@ -458,7 +465,7 @@ public:
         _nb_breakpoints = 0;
         _tid =  __sync_fetch_and_add (_nb_living, 1);
         _abundancemap = r._abundancemap;
-
+        
         //printf("CC creating thread id %i \n",_tid);
 
     }
@@ -708,7 +715,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
 
     AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
     //end mphf stuffs
-
+    
     BankFasta::Iterator itSeq (*object->_breakpointBank);
     int nbBreakpoints=0;
 
@@ -781,6 +788,8 @@ void Filler::fillAny<span>::operator () (Filler* object)
 
 
         int nb_living=0;
+        
+
         Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(it, contigFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap,all_targetDictionary),30);
 
         object->_nb_breakpoints = object->_nb_breakpoints ;
@@ -832,7 +841,6 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     //std::cout << contig_file_name << std::endl;
     //std::cout << contig_graph_file_prefix << std::endl;
 
-
     //Build contigs and output them in a file in fasta format
     extension.construct_linear_seqs(sourceSequence,targetSequence,contig_file_name,true); //last param : swf will be true
 
@@ -868,6 +876,7 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     //if(verb)    fprintf(stderr," analysis..");
     bool success;
     set<pair<unlabeled_path,bkpt_t>> paths = graph.find_all_paths(terminal_nodes_with_endpos, success);
+    
 
     // We build a map to sort paths leading to the same target
     unordered_map<string,set<unlabeled_path>> paths_to_compare;
@@ -879,6 +888,7 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
         }
         paths_to_compare[key].insert(it->first);
     }
+
     set<filled_insertion_t> tmpSequences;
     for (unordered_map<string,set<unlabeled_path>>::iterator it = paths_to_compare.begin(); it!=paths_to_compare.end();++it)
     {
@@ -893,6 +903,7 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
 
         filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
     }
+
     //now this func also cuts the last node just before the beginning of the right anchor
     //set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
     //filledSequences.insert(tmpSequences.begin(),tmpSequences.end());

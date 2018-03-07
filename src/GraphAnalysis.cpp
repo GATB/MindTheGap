@@ -93,7 +93,7 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
             char label[100]; //needs to be large enough for the regexp below
             sscanf(line.c_str(), "%*d %*s %*d %*[^\"]%*[\"]%s%*[\"]",label); // ugly regexp to get the label of the edge
             label[2]='\0';
-            assert(label[0]==label[1]);
+            //assert(label[0]==label[1]);
             if (label[0] == 'R')
                // node_a = revcomp_node(node_a);
                 continue;
