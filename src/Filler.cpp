@@ -417,7 +417,8 @@ public:
                 cerr << "Cibles " << cibles << " " << compt << endl;
                 cerr << "Unknown kmer : " << model.toString(itk->value()) << endl;
             } else {
-                unsigned int cov =  (*_abundancemap)[itk->value()];
+                //unsigned int cov =  (*_abundancemap)[itk->value()]; //with gatb-core version < jan 2018
+                unsigned int cov =  _abundancemap->abundanceAt(itk->value());
                 sum+= cov; nbkmers++;
                 vec_abundances.push_back(cov);
             }
@@ -605,7 +606,8 @@ public:
                 for (itk.first(); !itk.isDone(); itk.next())
                 {
                     //u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
-                    unsigned int cov =  (*_abundancemap)[itk->value()];
+                    //unsigned int cov =  (*_abundancemap)[itk->value()]; //with gatb-core version < jan 2018
+                    unsigned int cov =  _abundancemap->abundanceAt(itk->value());
                     sum+= cov; nbkmers++;
                     vec_abundances.push_back(cov);
                 }
