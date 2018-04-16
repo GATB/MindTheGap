@@ -221,6 +221,17 @@ void Filler::execute ()
 	
 	
 	
+	_vcf_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.vcf";
+    	_vcf_file = fopen(_vcf_file_name.c_str(), "w");
+    	if(_vcf_file == NULL){
+    	//cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
+    		string message = "Cannot open file "+ _vcf_file_name + " for writting";
+    		throw Exception(message.c_str());
+    	
+    	
+    	}
+    	writeVcfHeader();
+    
     //Getting the breakpoint sequences
     _breakpointBank = new BankFasta(getInput()->getStr(STR_URI_BKPT));
     
@@ -238,6 +249,7 @@ void Filler::execute ()
     //job is done, closing the output files
 	fclose(_insert_file);
 	fclose(_insert_info_file);
+	fclose(_vcf_file);
 	
     // We gather some info/statistics to print in stdout
 
@@ -251,6 +263,41 @@ void Filler::execute ()
 
     double seconds=difftime(end_time,start_time);
     resumeResults(seconds);
+}
+
+void Filler::writeVcfHeader(){
+
+	string sample="";
+	if (getInput()->get(STR_URI_INPUT) != 0){
+		sample = getInput()->getStr(STR_URI_INPUT);
+	}
+	if (getInput()->get(STR_URI_GRAPH) != 0){
+		sample=getInput()->getStr(STR_URI_GRAPH);
+	}
+
+	//getting the date
+	time_t current_time;
+	char* c_time_string;
+	current_time = time(NULL);
+	c_time_string = ctime(&current_time);
+
+	fprintf(_vcf_file,
+			"##fileformat=VCFv4.1\n\
+##filedate=%s\
+##source=MindTheGap fill version %s\n\
+##SAMPLE=file:%s\n\
+##REF=file:%s\n\
+##INFO=<ID=TYPE,Number=1,Type=String,Description=\"INS.\">\n\
+##INFO=<ID=LEN,Number=1,Type=Integer,Description=\"variant size\">\n\
+##INFO=<=QUA,Number=.,Type=Integer,Description=\"Quality of the insertion\">\n\
+##INFO=<=AVK,Number=.,Type=Float,Description=\"Average k-mer coverage along the insertion\">\n\
+##INFO=<=MDK,Number=.,Type=Float,Description=\"Median k-mer coverage along the insertion\">\n\
+##INFO=<=NS,Number=1,Type=String,Description=\"Solution index\">\n\
+##INFO=<ID=GTT,Number=1,Type=String,Description=\"Unphased  genotypes\">\n\
+##INFO=<ID=Alt_poss,Number=1,Type=Integer,Description=\"alternative possibility of insertion\">\n\
+##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n\
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",
+c_time_string, _mtg_version, sample.c_str(),getInput()->getStr(STR_URI_OUTPUT).c_str());
 }
 
 void Filler::resumeParameters(){
@@ -413,34 +460,19 @@ public:
 					sum+= cov; nbkmers++;
 					vec_abundances.push_back(cov);
 				}
+
 				filled_insertion_t current_insertion = *it;
-				// token is used to split the header in order to get the size of fuzzy insertion (for the left normalization)
-				std::string token,subkmer;
-				std::istringstream iss(breakpointName);
-				std::vector<std::string> tokens;
-				// we split the header and put it in a vector tokens
-				while(getline(iss,token,'_'))
-					tokens.push_back(token);
-				// fuz keep the information about the fuzzy insertion size
-				int fuz=atoi(tokens[5].c_str());
-				//std::cout << tokens[4] <<std::endl;
-				// subkmer get the nth last nucleotide corresponding to the fuzzy size
-				subkmer =seedk.substr(seedk.size()-fuz,seedk.size());
-				//we update the insertion by adding subkmer in front of the insertion sequence
-				current_insertion.seq=subkmer+it->seq;
-				//std::cout << subkmer << std::endl;
-				//std::cout << current_insertion.seq << std::endl;	
+
 				current_insertion.median_coverage = median(vec_abundances);
 				current_insertion.avg_coverage  = sum /(float) nbkmers;
 
 				//creating vector because cannot modify elem in set filledSequences.. why was it a set and not a vector ?
 				filledSequences_vec.push_back(current_insertion);
 			}
-			/////////////////////////////
 
 
 			_object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring);
-
+			_object->writeVcf(filledSequences_vec,breakpointName,seedk);
 			// We increase the breakpoint counter.
 			_nb_breakpoints++;
 
@@ -658,6 +690,87 @@ void Filler::gapFill(std::string & infostring, int tid, string sourceSequence, s
 
 }
 
+
+void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string breakpointName, string seedk){
+	
+	
+	flockfile(_vcf_file);
+	
+	for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+	{
+		string insertion = it->seq;
+		int llen = insertion.length() ;// - (int) R.length() - (int) L.length() - 2*hetmode;
+		if(llen > 0)
+		{
+				vector<char> left(seedk.begin(), seedk.end());
+		        vector<char> filled(it->seq.begin(), it->seq.end());
+		        int fuzzy=1;
+		        bool loop=true;
+		        //std::string common;
+		        string fille=it->seq;
+		        std::cout <<breakpointName<<std::endl;
+		        //std::cout <<filled.size()<<std::endl;
+		        //std::cout<<left.size()<<std::endl;
+		        //loop to identify alternative position and left normalized position
+		        while (loop)
+		        {
+		        
+		            if ((filled.size()> 1) & (left[seedk.size()-fuzzy] == filled[fille.size()-fuzzy]))
+		            {
+		                fuzzy++;
+		                continue;
+		            }
+		            if ((filled.size()==1) & (left[seedk.size()-fuzzy] == filled[fille.size()-1]))
+		            {
+
+		            	fuzzy++;
+		            	continue;
+		            }
+		            else
+		            {
+		                loop=false;
+		            }
+		            
+
+		        }
+				//std::cout << seedk << std::endl;
+				//std::cout << it->seq <<std::endl;
+				//std::cout << fuzzy << std::endl;
+				//left normalization
+				insertion=seedk.substr(seedk.size()-fuzzy,seedk.size()-1)+fille;
+				//std::cout << insertion<<std::endl;
+				//std::cout << "\n" << std::endl;
+				string ref = seedk.substr(seedk.size()-fuzzy,seedk.size()-1);
+
+
+
+
+				string token,subkmer;
+				std::istringstream iss(breakpointName);
+				std::vector<std::string> tokens;
+						// we split the header and put it in a vector tokens
+				// split header breakpoint to extract information 
+				while(getline(iss,token,'_')) tokens.push_back(token);
+					// fuz keep the information about the fuzzy insertion size
+					string bkpt=tokens[0].c_str();
+					int position=atoi(tokens[3].c_str())-ref.size()+1;
+					string chromosome = tokens[1].c_str();
+					int size =insertion.size()-ref.size();
+							//std::cout << tokens[4] <<std::endl;
+				// write in vcf format
+				fprintf(_vcf_file,"%s\t%lli\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;Alt_poss=%i;AVK=%.2f;MDK=%.2f\n",tokens[1].c_str(),position,tokens[0].c_str(),ref.c_str(),insertion.c_str(),size,fuzzy,it->avg_coverage,it->median_coverage);
+						
+		}
+
+	}
+	
+	funlockfile(_vcf_file);
+
+
+	
+	
+
+}
 void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string info){
 	
 	//printf("-- writeFilledBreakpoint --\n");

@@ -95,17 +95,17 @@ bool FindFuzzyInsertion<span>::update()
 	
 	if(this->_find->gap_stretch_size() < this->_find->kmer_size() - 1 && this->_find->gap_stretch_size() >= this->_find->kmer_size() - 1 - this->_find->max_repeat())
 	{
-		// Fuzzy site, position and kmer_end are impacted by the repeat
-		int repeat_size = this->_find->kmer_size() - 1 - this->_find->gap_stretch_size();
-		
-		// obtains the kmer sequence
-		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
-		string kmer_end_str =  this->_find->model().toString(this->_find->kmer_end().forward());
-		
-		//position : this->_find->position() is the beginning of the second found kmer after the gap : -2 ie position of the last 0, ie position just before (at the left of) the insertion site (0-based)
-		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, kmer_begin_str, kmer_end_str, repeat_size, STR_HOM_TYPE,   this->_find->kmer_begin_is_repeated() , this->_find->kmer_end_is_repeated());
-		
-		//iterate counter
+        // Fuzzy site, position and kmer_end are impacted by the repeat
+        int repeat_size = this->_find->kmer_size() - 1 - this->_find->gap_stretch_size();
+
+        // obtains the kmer sequence
+        string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
+        string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
+
+        //position : this->_find->position() is the beginning of the second found kmer after the gap : -2 ie position of the last 0, ie position just before (at the left of) the insertion site (0-based)
+        this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size, STR_HOM_TYPE,   this->_find->kmer_begin_is_repeated() , this->_find->kmer_end_is_repeated());
+
+        //iterate counter
 		this->_find->breakpoint_id_iterate();
 		this->_find->homo_fuzzy_iterate();
 		

@@ -104,7 +104,8 @@ public:
     //parameters for looking for the target sequence in the contig graph, with some mismatches and/or gaps
     int _nb_mis_allowed;
     int _nb_gap_allowed;
-
+    string _vcf_file_name;
+    FILE * _vcf_file;
 
     // Actual job done by the tool is here
     void execute ();
@@ -124,7 +125,9 @@ public:
 
 	gatb::core::tools::dp::IteratorListener* _progress;
 
-	
+	 /** writes a given variant in the output vcf file
+    	 */
+   	 void writeVcf(std::vector<filled_insertion_t>& filledSequences, string breakpointName, string seedk);
 private:
 	
     /** fills getInfo() with parameters informations
@@ -140,7 +143,9 @@ private:
     template<size_t span>
     struct fillBreakpoints {  void operator ()  (Filler* object); };
 
-
+    /** writes the header of the vcf file
+         */
+    void writeVcfHeader();
 
     /**
      * returns the nodes containing the targetSequence (can be an approximate match)
