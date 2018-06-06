@@ -435,7 +435,7 @@ public:
 
      }
      // Write insertions to file
-     _object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring,is_anchor_repeated);
+     _object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring,is_anchor_repeated,false);
      _object->writeToGFA(filledSequences_vec,sourceSequence,seedName,isRc,is_anchor_repeated);
         
 
@@ -566,7 +566,7 @@ public:
 
             }
 
-            infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
+            //infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
 
 //            //Checks if all sequences are roughly the same (if this is the case, keep only the first one)
@@ -623,7 +623,7 @@ public:
             /////////////////////////////
 
 
-            _object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring,is_anchor_repeated);
+            _object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring,is_anchor_repeated,true);
 
             // We increase the breakpoint counter.
             _nb_breakpoints++;
@@ -891,11 +891,13 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
         paths_to_compare[key].insert(it->first);
     }
 
+    int nbTotal_filled_insertions = 0;
     set<filled_insertion_t> tmpSequences;
     for (unordered_map<string,set<unlabeled_path>>::iterator it = paths_to_compare.begin(); it!=paths_to_compare.end();++it)
     {
         set<unlabeled_path> current_paths = it->second;
         tmpSequences = graph.paths_to_sequences(current_paths,terminal_nodes_with_endpos);
+        nbTotal_filled_insertions += tmpSequences.size();
         // remove almost identical sequences
         if (tmpSequences.size() > 1)
         {
@@ -903,25 +905,41 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
             tmpSequences = remove_almost_identical_solutions(tmpSequences,90);
         }
 
-        filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
-    }
-
-    //now this func also cuts the last node just before the beginning of the right anchor
-    //set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
-    //filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
-    //if reversed, reverse-complement each filled sequence
         if(reverse)
         {
             set<filled_insertion_t>::iterator its;
             for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
             {
-                filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor);
+                filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor, its->targetId_anchor);
                 filledSequences.insert ( rev_insert);
+                //ideal TODO: its->reverse();
             }
         }
         else{
             filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
         }
+    }
+    
+    if((nbTotal_filled_insertions>0) | reverse)
+    {
+        infostring +=   Stringify::format ("\t%d", nbTotal_filled_insertions) ;
+    }
+    //now this func also cuts the last node just before the beginning of the right anchor
+    //set<filled_insertion_t> tmpSequences = graph.paths_to_sequences(paths,terminal_nodes_with_endpos);
+    //filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
+    //if reversed, reverse-complement each filled sequence
+//        if(reverse)
+//        {
+//            set<filled_insertion_t>::iterator its;
+//            for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
+//            {
+//                filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor);
+//                filledSequences.insert ( rev_insert);
+//            }
+//        }
+//        else{
+//            filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
+//        }
 
     remove(contig_file_name.c_str());
     remove((contig_graph_file_prefix+".graph").c_str());
@@ -931,7 +949,7 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
 
 
 
-void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences,  string seedName, std::string info,bool is_anchor_repeated){
+void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences,  string seedName, std::string info,bool is_anchor_repeated, bool breakpointMode){
 
     //printf("-- writeFilledBreakpoint --\n");
 
@@ -987,20 +1005,25 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
 
             // bkpt%i insertion_len_%d_%s
 
-            string targetName = targetId.first;
-            if(targetId.second) {
-                targetName.append("_Rc");
+            //Writting sequence header
+            if(breakpointMode) //-bkpt mode, to keep the same header name as before
+            {
+                fprintf(_insert_file,">%s_len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
+                        seedName.c_str(),llen,qual,solu_i.c_str()
+                        ,it->avg_coverage,it->median_coverage);
             }
-            int cov = it->median_coverage + 0.5;
-            string insertionName = ">"+seedName+";"+targetName+";len_"+to_string(llen)+"_qual_"+to_string(qual)+"_median_cov_"+to_string(cov)+"\t"+solu_i+"\n";
+            else{
+                string targetName = targetId.first;
+                if(targetId.second) {
+                    targetName.append("_Rc");
+                }
+                int cov = it->median_coverage + 0.5;
 
-            fprintf(_insert_file,"%s",insertionName.c_str());
-//            fprintf(_insert_file,">%s;%s;len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
-//                    seedName.c_str(), targetName.c_str(),llen,qual,solu_i.c_str()
-//                    ,it->avg_coverage,it->median_coverage);
-
-            //fprintf(_insert_file,"> insertion ( len= %d ) for breakpoint \"%s\"  %s  \n",llen, breakpointName.c_str(),solu_i.c_str());
-            //todo check  revcomp here
+                string insertionName = ">"+seedName+";"+targetName+";len_"+to_string(llen)+"_qual_"+to_string(qual)+"_median_cov_"+to_string(cov)+"\t"+solu_i+"\n";
+                fprintf(_insert_file,"%s",insertionName.c_str());
+            }
+                
+            //Writting DNA sequence
             fprintf(_insert_file,"%.*s\n",(int)llen,insertion.c_str() );
         }
         nbInsertions++;
@@ -1132,7 +1155,7 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
         bool arret=false;
         for (unsigned int j = 0; j < nodelen-_kmerSize+1 && !arret; j++)
         {
-            best_match = 0;
+            //best_match = 0; //commented by CL 06/06/18 bug fix (this line prevented to find target kmers with errors in the middle of the contig)
             for (auto it=targetDictionary.begin(); it !=targetDictionary.end() && !arret; ++it)
                 {
                     string ide = (it->second).first;
