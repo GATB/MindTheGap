@@ -1156,6 +1156,7 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
         for (unsigned int j = 0; j < nodelen-_kmerSize+1 && !arret; j++)
         {
             //best_match = 0; //commented by CL 06/06/18 bug fix (this line prevented to find target kmers with errors in the middle of the contig)
+            
             for (auto it=targetDictionary.begin(); it !=targetDictionary.end() && !arret; ++it)
                 {
                     string ide = (it->second).first;
