@@ -279,7 +279,7 @@ void Filler::execute ()
     getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
     //getInfo()->add (1, &LibraryInfo::getInfo());
 
-    //resumeParameters();
+    resumeParameters();
 
     double seconds=difftime(end_time,start_time);
     resumeResults(seconds);
@@ -296,7 +296,15 @@ void Filler::resumeParameters(){
     if (getInput()->get(STR_URI_GRAPH) != 0){
         getInfo()->add(2,"Graph",getInput()->getStr(STR_URI_GRAPH).c_str());
     }
-    getInfo()->add(2,"Breakpoints",getInput()->getStr(STR_URI_BKPT).c_str());
+    
+    if (getInput()->get(STR_URI_BKPT) != nullptr)
+    {
+        getInfo()->add(2,"Breakpoints",getInput()->getStr(STR_URI_BKPT).c_str());
+    }
+    if (getInput()->get(STR_URI_CONTIG) != nullptr)
+    {
+        getInfo()->add(2,"Contigs",getInput()->getStr(STR_URI_CONTIG).c_str());
+    }
     getInfo()->add(1,"Graph");
     getInfo()->add(2,"kmer-size","%i", _kmerSize);
     try { // use try/catch because this key is present only if auto asked
