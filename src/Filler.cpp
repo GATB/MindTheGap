@@ -344,8 +344,13 @@ void Filler::resumeResults(double seconds){
     getInfo()->add(3,"unique_sequence","%i", _nb_filled_breakpoints-_nb_multiple_fill);
     getInfo()->add(3,"multiple_sequence","%i", _nb_multiple_fill);
     getInfo()->add(1,"Time", "%.1f s",seconds);
-    getInfo()->add(1,"Output file","%s",_insert_file_name.c_str());
-    getInfo()->add(1,"Output file info","%s",_insert_info_file_name.c_str());
+    getInfo()->add(1,"Output files");
+    getInfo()->add(2,"assembled sequence file","%s",_insert_file_name.c_str());
+    if (getInput()->get(STR_URI_CONTIG) != nullptr)
+    {
+        getInfo()->add(2,"assembly graph file","%s",_gfa_file_name.c_str());
+    }
+    getInfo()->add(2,"assembly statistics file","%s",_insert_info_file_name.c_str());
 
 }
 
