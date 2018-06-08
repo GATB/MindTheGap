@@ -8,7 +8,9 @@
 
 # What is MindTheGap ?
 
-MindTheGap  performs detection and assembly of DNA insertion variants in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint.
+MindTheGap  performs detection and assembly of **DNA insertion variants** in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint.
+
+**New !** MindTheGap can also be used as a **genome assembly finishing tool** : it can fill the gaps between a set of input contigs without any a priori on their relative order and orientation. It outputs the results in gfa file. 
 
 # Installation instructions
 
@@ -61,19 +63,32 @@ Pull the docker image of the latest release of MindTheGap:
 
 ## Description
 
-MindTheGap is a software that performs integrated detection and assembly of genomic insertion variants in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome.
+MindTheGap is a software that performs integrated detection and assembly of **genomic insertion variants** in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. 
+
+Alternatively and since recently, MindTheGap can also be used as a **genome assembly finishing tool**.
+
+### Insertion variant detection
 
 It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint. For each breakpoint, MindTheGap either returns a single insertion sequence (when there is no assembly ambiguity), or a set of candidate insertion sequences (due to ambiguities) or nothing at all (when the insertion is too complex to be assembled).
 
+Since version 2.0.0, MindTheGap can detect other types of variants, not only insertion events. These are homozygous SNPs and homozygous deletions of any size. They are detected by the find module of MindTheGap and are output separately in a VCF file. Importantly, even if the user is not interested in these types of variants, it is worth to detect them  since it can improve the recall of the insertion event detection algorithm : it is now possible to find insertion events that are located at less than k nucleotides from an other such variant.
+
+### Genome assembly gap-filling
+
+New features !
+
+When given a set of reads and a set of contigs as input, MindTheGap tries to fill the gaps between all pairs of contigs by de novo assembly without any a priori on their relative order and orientation. It outputs the results in gfa file. 
+
+### Performances
+
 MindTheGap performs de novo assembly using the GATB library and inspired from algorithms from Minia. Hence, the computational resources required to run MindTheGap are significantly lower than that of other assemblers (for instance it uses less than 6GB of main memory for analyzing a full human NGS dataset).
 
-Since version 2.0.0, MindTheGap can detect other types of variants, not only insertion events. These are homozygous SNPs and homozygous deletions of any size. They are detected by the find module of MindTheGap and are output separately in a VCF file. Importantly, even if the user is not interested in these types of variants, it is worth to detect them  since it can improve the recall of the insertion event detection algorithm : it is now possible to find insertion events that are located at less than k nucleotides from an other such variant.
 
 For more details on the method and some recent results, see the [web page](https://gatb.inria.fr/software/mind-the-gap/).
 	
 ## Usage
 
-MindTheGap is composed of two main modules : breakpoint detection (find module) and the local assembly of insertions (fill module). Both steps are implemented in a single executable, MindTheGap, and can be run independently by specifying the module name as follows :
+MindTheGap is composed of two main modules : breakpoint detection (`find` module) and the local assembly of insertions or gaps (`fill` module). Both steps are implemented in a single executable, MindTheGap, and can be run independently by specifying the module name as follows :
 
     MindTheGap <module> [module options] 
 
@@ -85,7 +100,7 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
         MindTheGap find -help
 	
         #Fill module:
-        MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) -bkpt <breakpoints.fa> [options]
+        MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) (-bkpt <breakpoints.fa> | -contig <contigs.fa>) [options]
         #To get help:
         MindTheGap fill -help
 
@@ -120,10 +135,14 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
 
 5. **Fill module specific options**
     
-    In addition to the read or graph files, the fill module has one mandatory option `-bkpt` and several optional options:	
+    In addition to the read or graph files, the fill module has one other mandatory option, either `-bkpt` or `-contig` depending on the type of gap-filling : assembling insertion variants or gap-filling between contigs respectively: 	
     * `-bkpt`: the breakpoint file path. This is one of the output of the Find module and contains for each detected insertion site its left and right kmers from and to which the local assembly will be performed (see section E for details about the format).
+	* `-contig`: the contig file path in fasta format. Note that only contigs larger than 2*kmerSize will be used.
+	
+	The fill module has several optional options:
     * `-max-nodes`: maximum number of nodes in contig graph  [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
     * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
+	* `-overlap`: size of sequence overlap between input contigs in `-contig` mode [default '0']. To be specified if it is larger than the kmer size used for gap-filling (expert usage).
 
 6. **MindTheGap Output**
     
@@ -136,16 +155,17 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     * a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
     
     `MindTheGap fill` generates the following output files:
-    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences that were successfully assembled. The location of each insertion on the reference genome can be found in its fasta header, together with the insertion length and quality score. 
-    * an insertion variant file (`.insertions.vcf`) in vcf format [not yet implemented, coming soon...]. This file resumes insertion position information already contained in the fasta file, but in a vcf format. It is not self-sufficient, inserted sequences if larger than XX bp are not written in the vcf but are referred to their fasta id in the fasta file.
-    * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint. 
+    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. In the case of insertion variants, the location of each insertion on the reference genome can be found in its fasta header, together with the insertion length and quality score. In the case of contig gap-fills, the source and target contigs with their relative orientation ("_Rc" for reversed) can be found for each gap-fill in its fasta header, together with the gap-fill length and quality score.
+    * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection [not yet implemented, coming soon...]. This file resumes insertion position information already contained in the fasta file, but in a vcf format. It is not self-sufficient, inserted sequences if larger than XX bp are not written in the vcf but are referred to their fasta id in the fasta file.
+	* an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contig and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
+    * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
 
     Warning: the output in vcf of insertion variants is not yet implemented, coming soon...
 	
 7. **Computational resources options**
     
     Additional options are related to computational runtime and memory:
-    * `-nb-cores`: number of cores to be used for computation (graph creation and breakpoint detection) [default '0', ie. all available cores will be used].
+    * `-nb-cores`: number of cores to be used for computation [default '0', ie. all available cores will be used].
     * `-max-memory`: max RAM memory for the graph creation (in MBytes)  [default '2000']. Increasing the memory will speed up the graph creation phase.
     * `-max-disk`: max usable disk space for the graph creation (in MBytes)  [default '0', ie. automatically set]. Kmers are counted by writting temporary files on the disk, to speed up the counting you can increase the usable disk space.
 
@@ -188,6 +208,16 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
         >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57_qual_15_avg_cov_21.69_median_cov_17.00 solution 2/3
         #this is the second sequence out of 3
 
+	**Contig gap-fill header specificies**:
+	
+	When used with option `-contig`, the fasta header is a little bit different: it contains notably two contig identifiers (their fasta headers in the original contig file) with optionnally a sufix "_Rc" if it is reversed.
+	
+	 	>contig3_len_3652;contig18_len_19822_Rc;len_117_qual_50_median_cov_1350
+		#contig3_len_3652 : header of contig3 in the original input file contigs.fa
+		#contig18_len_19822 : header of contig18 in the original input file contigs.fa
+		#_Rc : absent from the first contig and present after the second contig, this means that the end of contig3 is gap-filled with the end of contig18 (that is with the beginning of the reverse complement of contig18).
+		#len_117_qual_50_median_cov_1350 : information about the assembled gap-fill sequence
+	 
     **Quality scores**:
     
     Each insertion is assigned a quality score ranging from 0 (low quality) to 50 (highest quality). This quality score reflects mainly repeat-associated criteria:
@@ -203,7 +233,7 @@ MindTheGap is composed of two main modules : breakpoint detection (find module) 
     * column 1 : breakpoint name       
     * column 2-4 : number of nodes in the contig graph, total nt assembled, number of nodes containing the right breakpoint kmer
     * (optionnally) column 5-7 : same informations as in column 2-4 but for the filling process in the reverse direction from right to left kmer, activated only if the filling failed in the forward direction
-    * last 2 columns : number of filled sequences before comparison, number of output filled sequences (1 if all sequences are similar enough pairwisely)
+    * last 2 columns : number of alternative filled sequences before comparison, number of output filled sequences (can be reduced if some pairs of alternative sequences are more than 90% identical).
  
  
 
