@@ -27,11 +27,11 @@ int GraphAnalysis::debug = 0;
 /*
  * the graph (produced by GraphOutput) is loaded as a directed graph where
  * each node and its revcomp are separated. For instance,
- *        node 0 
+ *        node 0
  * becomes:
  *        node "0f" and node "0r"
  * enabling edges between, for instance
- *        0 -> 1 [label="fr"] 
+ *        0 -> 1 [label="fr"]
  * becomes:
  *        0f -> 1r
  *
@@ -55,7 +55,7 @@ int GraphAnalysis::revcomp_node(int node)
 
 GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
 {
-	_sizeKmer =kmerSize;
+    _sizeKmer =kmerSize;
     ifstream graph_file (graph_file_name.c_str());
     string line;
 
@@ -73,14 +73,14 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
     getline(graph_file, line);
 
     while (graph_file.good())
-    { 
+    {
         getline(graph_file, line);
 
         // hypothesis: nodes are numbered in GAP-LESS, STRICTLY INCREMENTAL order, i.e. 0,1,2,3...
 
         int node_a, node_b, nb_numbers_seen;
         nb_numbers_seen = sscanf(line.c_str(), "%d%*s%d",&node_a,&node_b); // sketchy but works on my system
-     
+
         if (nb_numbers_seen == 1)
         {
             sscanf(line.c_str(), "%*d %*[^\"]%*[\"]%[A-Z]%*[\"]",node_sequence); // ugly regexp to get the node sequence
@@ -93,7 +93,7 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
             char label[100]; //needs to be large enough for the regexp below
             sscanf(line.c_str(), "%*d %*s %*d %*[^\"]%*[\"]%s%*[\"]",label); // ugly regexp to get the label of the edge
             label[2]='\0';
-            
+
             //Here we have only FF overlaps between contigs (+ bugs if uses the R overlaps)
             if (label[0] == 'R'){
                 //node_a = revcomp_node(node_a);
@@ -104,7 +104,7 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
             	continue;
             }
 
-            if (out_edges[node_a].find(node_b) == out_edges[node_a].end())  
+            if (out_edges[node_a].find(node_b) == out_edges[node_a].end())
             {
                 out_edges[node_a].insert(node_b);
                 nb_edges++;
@@ -117,36 +117,50 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
 }
 
 // wrapper
-set<unlabeled_path> GraphAnalysis::find_all_paths(set<int> terminal_nodes, bool &success)
+set<pair<unlabeled_path,bkpt_t>> GraphAnalysis::find_all_paths(set< info_node_t > terminal_nodes_with_endpos, bool &success)
 {
     success = true;
     unlabeled_path start_path;
     start_path.push_back(0);
     int nb_calls = 0;
-    set<unlabeled_path> paths = find_all_paths(0, terminal_nodes, start_path, nb_calls, success);
+
+
+    set<pair<unlabeled_path,bkpt_t>> paths = find_all_paths(0, terminal_nodes_with_endpos, start_path, nb_calls, success);
+    //std::cout << "PATHS0 \n"  << endl;
+
     return paths;
 }
 
 // precondition: terminal_nodes is non-empty
-set<unlabeled_path> GraphAnalysis::find_all_paths(int start_node, set<int> terminal_nodes, unlabeled_path current_path, int &nb_calls, bool &success)
+set<pair<unlabeled_path,bkpt_t>> GraphAnalysis::find_all_paths(int start_node, set< info_node_t > terminal_nodes_with_endpos, unlabeled_path current_path, int &nb_calls, bool &success)
 {
-    set<unlabeled_path> paths;
+    //cout << nb_calls << endl;
 
+    set<pair<unlabeled_path,bkpt_t>> paths;
     // don't explore for too long
     if (nb_calls++ > 10000000)
     {
        // printf("fail, max nb_calls reached \n");
 
         success = false;
-        return paths;
-    }
-    
-    if (terminal_nodes.find(start_node) != terminal_nodes.end()) //stops when reaches one of the terminal nodes.
-    {
-        paths.insert(current_path);
+
         return paths;
     }
 
+    for (set< info_node_t >::iterator it_targets = terminal_nodes_with_endpos.begin() ; it_targets != terminal_nodes_with_endpos.end() ; it_targets++)
+    {
+        if (it_targets->node_id == start_node )
+        {
+            pair<unlabeled_path,bkpt_t> found_path = make_pair(current_path,it_targets->targetId);
+            paths.insert(found_path);
+            return paths;
+        }
+    }
+//    if (terminal_nodes.find(start_node) != terminal_nodes.end()) //stops when reaches one of the terminal nodes.
+//    {
+//        paths.insert(current_path);
+//        return paths;
+//    }
     // visit all neighbors
     for(set<int>::iterator it_edge = out_edges[start_node].begin(); it_edge != out_edges[start_node].end(); it_edge++)
     {
@@ -163,11 +177,12 @@ set<unlabeled_path> GraphAnalysis::find_all_paths(int start_node, set<int> termi
             for(vector<int>::iterator it_path = current_path.begin(); it_path != current_path.end(); it_path++)
                  printf(" %d",*it_path);
             printf("\n");*/
-            
+
 
             // recursive call
-            set<unlabeled_path> new_paths = find_all_paths(next_node, terminal_nodes, extended_path, nb_calls, success);
+            set<pair<unlabeled_path,bkpt_t>> new_paths = find_all_paths(next_node, terminal_nodes_with_endpos, extended_path, nb_calls, success);
             paths.insert(new_paths.begin(), new_paths.end());
+
 
             // mark to stop we end up with too large breadth
             if (paths.size() >= max_breadth)
@@ -186,37 +201,39 @@ set<unlabeled_path> GraphAnalysis::find_all_paths(int start_node, set<int> termi
 
 set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< info_node_t > terminal_nodes_with_endpos )
 {
-	//debug =2;
+    //debug =2;
     set<filled_insertion_t> sequences;
-	int errs_in_anchor;
-	bool anchor_repeated_in_ref;
-	
-//	printf("paths set size %i \n",paths.size());
+    int errs_in_anchor;
+    bool anchor_repeated_in_ref;
+    bkpt_t targetId_anchor;
+
+    //printf("paths set size %i \n",paths.size());
     for (set<unlabeled_path>::iterator it = paths.begin(); it != paths.end(); it++)
     {
-        if (debug)
-            printf("processing path: \n");
+//        if (debug)
+//            printf("processing path: \n");
 
         unlabeled_path p = *it;
         string sequence;
-
+        //cout << "new path, length: " << p.size() << endl;
         for (unlabeled_path::iterator it_path = p.begin(); it_path != p.end(); it_path++)
         {
             int node = *it_path;
             int pos_anchor = 0;
 
-			
-            if (debug)
-            {
-                string node = node_identifier(*it_path);
-                printf("%s ",node.c_str());
-            }
+
+//            if (debug)
+//            {
+//                string node = node_identifier(*it_path);
+//                printf("\n %s \n",node.c_str());
+//            }
 
             bool revcomp = node > nb_nodes;
             if (revcomp)
                 node -= nb_nodes;
 
             string node_sequence = node_sequences[node];
+            //Mettre abondance
 
             if (revcomp)
             {
@@ -227,10 +244,10 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
             }
             if (debug > 1)
                 printf("%s ",node_sequence.c_str());
-            
-            
-            
-            
+
+
+
+
             //trim everything after right anchor for last node (if at beginning, must also erase seq from previous overlap)
             if (it_path == (p.end() -1 ))
             {
@@ -241,14 +258,16 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
                     if((*it).node_id == node)
                     {
                         pos_anchor = (*it).pos;
-						errs_in_anchor = it->nb_errors;
-						anchor_repeated_in_ref= it->anchor_is_repeated;
+                        errs_in_anchor = it->nb_errors;
+                        //anchor_repeated_in_ref= it->anchor_is_repeated;
+                        targetId_anchor = it ->targetId;
                         break;
                     }
                 }
                 //sprintf("last node of the path, pos anchor %i \n",pos_anchor);
                 node_sequence = node_sequence.substr(0,pos_anchor);
-                
+                //cout << endl << node_sequence << " "<<node << endl;
+
                 if(pos_anchor <= (_sizeKmer-1))
                 {
                     sequence = sequence.substr(0, sequence.length() - ((_sizeKmer-1) - pos_anchor)); //nothing else to add
@@ -256,7 +275,7 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
                 else
                 {
                     //must still erase k-1 overlap
-                    
+
                     if (it_path != p.begin())
                     {
                         node_sequence = node_sequence.substr(_sizeKmer-1,node_sequence.npos);
@@ -265,14 +284,14 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
                     {
                         node_sequence = node_sequence.substr(_sizeKmer,node_sequence.npos);
                     }
-                    
+
                     sequence += node_sequence;
                 }
                 break;
 
             }
-            
-            
+
+
             // trim (k-1) overlaps at beginning, except for the first node
             if (it_path != p.begin())
             {
@@ -285,7 +304,7 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
 
             }
 
-            
+
             if (debug > 1)
                 printf("(%s) ",node_sequence.c_str());
 
@@ -296,7 +315,14 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
             printf(" sequence: %s\n",sequence.c_str());
 
         if(sequence.length()>0) // test filtrage ici ?
-            sequences.insert(filled_insertion_t(sequence,errs_in_anchor,anchor_repeated_in_ref));
+           {
+            //sequences.insert(filled_insertion_t(sequence,errs_in_anchor,anchor_repeated_in_ref,targetId_anchor));
+            sequences.insert(filled_insertion_t(sequence,errs_in_anchor,targetId_anchor));
+            //cout << targetId_anchor.first << endl;
+            //cout  << sequence << endl;
+
+           }
     }
+
     return sequences;
 }

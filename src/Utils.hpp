@@ -29,30 +29,39 @@
 
 using namespace std;
 
+#include <unordered_map>
+typedef pair<string, bool> bkpt_t;
+typedef unordered_map<string, bkpt_t> bkpt_dict_t;
+
 class filled_insertion_t
 {
 public:
 	
-	filled_insertion_t(string insert, int nb_errors, bool anchor_repeated_in_ref) : nb_errors_in_anchor(nb_errors),is_anchor_repeated(anchor_repeated_in_ref)
-	{
+    filled_insertion_t(string insert, int nb_errors, bkpt_t targetId) : nb_errors_in_anchor(nb_errors), targetId_anchor(targetId)	{
 		seq = insert;
 	}
+    filled_insertion_t(string insert, int nb_errors) : nb_errors_in_anchor(nb_errors) {
+        seq = insert;
+    }
 	
 	string seq;
 	int nb_errors_in_anchor;
-	bool is_anchor_repeated;
+    //bool is_anchor_repeated;
 	
 	float avg_coverage;
 	float median_coverage;
-	
+    bkpt_t targetId_anchor;
 
-	//required to be inserted in std::set
-	bool operator< (const filled_insertion_t & other) const
-	{
-		return (seq < other.seq);
-	}
+    //required to be inserted in set
+    bool operator< (const filled_insertion_t & other) const
+    {
+        if (this->targetId_anchor != other.targetId_anchor)
+            return this->targetId_anchor < other.targetId_anchor;
+        else
+            return this->seq < other.seq;
+    }
 	
-	int compute_qual() const
+    int compute_qual(bool is_anchor_repeated) const
 	{
 		
 		if(is_anchor_repeated)
@@ -95,6 +104,9 @@ float needleman_wunsch(string a, string b, int * nbmatch,int * nbmis,int * nbgap
  * returns true if all pairs of sequences have identity percent > threshold
  */
 bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int identity_threshold);
+
+set<filled_insertion_t> remove_almost_identical_solutions(set<filled_insertion_t> consensuses, int identity_threshold);
+
 
 double median(std::vector<unsigned int> &v);
 

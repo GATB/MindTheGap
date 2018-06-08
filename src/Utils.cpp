@@ -204,6 +204,23 @@ bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int i
     return true;
 }
 
+set<filled_insertion_t> remove_almost_identical_solutions(set<filled_insertion_t> consensuses, int identity_threshold)
+{
+    // heuristic : add first seq to final set. Compare every seq to final_seq and add to final_set if different
+    set<filled_insertion_t> final_set;
+    final_set.insert(*consensuses.begin()  );
+
+    for (set<filled_insertion_t>::iterator it_a=consensuses.begin(); it_a!=consensuses.end(); ++it_a) // could be improved : no need to compare first seq
+    {
+        for (set<filled_insertion_t>::iterator it_b=final_set.begin(); it_b!=final_set.end(); ++it_b){
+            if (needleman_wunsch(it_a->seq,it_b->seq, NULL, NULL, NULL) * 100 < identity_threshold){
+                final_set.insert(*it_a);
+            }
+        }
+    }
+    return(final_set);
+}
+
 
 double median(std::vector<unsigned int> &v)
 {
