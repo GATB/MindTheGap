@@ -25,7 +25,6 @@ matrix:
   - os: osx
     compiler: gcc
 script:
-- cd gatb-core
 - mkdir build
 - cd build
 - cmake .. && make 
