@@ -14,6 +14,13 @@ MindTheGap  performs detection and assembly of **DNA insertion variants** in NGS
 
 **New !** MindTheGap can also be used as a **genome assembly finishing tool** : it can fill the gaps between a set of input contigs without any a priori on their relative order and orientation. It outputs the results in gfa file. 
 
+MindTheGap is a [Genscale]() tool, built upon the [GATB library](), developed by:
+* Claire Lemaitre
+* Cervin Guyomar
+* Wesley Delage
+* Guillaume Rizk
+* Former developers: Rayan Chikhi, Pierre Marijon. 
+
 # Installation instructions
 
 ## Requirements
