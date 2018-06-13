@@ -12,9 +12,9 @@ Travis CI : [![Build Status](https://travis-ci.org/GATB/MindTheGap.svg?branch=ma
 
 MindTheGap  performs detection and assembly of **DNA insertion variants** in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint.
 
-**New !** MindTheGap can also be used as a **genome assembly finishing tool** : it can fill the gaps between a set of input contigs without any a priori on their relative order and orientation. It outputs the results in gfa file. 
+**New !** MindTheGap can also be used as a **genome assembly finishing tool**: it can fill the gaps between a set of input contigs without any a priori on their relative order and orientation. It outputs the results in gfa file. 
 
-MindTheGap is a [Genscale]() tool, built upon the [GATB library](), developed by:
+MindTheGap is a [Genscale](http://team.inria.fr/genscale/) tool, built upon the [GATB](http://gatb.inria.fr/) C++ library, and developed by:
 * Claire Lemaitre
 * Cervin Guyomar
 * Wesley Delage
@@ -86,14 +86,14 @@ Since version 2.0.0, MindTheGap can detect other types of variants, not only ins
 
 New feature !
 
-When given a set of reads and a set of contigs as input, MindTheGap tries to fill the gaps between all pairs of contigs by de novo assembly without any a priori on their relative order and orientation. It outputs the results in gfa file. 
+When given a set of reads and a set of contigs as input, MindTheGap tries to fill the gaps between all pairs of contigs by de novo local assembly without any a priori on their relative order and orientation. It outputs the results in gfa file. 
 
 ### Performances
 
-MindTheGap performs de novo assembly using the GATB library and inspired from algorithms from Minia. Hence, the computational resources required to run MindTheGap are significantly lower than that of other assemblers (for instance it uses less than 6GB of main memory for analyzing a full human NGS dataset).
+MindTheGap performs de novo assembly using the [GATB](http://gatb.inria.fr) C++ library and inspired from algorithms from Minia. Hence, the computational resources required to run MindTheGap are significantly lower than that of other assemblers (for instance it uses less than 6GB of main memory for analyzing a full human NGS dataset).
 
 
-For more details on the method and some recent results, see the [web page](https://gatb.inria.fr/software/mind-the-gap/).
+For more details on the method and some recent results, see the [web page](http://gatb.inria.fr/software/mind-the-gap/).
 	
 ## Usage
 
@@ -140,7 +140,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     * `-no-[type]`: to disable the detection of certain types of variants.
     * `-[type]-only`: to detect only certain types of variants.
     
-    NOTE: MindTheGap can find mainly homozygous variants, except for insertion variants where it can also find heterozygous variants. Therefore -homo-only and -hete-only only applies to insertion variants.
+    NOTE: MindTheGap can find mainly homozygous variants, except for insertion variants for which it can also find heterozygous variants. Therefore -homo-only and -hete-only only apply to insertion variants.
 
 5. **Fill module specific options**
     
@@ -164,9 +164,9 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     * a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
     
     `MindTheGap fill` generates the following output files:
-    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. In the case of insertion variants, the location of each insertion on the reference genome can be found in its fasta header, together with the insertion length and quality score. In the case of contig gap-fills, the source and target contigs with their relative orientation ("_Rc" for reversed) can be found for each gap-fill in its fasta header, together with the gap-fill length and quality score.
+    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. In the case of insertion variants, the location of each insertion on the reference genome can be found in its fasta header. In the case of contig gap-fills, the fasta header contains the source and target contigs with their relative orientation ("_Rc" for reversed). In both cases, the fasta header includes also information about each gap-fill such as its length, quality score and median kmer abundance.
     * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection [not yet implemented, coming soon...]. This file resumes insertion position information already contained in the fasta file, but in a vcf format. It is not self-sufficient, inserted sequences if larger than XX bp are not written in the vcf but are referred to their fasta id in the fasta file.
-	* an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contig and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
+	* an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
     * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
 
     Warning: the output in vcf of insertion variants is not yet implemented, coming soon...
@@ -207,10 +207,10 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     
         >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_59_qual_50_avg_cov_21.69_median_cov_17.00
         #same info as in the breakpoint file
-        #len_59 : the length in bp of the inserted sequence, here 59 bp
-        #qual_50 : quality of 50 (quality scores range from 0 to 50, 50 being the best quality) 
-        #avg_cov_21.69 : average abundance of the filled sequence (average of all its kmer abundances)
-        #median_cov_17.00 : median abundance of the filled sequence (median of all its kmer abundances)
+        #len_59: the length in bp of the inserted sequence, here 59 bp
+        #qual_50: quality of 50 (quality scores range from 0 to 50, 50 being the best quality) 
+        #avg_cov_21.69: average abundance of the filled sequence (average of all its kmer abundances)
+        #median_cov_17.00: median abundance of the filled sequence (median of all its kmer abundances)
 
     If more than one sequence are assembled for a given breakpoint, the header is as follows:
     
@@ -219,13 +219,13 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 
 	**Contig gap-fill header specificies**:
 	
-	When used with option `-contig`, the fasta header is a little bit different: it contains notably two contig identifiers (their fasta headers in the original contig file) with optionnally a sufix "_Rc" if it is reversed.
+	When used with option `-contig`, the fasta header is a little bit different: it contains notably two contig identifiers (their fasta headers in the original contig file) with optionnally a suffix "_Rc" if it is reversed.
 	
 	 	>contig3_len_3652;contig18_len_19822_Rc;len_117_qual_50_median_cov_1350
-		#contig3_len_3652 : header of contig3 in the original input file contigs.fa
-		#contig18_len_19822 : header of contig18 in the original input file contigs.fa
-		#_Rc : absent from the first contig and present after the second contig, this means that the end of contig3 is gap-filled with the end of contig18 (that is with the beginning of the reverse complement of contig18).
-		#len_117_qual_50_median_cov_1350 : information about the assembled gap-fill sequence
+		#contig3_len_3652: header of the source contig, contig3 in the original input file contigs.fa
+		#contig18_len_19822: header of the target contig, contig18 in the original input file contigs.fa
+		#_Rc: absent for the source contig and present for the target contig, this means that the end of contig3 is gap-filled with the end of contig18 (that is with the beginning of the reverse complement of contig18).
+		#len_117_qual_50_median_cov_1350: information about the assembled gap-fill sequence
 	 
     **Quality scores**:
     

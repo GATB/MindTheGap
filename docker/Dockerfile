@@ -3,7 +3,7 @@ FROM debian:wheezy
 MAINTAINER Claire Lemaitre claire.lemaitre@inria.fr
 
 # Set MindTheGap version
-ENV MTG_VERSION 2.0.1
+ENV MTG_VERSION 2.1.0
 
 # Set noninteratve mode
 ENV DEBIAN_FRONTEND noninteractive
