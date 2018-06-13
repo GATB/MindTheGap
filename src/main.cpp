@@ -26,7 +26,7 @@
 
 using namespace std;
 
-static const char* MTG_VERSION = "2.0.2";
+static const char* MTG_VERSION = "2.1.0";
 
 static const char* STR_FIND        = "find";
 static const char* STR_FILL = "fill";
@@ -49,7 +49,7 @@ void displayHelp(std::ostream& os){
     os << "                  usage: MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
     os << "                  help: MindTheGap find -help"<< endl;
     os << "    fill     :    gap-filler or insertion assembly"<< endl;
-    os << "                  usage: MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) -bkpt <breakpoints.fa> or -contig <contig.fa> [options]" << endl;
+    os << "                  usage: MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) (-bkpt <breakpoints.fa> | -contig <contig.fa>) [options]" << endl;
     os << "                  help: MindTheGap fill -help"<< endl;
     os << "[Common options]" << endl;
     os << "    -help    :    display this help menu" << endl;

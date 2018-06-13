@@ -67,7 +67,7 @@ Pull the docker image of the latest release of MindTheGap:
 
 MindTheGap is a software that performs integrated detection and assembly of **genomic insertion variants** in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. 
 
-Alternatively and since recently, MindTheGap can also be used as a **genome assembly finishing tool**.
+Alternatively and since release 2.1.0, MindTheGap can also be used as a **genome assembly finishing tool**.
 
 ### Insertion variant detection
 
@@ -77,7 +77,7 @@ Since version 2.0.0, MindTheGap can detect other types of variants, not only ins
 
 ### Genome assembly gap-filling
 
-New features !
+New feature !
 
 When given a set of reads and a set of contigs as input, MindTheGap tries to fill the gaps between all pairs of contigs by de novo assembly without any a priori on their relative order and orientation. It outputs the results in gfa file. 
 
@@ -237,8 +237,6 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     * (optionnally) column 5-7 : same informations as in column 2-4 but for the filling process in the reverse direction from right to left kmer, activated only if the filling failed in the forward direction
     * last 2 columns : number of alternative filled sequences before comparison, number of output filled sequences (can be reduced if some pairs of alternative sequences are more than 90% identical).
  
- 
-
 
 ## Full example
 
@@ -262,7 +260,7 @@ This example can be run with the small dataset in directory `data/`, for instanc
 Either in your bin/ directory or in ext/gatb-core/bin/, you can find additional utility programs :
 * dbginfo : to get information about a graph stored in a .h5 file
 * dbgh5 : to build a graph from read set(s) and obtain a .h5 file
-* h5dump : to extract all data stored in a .h5 file
+* h5dump : to extract data stored in a .h5 file
 	
 ## Reference
 
@@ -277,4 +275,4 @@ To contact a developer, request help, or for any feedback on MindTheGap, please 
 
 You can see all issues concerning MindTheGap [here](https://github.com/GATB/MindTheGap/issues) and GATB [here](https://www.biostars.org/t/GATB/).
 
-If you do not have any github account, you can also send an email to claire dot lemaitre or guillaume dot rizk at inria dot fr
+If you do not have any github account, you can also send an email to claire dot lemaitre at inria dot fr

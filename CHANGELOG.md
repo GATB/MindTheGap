@@ -4,6 +4,16 @@
 ## [Unreleased]
 
 --------------------------------------------------------------------------------
+## [2.1.0] - 2018-06-13
+
+A nice novel feature:
+
+MindTheGap can now also be used as a genome assembly finishing tool: it can fill the gaps between a set of input contigs without any a priori on their relative order and orientation. This new feature is available in the Fill module with option `-contig`.
+
+Some bug and compilation fixes, by updating the gatb-core version to 1.4.1 and more.
+
+
+--------------------------------------------------------------------------------
 ## [2.0.2] - 2017-07-06
 
 Some new features:
