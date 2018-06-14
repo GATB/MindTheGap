@@ -708,7 +708,7 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
 		        bool loop=true;
 		        //std::string common;
 		        string fille=it->seq;
-		        std::cout <<breakpointName<<std::endl;
+		        //std::cout <<breakpointName<<std::endl;
 		        //std::cout <<filled.size()<<std::endl;
 		        //std::cout<<left.size()<<std::endl;
 		        //loop to identify alternative position and left normalized position

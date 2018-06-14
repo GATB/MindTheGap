@@ -407,7 +407,11 @@ void FindBreakpoints<span>::operator()()
 			if(!(*m_it_kmer).isValid())
 			{
 				this->m_solid_stretch_size = 0;
-				cout<<"n";
+                this->m_gap_stretch_size = 0;
+                this->m_kmer_begin = KmerCanonical();
+                this->m_kmer_end = KmerCanonical();
+                //DEBUG
+				//cout<<"n";
 			}
 			else 
 			{
@@ -453,7 +457,7 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 	if(in_graph && is_valid)
 	{
 		//DEBUG
-		cout<<"1";
+		//cout<<"1";
 
 		m_solid_stretch_size++;
 		
@@ -480,25 +484,12 @@ void FindBreakpoints<span>::notify(Node node, bool is_valid)
 			this->m_kmer_end = *this->m_it_kmer;
 		}
 	}
-	
-	/*if(!is_valid)
-	{
-		//DEBUG
-		cout<<"n";
-
-		m_solid_stretch_size++;
-		if(this->m_previous_kmer.isValid() && in_graph)
-		{
-			this->m_kmer_begin = this->m_previous_kmer;
-			this->m_kmer_begin_is_repeated =  this->m_current_info.is_repeated ;
-		}
-	}*/
-	
+		
 	// Kmer isn't in graph incremente gap size and reset solid size
 	if(!in_graph && is_valid)
 	{
 		//DEBUG
-		cout<<"0";
+		//cout<<"0";
 
 		if(this->m_solid_stretch_size==1)
 		{
