@@ -49,8 +49,19 @@ RETVAL=1
 fi
 
 # Checking the .breakpoints :
-diff --ignore-matching-lines=">" $outputPrefix.breakpoints $goldPrefix.breakpoints 1> /dev/null 2>&1
+#diff --ignore-matching-lines=">" $outputPrefix.breakpoints $goldPrefix.breakpoints 1> /dev/null 2>&1
+#var=$?
+
+tmp1=$outputPrefix.breakpoints.tmp
+tmp2=$testDir/tmp2
+
+grep -v "^>" $outputPrefix.breakpoints > $tmp1
+grep -v "^>" $goldPrefix.breakpoints > $tmp2
+
+
+diff $tmp1 $tmp2 1> /dev/null 2>&1
 var=$?
+
 
 if [ $var -eq 0 ]
 then
@@ -81,9 +92,21 @@ var=$?
 
 if [ $var -eq 0 ]
 then
-echo "full-test fill             : PASS"
+echo "full-test fill fasta       : PASS"
 else
-echo "full-test fill             : FAILED"
+echo "full-test fill fasta       : FAILED"
+RETVAL=1
+fi
+
+# Checking the .insertions.vcf :
+sh compare_vcf.sh $outputPrefix.insertions.vcf $goldPrefix.insertions.vcf 1> /dev/null 2>&1
+var=$?
+
+if [ $var -eq 0 ]
+then
+echo "full-test fill vcf         : PASS"
+else
+echo "full-test fill vcf         : FAILED"
 RETVAL=1
 fi
 
