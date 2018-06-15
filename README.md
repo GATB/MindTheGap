@@ -165,11 +165,10 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     
     `MindTheGap fill` generates the following output files:
     * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. In the case of insertion variants, the location of each insertion on the reference genome can be found in its fasta header. In the case of contig gap-fills, the fasta header contains the source and target contigs with their relative orientation ("_Rc" for reversed). In both cases, the fasta header includes also information about each gap-fill such as its length, quality score and median kmer abundance.
-    * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection [not yet implemented, coming soon...]. This file resumes insertion position information already contained in the fasta file, but in a vcf format. It is not self-sufficient, inserted sequences if larger than XX bp are not written in the vcf but are referred to their fasta id in the fasta file.
+    * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection. This file contains all information of assembled insertion variants as in the `.insertions.fasta` file but in a different format. Here, insertion site positions are 1-based and left-normalized according to the VCF format specifications (contrary to positions indicated in the `.breakpoints` and `insertions.fasta` files which are right-normalized). Normalization occurs when multiple positions are possible for a single variation due to a small repeat. 
 	* an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
     * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
 
-    Warning: the output in vcf of insertion variants is not yet implemented, coming soon...
 	
 7. **Computational resources options**
     
@@ -199,7 +198,12 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 	
 2. VCF variant format
 
-    For both .othervariants.vcf and insertions.vcf files, the format follows the VCF specifications version 4.1 (see https://samtools.github.io/hts-specs/VCFv4.1.pdf). Positions are 1-based.
+    For both `.othervariants.vcf` and `insertions.vcf` files, the format follows the VCF specifications version 4.1 (see https://samtools.github.io/hts-specs/VCFv4.1.pdf). Positions are 1-based.
+	
+	For insertion variants, positions are left-normalized. This happens when there is a small (typically <5bp)) repeated sequence between the breakpoint site and one extremity of the inserted sequence. In this case, multiple positions are possible. Here, the leftmost position is reported and the number of possible positions is indicated in the INFO field (NPOS id). This latter value is the size of the repeated sequence + 1 (= fuzzy +1). Note that in this case the REF field not only contains the nucleotide before the insertion but also the repeated sequence (the REF field size is therefore equal to NPOS) and the ALT field contains the two copies of the repeated sequence (at both extremities). Example:
+	
+		chr4    618791     bkpt20  TAGG    TAGGTGTATTTAGCTCCGAGG   .       PASS    TYPE=INS;LEN=17;NPOS=4;AVK=22.71;MDK=23.00      GT      1/1
+	 	#AGG is a repeat of size 3, there are 4 (NPOS) possible positions for an insertion of 17 nt from positions 618791 to 618794 on chr4
 	
 3. Assembled insertion format
     
@@ -260,7 +264,7 @@ This example can be run with the small dataset in directory `data/`, for instanc
     bin/MindTheGap fill -graph example.h5 -bkpt example.breakpoints -out example
     # 2 files are generated:
     #   example.insertions.fasta
-    #   example.insertions.vcf  (not yet implemented, coming soon)
+    #   example.insertions.vcf
 
 ## Utility programs
 

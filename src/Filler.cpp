@@ -310,17 +310,20 @@ void Filler::writeVcfHeader(){
 ##source=MindTheGap fill version %s\n\
 ##SAMPLE=file:%s\n\
 ##REF=file:%s\n\
-##INFO=<ID=TYPE,Number=1,Type=String,Description=\"INS.\">\n\
+##INFO=<ID=TYPE,Number=1,Type=String,Description=\"INS\">\n\
 ##INFO=<ID=LEN,Number=1,Type=Integer,Description=\"variant size\">\n\
-##INFO=<=QUA,Number=.,Type=Integer,Description=\"Quality of the insertion\">\n\
 ##INFO=<=AVK,Number=.,Type=Float,Description=\"Average k-mer coverage along the insertion\">\n\
 ##INFO=<=MDK,Number=.,Type=Float,Description=\"Median k-mer coverage along the insertion\">\n\
-##INFO=<=NS,Number=1,Type=String,Description=\"Solution index\">\n\
 ##INFO=<ID=GTT,Number=1,Type=String,Description=\"Unphased  genotypes\">\n\
-##INFO=<ID=Alt_poss,Number=1,Type=Integer,Description=\"alternative possibility of insertion\">\n\
+##INFO=<ID=NPOS,Number=1,Type=Integer,Description=\"number of alternative positions for the insertion site (= size of repeat (fuzzy) +1)\">\n\
 ##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n\
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",
 c_time_string, _mtg_version, sample.c_str(),getInput()->getStr(STR_URI_OUTPUT).c_str());
+    
+    //TODO later :
+    //##INFO=<=QUA,Number=.,Type=Integer,Description=\"Quality of the insertion\">\n\
+    //##INFO=<=NS,Number=1,Type=String,Description=\"Solution index\">\n\
+
 }
 
 void Filler::resumeParameters(){
@@ -1080,7 +1083,7 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
 }
 
 void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string breakpointName, string seedk){
-    
+    //warning : may not work if breakpoint file is not formated by MindTheGap find (to find info in the sequence headers (such as CHR, pos...)
     
     flockfile(_vcf_file);
     
@@ -1121,13 +1124,9 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
                 
                 
             }
-            //std::cout << seedk << std::endl;
-            //std::cout << it->seq <<std::endl;
-            //std::cout << fuzzy << std::endl;
-            //left normalization
+            
+            //left normalization: if fuzzy>0 alt field is the concatenation of the char before insertion, the repeated sequence (of size=fuzzy) and the assembled sequence, the ref field is the char before insertion + the repeated sequence (of size=fuzzy)
             insertion=seedk.substr(seedk.size()-fuzzy,seedk.size()-1)+fille;
-            //std::cout << insertion<<std::endl;
-            //std::cout << "\n" << std::endl;
             string ref = seedk.substr(seedk.size()-fuzzy,seedk.size()-1);
             
             
@@ -1141,10 +1140,14 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
             string bkpt=tokens[0].c_str();
             int position=atoi(tokens[3].c_str())-ref.size()+1;
             string chromosome = tokens[1].c_str();
+            string genotype = tokens[6].c_str();
+            string GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
+            
+            
             int size =insertion.size()-ref.size();
-            //std::cout << tokens[4] <<std::endl;
+
             // write in vcf format
-            fprintf(_vcf_file,"%s\t%lli\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;Alt_poss=%i;AVK=%.2f;MDK=%.2f\n",tokens[1].c_str(),position,tokens[0].c_str(),ref.c_str(),insertion.c_str(),size,fuzzy,it->avg_coverage,it->median_coverage);
+            fprintf(_vcf_file,"%s\t%lli\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",tokens[1].c_str(),position,tokens[0].c_str(),ref.c_str(),insertion.c_str(),size,fuzzy,it->avg_coverage,it->median_coverage,GT.c_str());
             
         }
         
