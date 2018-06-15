@@ -134,6 +134,8 @@ public:
 
     int _overlap_length;
 
+    string _vcf_file_name;
+    FILE * _vcf_file;
 
     // Actual job done by the tool is here
     void execute ();
@@ -145,6 +147,9 @@ public:
      */
     void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring, bool is_anchor_repeated, bool breakpointMode);
     void writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string SeedName, bool isRc, bool is_anchor_repeated);
+    /** writes a given variant in the output vcf file
+     */
+    void writeVcf(std::vector<filled_insertion_t>& filledSequences, string breakpointName, string seedk);
 
     /** Fill one gap
      */
@@ -172,11 +177,15 @@ private:
          */
     template<size_t span>
     struct fillBreakpoints {  void operator ()  (Filler* object); };
+
     template<size_t span>
     struct fillContig { void operator () (Filler* object); };
     template<size_t span>
     struct fillAny { void operator () (Filler* object); };
 
+    /** writes the header of the vcf file
+         */
+    void writeVcfHeader();
 
     /**
      * returns the nodes containing the targetSequence (can be an approximate match)

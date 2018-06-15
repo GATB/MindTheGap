@@ -384,16 +384,18 @@ void Finder::execute ()
     fclose(_vcf_file);
 
     // Printing result informations (ie. add info to getInfo(), in Tool Info is printed automatically after end of execute() method
-    getInfo()->add(1,"version",_mtg_version);
-    getInfo()->add(1,"gatb-core-library",System::info().getVersion().c_str());
-    getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
-    //getInfo()->add (1, &LibraryInfo::getInfo());
     resumeParameters();
     resumeResults(seconds);
 }
 
 void Finder::resumeParameters(){
     
+    getInfo()->add(0,"MindTheGap find");
+    getInfo()->add(1,"version",_mtg_version);
+    getInfo()->add(1,"gatb-core-library",System::info().getVersion().c_str());
+    getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
+    //getInfo()->add (1, &LibraryInfo::getInfo());
+
     getInfo()->add(0,"Parameters");
     getInfo()->add(1,"Input data");
     if (getInput()->get(STR_URI_INPUT) != 0){
