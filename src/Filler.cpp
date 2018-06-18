@@ -1130,24 +1130,33 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
             string ref = seedk.substr(seedk.size()-fuzzy,seedk.size()-1);
             
             
-            string token,subkmer;
-            std::istringstream iss(breakpointName);
-            std::vector<std::string> tokens;
+            string token;
+            istringstream iss(breakpointName);
+            std::vector<string> tokens;
             // we split the header and put it in a vector tokens
             // split header breakpoint to extract information
             while(getline(iss,token,'_')) tokens.push_back(token);
-            // fuz keep the information about the fuzzy insertion size
-            string bkpt=tokens[0].c_str();
-            int position=atoi(tokens[3].c_str())-ref.size()+1;
-            string chromosome = tokens[1].c_str();
-            string genotype = tokens[6].c_str();
-            string GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
+            
+            //cerr << tokens.size() << endl;
+            
+            string bkpt=breakpointName;
+            string position = ".";
+            string chromosome = ".";
+            string GT = "./.";
+            if (tokens.size()==7){ //MindTheGap find expected format
+                bkpt = tokens[0].c_str();
+                int pos = atoi(tokens[3].c_str())-ref.size()+1;
+                position = to_string(pos);
+                chromosome = tokens[1].c_str();
+                string genotype = tokens[6].c_str();
+                GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
+            }
             
             
             int size =insertion.size()-ref.size();
 
             // write in vcf format
-            fprintf(_vcf_file,"%s\t%lli\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",tokens[1].c_str(),position,tokens[0].c_str(),ref.c_str(),insertion.c_str(),size,fuzzy,it->avg_coverage,it->median_coverage,GT.c_str());
+            fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,fuzzy,it->avg_coverage,it->median_coverage,GT.c_str());
             
         }
         
