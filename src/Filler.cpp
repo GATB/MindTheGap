@@ -405,7 +405,6 @@ template<size_t span>
 class contigFunctor
 {
 
-    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
     typedef typename Kmer<span>::Count Count;
     typedef typename Kmer<span>::Type  Type;
 
@@ -441,61 +440,16 @@ public:
             targetDictionary.insert({its->first,its->second});
         }
      }
-
         
-     set<filled_insertion_t> filledSequences;
-     std::vector<filled_insertion_t> filledSequences_vec; //todo remove the set, keep only the vector
+     vector<filled_insertion_t> filledSequences;
      _object->contigGapFill<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, nb_mis_allowed, targetDictionary, false );
-
         
      infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
-     /////////compute coverage of filled sequences
 
-     ModelCanonical model (_object->_kmerSize);
-     for (set<filled_insertion_t>::iterator it2 = filledSequences.begin(); it2 != filledSequences.end() ; ++it2)
-     {
-        typename ModelCanonical::Iterator itk (model);
-        std::string cseq = seedk + it2->seq;
-
-        Data data ((char*)cseq.c_str());
-        bkpt_t cible = it2->targetId_anchor;
-        string cibles = cible.first;
-        itk.setData (data);
-        std::vector<unsigned int> vec_abundances;
-
-        // We iterate the kmers of this seq
-        u_int64_t sum = 0;
-        int nbkmers =0;
-        int compt=0;
-        for (itk.first(); !itk.isDone(); itk.next())
-        {
-            //u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
-            compt+=1;
-            Node node(Node::Value(itk->value()));
-            if(_object->_graph.queryAbundance(node) == ULLONG_MAX) {
-                cerr << "Cibles " << cibles << " " << compt << endl;
-                cerr << "Unknown kmer : " << model.toString(itk->value()) << endl;
-            } else {
-                 unsigned int cov = _object->_graph.queryAbundance(node);
-                 sum+= cov; nbkmers++;
-                vec_abundances.push_back(cov);
-            }
-        }
-         
-        
-        filled_insertion_t current_insertion = *it2;
-
-        current_insertion.median_coverage = median(vec_abundances);
-        current_insertion.avg_coverage  = sum /(float) nbkmers;
-
-        filledSequences_vec.push_back(current_insertion);
-
-
-     }
      // Write insertions to file
-     _object->writeFilledBreakpoint(filledSequences_vec,seedName,infostring,is_anchor_repeated,false);
-     _object->writeToGFA(filledSequences_vec,sourceSequence,seedName,isRc,is_anchor_repeated);
+     _object->writeFilledBreakpoint(filledSequences,seedName,infostring,is_anchor_repeated,false);
+     _object->writeToGFA(filledSequences,sourceSequence,seedName,isRc,is_anchor_repeated);
         
 
      _nb_breakpoints++;
@@ -590,8 +544,7 @@ public:
             //printf("nb_mis_allowed %i \n",nb_mis_allowed);
 
             //Initialize set of filled sequences
-            set<filled_insertion_t> filledSequences;
-            std::vector<filled_insertion_t> filledSequences_vec; //todo remove the set, keep only the vector
+            vector<filled_insertion_t> filledSequences;
             bkpt_dict_t targetDictionary;
             // If Source and Target sequences are larger than kmer-size, resize to kmer-size :
             if(sourceSequence.size()> _object->_kmerSize ){
@@ -622,43 +575,8 @@ public:
 
             infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
 
-
-            /////////compute coverage of filled sequences
-            ModelCanonical model (_object->_kmerSize);
-            for (set<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
-            {
-                typename ModelCanonical::Iterator itk (model);
-                std::string cseq = seedk + it->seq;
-                Data data ((char*)cseq.c_str());
-
-                itk.setData (data);
-                std::vector<unsigned int> vec_abundances;
-
-                u_int64_t sum = 0;
-                int nbkmers =0;
-
-                // We iterate the kmers of this seq
-                for (itk.first(); !itk.isDone(); itk.next())
-                {
-                    Node node(Node::Value(itk->value()));
-                    unsigned int cov = _object->_graph.queryAbundance(node);
-                    sum+= cov; nbkmers++;
-                    vec_abundances.push_back(cov);
-                }
-
-                filled_insertion_t current_insertion = *it;
-
-                current_insertion.median_coverage = median(vec_abundances);
-                current_insertion.avg_coverage  = sum /(float) nbkmers;
-
-                //creating vector because cannot modify elem in set filledSequences.. why was it a set and not a vector ?
-                filledSequences_vec.push_back(current_insertion);
-            }
-            /////////////////////////////
-
-
-            _object->writeFilledBreakpoint(filledSequences_vec,breakpointName,infostring,is_anchor_repeated,true);
-            _object->writeVcf(filledSequences_vec,breakpointName,seedk);
+            _object->writeFilledBreakpoint(filledSequences,breakpointName,infostring,is_anchor_repeated,true);
+            _object->writeVcf(filledSequences,breakpointName,seedk);
 
             
             // We increase the breakpoint counter.
@@ -827,7 +745,10 @@ void Filler::fillAny<span>::operator () (Filler* object)
 }
 
 template<size_t span>
-void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, set<filled_insertion_t>& filledSequences,int nb_mis_allowed, bkpt_dict_t targetDictionary, bool reverse ){
+void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, vector<filled_insertion_t>& filledSequences,int nb_mis_allowed, bkpt_dict_t targetDictionary, bool reverse ){
+    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
+
+
     //object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
     BranchingTerminator terminator (_graph);
     IterativeExtensions<span> extension (_graph, terminator, TRAVERSAL_CONTIG, ExtendStopMode_until_max_depth, SearchMode_Breadth, false, _max_depth, _max_nodes);
@@ -914,12 +835,12 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
             for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
             {
                 filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor, its->targetId_anchor);
-                filledSequences.insert ( rev_insert);
+                filledSequences.push_back ( rev_insert);
                 //ideal TODO: its->reverse();
             }
         }
         else{
-            filledSequences.insert(tmpSequences.begin(),tmpSequences.end());
+            filledSequences.insert(filledSequences.end(),tmpSequences.begin(),tmpSequences.end());
         }
     }
     
@@ -931,6 +852,31 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     remove(contig_file_name.c_str());
     remove((contig_graph_file_prefix+".graph").c_str());
 
+    /////////compute coverage of filled sequences
+    ModelCanonical model (_kmerSize);
+    for (vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+    {
+        typename ModelCanonical::Iterator itk (model);
+        std::string cseq = sourceSequence + it->seq;
+        Data data ((char*)cseq.c_str());
+
+        itk.setData (data);
+        std::vector<unsigned int> vec_abundances;
+
+        u_int64_t sum = 0;
+        int nbkmers =0;
+
+        // We iterate the kmers of this seq
+        for (itk.first(); !itk.isDone(); itk.next())
+        {
+            Node node(Node::Value(itk->value()));
+            unsigned int cov = _graph.queryAbundance(node);
+            sum+= cov; nbkmers++;
+            vec_abundances.push_back(cov);
+        }
+        it->median_coverage = median(vec_abundances);
+        it->avg_coverage  = sum /(float) nbkmers;
+    }
 }
 
 
