@@ -188,8 +188,6 @@ void Filler::execute ()
 
         _graph = Graph::create (getInput());
         _kmerSize = getInput()->getInt(STR_KMER_SIZE);
-        //retrieve storage of kmer counts to build the emphf and compute abundance of filled sequences (stored in the .h5 newly created file)
-        _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_OUTPUT)+".h5");
 
     }
 
@@ -202,8 +200,6 @@ void Filler::execute ()
     	fflush(stderr);
         _graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
         _kmerSize = _graph.getKmerSize();
-        //retrieve storage of kmer counts to build the emphf and compute abundance of filled sequences
-        _storage  = StorageFactory(STORAGE_HDF5).load(getInput()->getStr(STR_URI_GRAPH));
         fprintf(stderr,"done\n");
         fflush(stderr);
     }
@@ -412,7 +408,6 @@ class contigFunctor
     typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
     typedef typename Kmer<span>::Count Count;
     typedef typename Kmer<span>::Type  Type;
-    typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
 
 public:
     void operator() (Sequence& sequence)
@@ -477,14 +472,13 @@ public:
         {
             //u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
             compt+=1;
-            if(_abundancemap->getCode(itk->value()) == ULLONG_MAX) {
-
+            Node node(Node::Value(itk->value()));
+            if(_object->_graph.queryAbundance(node) == ULLONG_MAX) {
                 cerr << "Cibles " << cibles << " " << compt << endl;
                 cerr << "Unknown kmer : " << model.toString(itk->value()) << endl;
             } else {
-                //unsigned int cov =  (*_abundancemap)[itk->value()]; //with gatb-core version < jan 2018
-                unsigned int cov =  _abundancemap->abundanceAt(itk->value());
-                sum+= cov; nbkmers++;
+                 unsigned int cov = _object->_graph.queryAbundance(node);
+                 sum+= cov; nbkmers++;
                 vec_abundances.push_back(cov);
             }
         }
@@ -513,7 +507,7 @@ public:
 
 
     //constructor
-    contigFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints, AbundanceMap* abundancemap, bkpt_dict_t all_targetDictionary) : _object(object),_global_nb_breakpoints(global_nb_breakpoints),_abundancemap(abundancemap),_all_targetDictionary(all_targetDictionary)
+    contigFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints, bkpt_dict_t all_targetDictionary) : _object(object),_global_nb_breakpoints(global_nb_breakpoints),_all_targetDictionary(all_targetDictionary)
     {
         _nb_living =nb_living;
         _tid =  __sync_fetch_and_add (_nb_living, 1);
@@ -530,7 +524,6 @@ public:
         _global_nb_breakpoints = r._global_nb_breakpoints;
         _nb_breakpoints = 0;
         _tid =  __sync_fetch_and_add (_nb_living, 1);
-        _abundancemap = r._abundancemap;
         
         //printf("CC creating thread id %i \n",_tid);
 
@@ -547,7 +540,6 @@ private:
     int * _global_nb_breakpoints;
     int * _nb_living;
 
-    AbundanceMap* _abundancemap;
     Sequence _previousSeq;
     u_int64_t _nbBreakpointsProgressDone = 0;
     bkpt_dict_t _all_targetDictionary;
@@ -557,12 +549,9 @@ private:
 template<size_t span>
 class gapfillerFunctor
 {
-
     typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
     typedef typename Kmer<span>::Count Count;
     typedef typename Kmer<span>::Type  Type;
-    typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
-
 
 public:
     void operator() (Sequence& sequence)
@@ -651,9 +640,8 @@ public:
                 // We iterate the kmers of this seq
                 for (itk.first(); !itk.isDone(); itk.next())
                 {
-                    //u_int64_t raw_kmerval = itk->value().getVal(); //bon sang
-                    //unsigned int cov =  (*_abundancemap)[itk->value()]; //with gatb-core version < jan 2018
-                    unsigned int cov =  _abundancemap->abundanceAt(itk->value());
+                    Node node(Node::Value(itk->value()));
+                    unsigned int cov = _object->_graph.queryAbundance(node);
                     sum+= cov; nbkmers++;
                     vec_abundances.push_back(cov);
                 }
@@ -684,7 +672,7 @@ public:
     }
 
     //constructor
-    gapfillerFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints, AbundanceMap* abundancemap) : _object(object),_global_nb_breakpoints(global_nb_breakpoints),_abundancemap(abundancemap)
+    gapfillerFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints) : _object(object),_global_nb_breakpoints(global_nb_breakpoints)
     {
         _nb_living =nb_living;
         _tid =  __sync_fetch_and_add (_nb_living, 1);
@@ -701,7 +689,6 @@ public:
         _global_nb_breakpoints = r._global_nb_breakpoints;
         _nb_breakpoints = 0;
         _tid =  __sync_fetch_and_add (_nb_living, 1);
-        _abundancemap = r._abundancemap;
 
     //	printf("CC creating thread id %i \n",_tid);
 
@@ -719,7 +706,6 @@ private:
     int * _global_nb_breakpoints;
     int * _nb_living;
     int _nb_mis_allowed = 2; // To fix, should be read from global parameters
-    AbundanceMap* _abundancemap;
     Sequence _previousSeq;
     u_int64_t _nbBreakpointsProgressDone = 0;
 
@@ -734,44 +720,8 @@ struct Count2TypeAdaptor  {  typename Kmer<span>::Type& operator() (typename Kme
 template<size_t span>
 void Filler::fillAny<span>::operator () (Filler* object)
 {
-    //retrieve the AbundanceMap : mphf with the abundance for each kmer
     size_t kmerSize = object->_kmerSize;
 
-    typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
-    //typedef typename gatb::core::kmer::impl::Kmer<span>::Type  Type;
-
-    typedef typename Kmer<span>::Count Count;
-    typedef typename Kmer<span>::Type  Type;
-    
-    fprintf(stderr,"Loading kmer abundances..."); //TODO better a progress bar (gatb-core)
-    fflush(stderr);
-
-    /** We get the dsk group in the storage. */
-
-    Group& dskGroup = object->_storage->getGroup("dsk");
-
-    /** We get the iterable for the solid counts and solid kmers. */
-    //printf("__load MPHF __\n");
-    Partition<Count>* solidCounts = & dskGroup.getPartition<Count> ("solid");
-
-    Iterable<Type>*   solidKmers  = new IterableAdaptor<Count,Type,Count2TypeAdaptor<span> > (*solidCounts);
-
-    MPHFAlgorithm<span> mphf_algo (
-                                   dskGroup,
-                                   "mphf",
-                                   solidCounts,
-                                   solidKmers,
-                                   1,  // loading using 1 thread
-                                   false  // build=true, load=false
-                                   );
-    typedef typename gatb::core::kmer::impl::MPHFAlgorithm<span>::AbundanceMap   AbundanceMap;
-
-    AbundanceMap* abundancemap = mphf_algo.getAbundanceMap();
-    
-    fprintf(stderr,"done\n");
-    fflush(stderr);
-    //end mphf stuffs
-    
     BankFasta::Iterator itSeq (*object->_breakpointBank);
     int nbBreakpoints=0;
 
@@ -845,7 +795,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
         int nb_living=0;
         
 
-        Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(it, contigFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap,all_targetDictionary),30);
+        Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(it, contigFunctor<span>(object,&nb_living,&object->_nb_breakpoints,all_targetDictionary),30);
 
         object->_nb_breakpoints = object->_nb_breakpoints ;
         object->_progress->finish ();
@@ -866,7 +816,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
 
         int nb_living=0;
 
-        Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints,abundancemap),30);
+        Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),30);
         //WARNING : 30 = number of sequences sent to each thread, keep it *even* (2 sequences for one breakpoint)
 
         object->_nb_breakpoints = object->_nb_breakpoints ;
