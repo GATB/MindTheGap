@@ -64,6 +64,6 @@ public:
     set<pair<unlabeled_path,bkpt_t>> find_all_paths(int start_node, set<info_node_t> terminal_nodes_with_endpos, unlabeled_path current_path, int &nb_calls, bool &success);
     
     static int debug; // 0: no debug, 1: node id debug, 2: ful sequence debug; useful to see the sequences of the traversed paths
-    set<filled_insertion_t> paths_to_sequences(set<unlabeled_path> paths, set< info_node_t > terminal_nodes_with_endpos); // is it also used in mapsembler  ?
+    std::vector<filled_insertion_t> paths_to_sequences(set<unlabeled_path> paths, set< info_node_t > terminal_nodes_with_endpos); 
 };
 

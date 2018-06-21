@@ -199,10 +199,10 @@ set<pair<unlabeled_path,bkpt_t>> GraphAnalysis::find_all_paths(int start_node, s
     return paths;
 }
 
-set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< info_node_t > terminal_nodes_with_endpos )
+std::vector<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< info_node_t > terminal_nodes_with_endpos )
 {
     //debug =2;
-    set<filled_insertion_t> sequences;
+    std::vector<filled_insertion_t> sequences;
     int errs_in_anchor;
     bool anchor_repeated_in_ref;
     bkpt_t targetId_anchor;
@@ -316,8 +316,8 @@ set<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> pa
 
         if(sequence.length()>0) // test filtrage ici ?
            {
-            //sequences.insert(filled_insertion_t(sequence,errs_in_anchor,anchor_repeated_in_ref,targetId_anchor));
-            sequences.insert(filled_insertion_t(sequence,errs_in_anchor,targetId_anchor));
+
+            sequences.push_back(filled_insertion_t(sequence,errs_in_anchor,targetId_anchor));
             //cout << targetId_anchor.first << endl;
             //cout  << sequence << endl;
 

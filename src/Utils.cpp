@@ -204,21 +204,37 @@ bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int i
     return true;
 }
 
-set<filled_insertion_t> remove_almost_identical_solutions(set<filled_insertion_t> consensuses, int identity_threshold)
+
+void remove_almost_identical_solutions(std::vector<filled_insertion_t>& consensuses, int identity_threshold)
 {
     // heuristic : add first seq to final set. Compare every seq to final_seq and add to final_set if different
-    set<filled_insertion_t> final_set;
-    final_set.insert(*consensuses.begin()  );
 
-    for (set<filled_insertion_t>::iterator it_a=consensuses.begin(); it_a!=consensuses.end(); ++it_a) // could be improved : no need to compare first seq
+    std::vector<filled_insertion_t> final_set;
+    final_set.push_back(*consensuses.begin()  );
+    //std::cerr << "remove_almost... after first push_back" << std::endl;
+
+    for (std::vector<filled_insertion_t>::iterator it_a=consensuses.begin(); it_a!=consensuses.end(); ++it_a) // could be improved : no need to compare first seq
     {
-        for (set<filled_insertion_t>::iterator it_b=final_set.begin(); it_b!=final_set.end(); ++it_b){
-            if (needleman_wunsch(it_a->seq,it_b->seq, NULL, NULL, NULL) * 100 < identity_threshold){
-                final_set.insert(*it_a);
+        bool found_a_similar_seq = false;
+        for (std::vector<filled_insertion_t>::iterator it_b=final_set.begin(); it_b!=final_set.end(); ++it_b){
+            if (it_a->seq.compare(it_b->seq) == 0 || needleman_wunsch(it_a->seq,it_b->seq, NULL, NULL, NULL) * 100 >= identity_threshold){ // time optimisation ? if identical sequences, will not run needleman
+
+                //This insertion is removed, but we select the one with nb_errors_in_anchor minimal
+                if(it_a->nb_errors_in_anchor < it_b->nb_errors_in_anchor){
+                    it_b->seq = it_a->seq;
+                    it_b->nb_errors_in_anchor = it_a->nb_errors_in_anchor;
+                }
+                found_a_similar_seq = true;
+                break;
             }
         }
+        // if the sequence has a %id always < threashold for all sequences in final_set, we add it to the final set.
+        if(!found_a_similar_seq){
+            final_set.push_back(*it_a);
+        }
     }
-    return(final_set);
+    
+    consensuses = final_set;
 }
 
 

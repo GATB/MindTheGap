@@ -26,8 +26,18 @@
 #include <stdlib.h>
 #include <vector>
 #include <algorithm> 
+#include <iostream>
 
 using namespace std;
+
+
+// TODO factoriser
+// this one is used in GraphAnalysis (modifies s)
+void revcomp_sequence(char s[], int len);
+// this one is used to reverse source and target Sequence (copies the sequence)
+string revcomp_sequence(const string& dna);
+
+
 
 #include <unordered_map>
 typedef pair<string, bool> bkpt_t;
@@ -61,6 +71,13 @@ public:
             return this->seq < other.seq;
     }
 	
+    void reverse()
+    {
+        string reversed = revcomp_sequence(this->seq);
+        this->seq = reversed;
+        
+    }
+    
     int compute_qual(bool is_anchor_repeated) const
 	{
 		
@@ -80,11 +97,6 @@ public:
 
 
 
-// TODO factoriser
-// this one is used in GraphAnalysis (modifies s)
-void revcomp_sequence(char s[], int len);
-// this one is used to reverse source and target Sequence (copies the sequence)
-string revcomp_sequence(const string& dna);
 
 /**
  * verifies if a and b are identical (tolerant to case), if one equals N returns false (even if both N)
@@ -105,7 +117,10 @@ float needleman_wunsch(string a, string b, int * nbmatch,int * nbmis,int * nbgap
  */
 bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int identity_threshold);
 
-set<filled_insertion_t> remove_almost_identical_solutions(set<filled_insertion_t> consensuses, int identity_threshold);
+/**
+ * reduces the redundancy int the vector of filled sequences : removes from the input vectot the sequences that are more than 90% similar with at least an other one in the vector.
+ */
+void remove_almost_identical_solutions(std::vector<filled_insertion_t>& consensuses, int identity_threshold);
 
 
 double median(std::vector<unsigned int> &v);

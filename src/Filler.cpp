@@ -441,7 +441,7 @@ public:
         }
      }
         
-     vector<filled_insertion_t> filledSequences;
+    std::vector<filled_insertion_t> filledSequences;
      _object->contigGapFill<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, nb_mis_allowed, targetDictionary, false );
         
      infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
@@ -544,7 +544,7 @@ public:
             //printf("nb_mis_allowed %i \n",nb_mis_allowed);
 
             //Initialize set of filled sequences
-            vector<filled_insertion_t> filledSequences;
+            std::vector<filled_insertion_t> filledSequences;
             bkpt_dict_t targetDictionary;
             // If Source and Target sequences are larger than kmer-size, resize to kmer-size :
             if(sourceSequence.size()> _object->_kmerSize ){
@@ -745,7 +745,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
 }
 
 template<size_t span>
-void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, vector<filled_insertion_t>& filledSequences,int nb_mis_allowed, bkpt_dict_t targetDictionary, bool reverse ){
+void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences,int nb_mis_allowed, bkpt_dict_t targetDictionary, bool reverse ){
     typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
 
 
@@ -816,67 +816,79 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
     }
 
     int nbTotal_filled_insertions = 0;
-    set<filled_insertion_t> tmpSequences;
+    int nbTotal_reported_insertions = 0; //after reducing redundancy of highly similar sequences
     for (unordered_map<string,set<unlabeled_path>>::iterator it = paths_to_compare.begin(); it!=paths_to_compare.end();++it)
     {
+        std::vector<filled_insertion_t> tmpSequences;
         set<unlabeled_path> current_paths = it->second;
         tmpSequences = graph.paths_to_sequences(current_paths,terminal_nodes_with_endpos);
-        nbTotal_filled_insertions += tmpSequences.size();
+        
+        int nb_filled_insertions = tmpSequences.size();
+        nbTotal_filled_insertions += nb_filled_insertions;
+        
         // remove almost identical sequences
         if (tmpSequences.size() > 1)
         {
             //if(verb)     printf(" [SUCCESS]\n");
-            tmpSequences = remove_almost_identical_solutions(tmpSequences,90);
+            remove_almost_identical_solutions(tmpSequences,90);
         }
+        
+        int nb_reported_insertions = tmpSequences.size();
+        nbTotal_reported_insertions += nb_reported_insertions;
 
-        if(reverse)
-        {
-            set<filled_insertion_t>::iterator its;
-            for (its = tmpSequences.begin(); its != tmpSequences.end(); ++its)
-            {
-                filled_insertion_t rev_insert =  filled_insertion_t(revcomp_sequence(its->seq),its->nb_errors_in_anchor, its->targetId_anchor);
-                filledSequences.push_back ( rev_insert);
-                //ideal TODO: its->reverse();
-            }
-        }
-        else{
-            filledSequences.insert(filledSequences.end(),tmpSequences.begin(),tmpSequences.end());
-        }
+        //Here add information for each filled insertion : coverage, quality, revcomp if reverse
+        
+        
+        
+        filledSequences.insert(filledSequences.end(),tmpSequences.begin(),tmpSequences.end());
+     
     }
     
     if((nbTotal_filled_insertions>0) | reverse)
     {
         infostring +=   Stringify::format ("\t%d", nbTotal_filled_insertions) ;
     }
-
-    remove(contig_file_name.c_str());
-    remove((contig_graph_file_prefix+".graph").c_str());
-
-    /////////compute coverage of filled sequences
+    
+    
+    /////////compute coverage of filled sequences // make sure to compute before reverse !!!
     ModelCanonical model (_kmerSize);
-    for (vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
+    for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
     {
         typename ModelCanonical::Iterator itk (model);
         std::string cseq = sourceSequence + it->seq;
         Data data ((char*)cseq.c_str());
-
+        
         itk.setData (data);
         std::vector<unsigned int> vec_abundances;
-
+        
         u_int64_t sum = 0;
         int nbkmers =0;
-
+        
         // We iterate the kmers of this seq
         for (itk.first(); !itk.isDone(); itk.next())
         {
             Node node(Node::Value(itk->value()));
             unsigned int cov = _graph.queryAbundance(node);
+            //TODO add warning if cov==0
+            if(cov==0){
+                cerr << "WARNING Unknown kmer : " << model.toString(itk->value()) << endl;
+            }
             sum+= cov; nbkmers++;
             vec_abundances.push_back(cov);
         }
         it->median_coverage = median(vec_abundances);
         it->avg_coverage  = sum /(float) nbkmers;
+        
+        if(reverse)
+        {
+            it->reverse();
+        }
     }
+    
+
+    remove(contig_file_name.c_str());
+    remove((contig_graph_file_prefix+".graph").c_str());
+
 }
 
 
