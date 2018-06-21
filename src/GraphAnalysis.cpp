@@ -204,7 +204,6 @@ std::vector<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_
     //debug =2;
     std::vector<filled_insertion_t> sequences;
     int errs_in_anchor;
-    bool anchor_repeated_in_ref;
     bkpt_t targetId_anchor;
 
     //printf("paths set size %i \n",paths.size());
@@ -259,7 +258,6 @@ std::vector<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_
                     {
                         pos_anchor = (*it).pos;
                         errs_in_anchor = it->nb_errors;
-                        //anchor_repeated_in_ref= it->anchor_is_repeated;
                         targetId_anchor = it ->targetId;
                         break;
                     }

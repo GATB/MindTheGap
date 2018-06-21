@@ -308,17 +308,15 @@ void Filler::writeVcfHeader(){
 ##REF=file:%s\n\
 ##INFO=<ID=TYPE,Number=1,Type=String,Description=\"INS\">\n\
 ##INFO=<ID=LEN,Number=1,Type=Integer,Description=\"variant size\">\n\
+##INFO=<=QUAL,Number=.,Type=Integer,Description=\"Quality of the insertion\">\n\
 ##INFO=<=AVK,Number=.,Type=Float,Description=\"Average k-mer coverage along the insertion\">\n\
 ##INFO=<=MDK,Number=.,Type=Float,Description=\"Median k-mer coverage along the insertion\">\n\
-##INFO=<ID=GTT,Number=1,Type=String,Description=\"Unphased  genotypes\">\n\
+##INFO=<=NSOL,Number=1,Type=String,Description=\"number of alternative insertion sequences for the breakpoint\">\n\
 ##INFO=<ID=NPOS,Number=1,Type=Integer,Description=\"number of alternative positions for the insertion site (= size of repeat (fuzzy) +1)\">\n\
 ##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n\
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",
 c_time_string, _mtg_version, sample.c_str(),getInput()->getStr(STR_URI_OUTPUT).c_str());
     
-    //TODO later :
-    //##INFO=<=QUA,Number=.,Type=Integer,Description=\"Quality of the insertion\">\n\
-    //##INFO=<=NS,Number=1,Type=String,Description=\"Solution index\">\n\
 
 }
 
@@ -413,7 +411,6 @@ public:
     {
 
     string sourceSequence = string(sequence.getDataBuffer(),sequence.getDataSize());
-    string seedk = sourceSequence;
 
     string seedName = sequence.getComment();
     string infostring;
@@ -424,6 +421,7 @@ public:
 
     bool is_anchor_repeated = false;
     bool reverse = false;
+    bool breakpointMode = false;
 
     string conc_targetSequence;
     bkpt_dict_t targetDictionary;
@@ -445,8 +443,8 @@ public:
 
 
      // Write insertions to file
-     _object->writeFilledBreakpoint(filledSequences,seedName,infostring,is_anchor_repeated,false);
-     _object->writeToGFA(filledSequences,sourceSequence,seedName,isRc,is_anchor_repeated);
+     _object->writeFilledBreakpoint(filledSequences,seedName,infostring,breakpointMode);
+     _object->writeToGFA(filledSequences,sourceSequence,seedName,isRc);
         
 
      _nb_breakpoints++;
@@ -513,12 +511,10 @@ public:
         }
         else //second sequence (target) of the breakpoint
         {
-            //compute pair
-            //	printf("%s  id %i  %s  id %i   tid %i  \n",_previousSeq.getCommentShort().c_str(), _previousSeq.getIndex()
-            //		   ,sequence.getCommentShort().c_str(), sequence.getIndex(), _tid);
 
+            bool breakpointMode = true;
+            
             string sourceSequence =  string(_previousSeq.getDataBuffer(),_previousSeq.getDataSize());//previously L
-            string seedk = sourceSequence; //used for coverage computation
 
             string breakpointName = string(_previousSeq.getCommentShort());
 
@@ -565,8 +561,8 @@ public:
 
             }
 
-            _object->writeFilledBreakpoint(filledSequences,breakpointName,infostring,is_anchor_repeated,true);
-            _object->writeVcf(filledSequences,breakpointName,seedk);
+            _object->writeFilledBreakpoint(filledSequences,breakpointName,infostring,breakpointMode);
+            _object->writeVcf(filledSequences,breakpointName,sourceSequence);
 
             
             // We increase the breakpoint counter.
@@ -901,9 +897,10 @@ void Filler::contigGapFill(std::string & infostring, int tid, string sourceSeque
 }
 
 
-void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences,  string seedName, std::string info,bool is_anchor_repeated, bool breakpointMode){
+void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences,  string seedName, std::string info, bool breakpointMode){
     
-    
+    flockfile(_insert_file);
+
     bool multiple_solution = false;
     
     for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
@@ -964,82 +961,86 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
     funlockfile(_insert_info_file);
 }
 
-void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string breakpointName, string seedk){
+void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string breakpointName, string sourceSequence){
     
     flockfile(_vcf_file);
     
     for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
     {
         string insertion = it->seq;
-        int llen = insertion.length() ;// - (int) R.length() - (int) L.length() - 2*hetmode;
-        if(llen > 0)
-        {
-            vector<char> left(seedk.begin(), seedk.end());
-            vector<char> filled(it->seq.begin(), it->seq.end());
-            int fuzzy=1;
-            bool loop=true;
-            //std::string common;
-            string fille=it->seq;
-            //std::cout <<breakpointName<<std::endl;
-            //std::cout <<filled.size()<<std::endl;
-            //std::cout<<left.size()<<std::endl;
-            //loop to identify alternative position and left normalized position
-            while (loop)
-            {
-                
-                if ((filled.size()> 1) & (left[seedk.size()-fuzzy] == filled[fille.size()-fuzzy]))
-                {
-                    fuzzy++;
-                    continue;
-                }
-                if ((filled.size()==1) & (left[seedk.size()-fuzzy] == filled[fille.size()-1]))
-                {
-                    
-                    fuzzy++;
-                    continue;
-                }
-                else
-                {
-                    loop=false;
-                }
-                
-                
-            }
-            
-            //left normalization: if fuzzy>0 alt field is the concatenation of the char before insertion, the repeated sequence (of size=fuzzy) and the assembled sequence, the ref field is the char before insertion + the repeated sequence (of size=fuzzy)
-            insertion=seedk.substr(seedk.size()-fuzzy,seedk.size()-1)+fille;
-            string ref = seedk.substr(seedk.size()-fuzzy,seedk.size()-1);
-            
-            
-            string token;
-            istringstream iss(breakpointName);
-            std::vector<string> tokens;
-            // we split the header and put it in a vector tokens
-            // split header breakpoint to extract information
-            while(getline(iss,token,'_')) tokens.push_back(token);
-            
-            //cerr << tokens.size() << endl;
-            
-            string bkpt=breakpointName;
-            string position = ".";
-            string chromosome = ".";
-            string GT = "./.";
-            if (tokens.size()==7){ //MindTheGap find expected format
-                bkpt = tokens[0].c_str();
-                int pos = atoi(tokens[3].c_str())-ref.size()+1;
-                position = to_string(pos);
-                chromosome = tokens[1].c_str();
-                string genotype = tokens[6].c_str();
-                GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
-            }
-            
-            
-            int size =insertion.size()-ref.size();
+        
+        vector<char> left(sourceSequence.begin(), sourceSequence.end());
+        vector<char> filled(it->seq.begin(), it->seq.end());
+        
 
-            // write in vcf format
-            fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,fuzzy,it->avg_coverage,it->median_coverage,GT.c_str());
-            
+        //computing the longest common suffix between sourceSequence and insertion : fuzzy = LCSuf +1 = the number of alternative positions (fuzzy) and left normalized position
+        int repeatSize=0;
+        int i = left.size() - 1;
+        int j = filled.size() - 1;
+        while (i>=0 && j>=0)
+        {
+            if (left[i] == filled[j])
+            {
+                repeatSize++;
+                i-= 1;
+                j-= 1;
+                if(j==-1) //see below for examples where this may be important
+                {
+                    j = filled.size() - 1;
+                }
+            }
+            else{
+                break;
+            }
         }
+        //Deal with the case where j=-1 :
+        // for instance : insertion  = C
+        // sourceSequence = ACCCC
+        // algo1 (without if j==-1) : ref= CC ALT= CCC, but true left normalization would be ref=ACCCC and ALT= ACCCCC
+        // if insertion = AG, sourceSequence = CAGAGAGAG
+        // algo1 : ref = GAG ALT = GAGAG, should be = CAGAGAGAG CAGAGAGAGAG
+        // if insertion = AGT, sourceSequence = CAGTAGTAGT
+        // algo1 : ref = TAGT ALT = TAGT, should be = CAGTAGTAGT CAGTAGTAGTAGT
+        // sourceSequence = CGTAGTAGT : should be = CGTAGTAGT CGTAGTAGTAGT
+        // solution = "buffer circulaire" il faut que filled[-1] renvoie la derniere lettre (et plus besoin de && j>=0
+
+        //WARNING : this was not well tested (case j==-1) TODO
+        
+        //left normalization: if repeatSize>0 alt field is the concatenation of the char before insertion, the repeated sequence (of size=repeatSize) and the assembled sequence, the ref field is the char before insertion + the repeated sequence (of size=fuzzy)
+        
+        insertion=sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1)+insertion;
+        string ref = sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1);
+        
+        
+        string token;
+        istringstream iss(breakpointName);
+        std::vector<string> tokens;
+        // we split the header and put it in a vector tokens
+        // split header breakpoint to extract information
+        while(getline(iss,token,'_')) tokens.push_back(token);
+        
+        //cerr << tokens.size() << endl;
+        
+        string bkpt=breakpointName;
+        string position = ".";
+        string chromosome = ".";
+        string GT = "./.";
+        if (tokens.size()==7){ //MindTheGap find expected format
+            bkpt = tokens[0].c_str();
+            int pos = atoi(tokens[3].c_str())-ref.size()+1;
+            position = to_string(pos);
+            chromosome = tokens[1].c_str();
+            string genotype = tokens[6].c_str();
+            GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
+        }
+        
+        int qual = it->qual;
+        int size = insertion.size()-ref.size();
+        int nsol = it->solution_count;
+        int npos = repeatSize+1;
+        
+        // write in vcf format
+        fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
         
     }
     
@@ -1047,7 +1048,7 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
     
 }
 
-void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string seedName, bool isRc, bool is_anchor_repeated){
+void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string seedName, bool isRc){
 
     int overlap = getInput()->getInt(STR_CONTIG_OVERLAP);
     string seedDirection = "+";
