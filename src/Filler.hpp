@@ -158,7 +158,7 @@ public:
                  ,bool reversed =false);*/
 
     template<size_t span>
-    void contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences,int nb_mis_allowed, bkpt_dict_t targetDictionary,bool reverse );
+    void contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary,bool is_anchor_repeated, bool reverse );
 
     gatb::core::tools::dp::IteratorListener* _progress;
 

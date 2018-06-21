@@ -61,6 +61,10 @@ public:
 	float avg_coverage;
 	float median_coverage;
     bkpt_t targetId_anchor;
+    
+    int qual;
+    int solution_count;
+    int solution_rank;
 
     //required to be inserted in set
     bool operator< (const filled_insertion_t & other) const
@@ -78,19 +82,23 @@ public:
         
     }
     
-    int compute_qual(bool is_anchor_repeated) const
+    void compute_qual(bool is_anchor_repeated)
 	{
-		
-		if(is_anchor_repeated)
-			return 25;
-		
-		if(nb_errors_in_anchor==2)
-			return 5;
-		
-		if(nb_errors_in_anchor==1)
-			return 10;
-		
-		return 50;
+        int quality = 50;
+
+        if(is_anchor_repeated)
+            quality = 25;
+        
+        if(solution_count>1)
+            quality = 15;
+
+        if(nb_errors_in_anchor==1)
+            quality = 10;
+
+        if(nb_errors_in_anchor==2)
+            quality = 5;
+				
+		this->qual = quality;
 		
 	}
 };
