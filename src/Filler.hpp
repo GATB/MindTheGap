@@ -142,7 +142,7 @@ public:
 
 
 
-    //these two func moved to public because need access from functor gapfillerFunctor
+    //these two func moved to public because need access from functors breakpointFunctor and contigFunctor
     /** writes a given breakpoint in the output file
      */
     void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring, bool breakpointMode);
@@ -158,7 +158,7 @@ public:
                  ,bool reversed =false);*/
 
     template<size_t span>
-    void contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary,bool is_anchor_repeated, bool reverse );
+    void gapFillFromSource(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary,bool is_anchor_repeated, bool reverse );
 
     gatb::core::tools::dp::IteratorListener* _progress;
 

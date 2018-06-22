@@ -439,7 +439,7 @@ public:
      }
         
     std::vector<filled_insertion_t> filledSequences;
-     _object->contigGapFill<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, targetDictionary, is_anchor_repeated, reverse );
+     _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, targetDictionary, is_anchor_repeated, reverse );
 
 
      // Write insertions to file
@@ -496,7 +496,7 @@ private:
 
 
 template<size_t span>
-class gapfillerFunctor
+class breakpointFunctor
 {
     typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
     typedef typename Kmer<span>::Count Count;
@@ -545,7 +545,7 @@ public:
             targetDictionary.insert ({targetSequence, std::make_pair(breakpointName_R, false)});
 
             //_object->gapFill<span>(infostring,_tid,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
-            _object->contigGapFill<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, targetDictionary, is_anchor_repeated, false);
+            _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, targetDictionary, is_anchor_repeated, false);
 
             //If gap-filling failed in one direction, try the other direction (from target to source in revcomp)
             if(filledSequences.size()==0){
@@ -557,7 +557,7 @@ public:
 
 
                 //_object->GapFill<span>(infostring,_tid,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
-                _object->contigGapFill<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, targetDictionary, is_anchor_repeated, true);
+                _object->gapFillFromSource<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, targetDictionary, is_anchor_repeated, true);
 
             }
 
@@ -576,7 +576,7 @@ public:
     }
 
     //constructor
-    gapfillerFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints) : _object(object),_global_nb_breakpoints(global_nb_breakpoints)
+    breakpointFunctor(Filler* object, int * nb_living, int * global_nb_breakpoints) : _object(object),_global_nb_breakpoints(global_nb_breakpoints)
     {
         _nb_living =nb_living;
         _tid =  __sync_fetch_and_add (_nb_living, 1);
@@ -586,7 +586,7 @@ public:
 
     }
 
-    gapfillerFunctor(gapfillerFunctor const &r)
+    breakpointFunctor(breakpointFunctor const &r)
     {
         _nb_living = r._nb_living;
         _object= r._object;
@@ -598,7 +598,7 @@ public:
 
     }
 
-    ~gapfillerFunctor()
+    ~breakpointFunctor()
     {
          __sync_fetch_and_add (_global_nb_breakpoints, _nb_breakpoints);
     }
@@ -627,7 +627,6 @@ void Filler::fillAny<span>::operator () (Filler* object)
     size_t kmerSize = object->_kmerSize;
 
     BankFasta::Iterator itSeq (*object->_breakpointBank);
-    int nbBreakpoints=0;
 
     if (object->getInput()->get(STR_URI_CONTIG) != nullptr){
 
@@ -684,7 +683,6 @@ void Filler::fillAny<span>::operator () (Filler* object)
         seedFile.close();
 
         u_int64_t nbBreakpointsEstimated = seedDictionary.size() ;  // Number of seeds to iterate
-        u_int64_t nbBreakpointsProgressDone = 0;
 
         object->setProgress (new ProgressSynchro (
                                               object->createIteratorListener (nbBreakpointsEstimated, "Filling the breakpoints"),
@@ -709,7 +707,6 @@ void Filler::fillAny<span>::operator () (Filler* object)
 
     if (object->getInput()->get(STR_URI_BKPT) != nullptr){
         u_int64_t nbBreakpointsEstimated = object->_breakpointBank->estimateNbItems()  / 2 ;  // 2 seq per breakpoint
-        u_int64_t nbBreakpointsProgressDone = 0;
 
         object->setProgress (new ProgressSynchro (
                                           object->createIteratorListener (nbBreakpointsEstimated, "Filling breakpoints"),
@@ -720,7 +717,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
 
         int nb_living=0;
 
-        Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, gapfillerFunctor<span>(object,&nb_living,&object->_nb_breakpoints),30);
+        Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(itSeq, breakpointFunctor<span>(object,&nb_living,&object->_nb_breakpoints),30);
         //WARNING : 30 = number of sequences sent to each thread, keep it *even* (2 sequences for one breakpoint)
 
         object->_nb_breakpoints = object->_nb_breakpoints ;
@@ -731,7 +728,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
 }
 
 template<size_t span>
-void Filler::contigGapFill(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary, bool is_anchor_repeated, bool reverse ){
+void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary, bool is_anchor_repeated, bool reverse ){
     typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
 
 
@@ -1110,8 +1107,7 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
 
 set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetDictionary, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed)
 {
-    bool debug = false;
-    //set<int> terminal_nodes;
+    //bool debug = false;
     set< info_node_t >  terminal_nodes;
     BankFasta* Nodes = new BankFasta((char *)linear_seqs_name.c_str());
 

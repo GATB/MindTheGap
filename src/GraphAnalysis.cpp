@@ -65,7 +65,7 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
         exit(1);
     }
 
-    bool parsing_nodes = true;
+    //bool parsing_nodes = true;
     nb_nodes = 0;
     nb_edges = 0;
     char *node_sequence = (char*)malloc(1000000);
