@@ -104,10 +104,15 @@ public:
 
     BankFasta* _breakpointBank;
 
+    bool _breakpointMode; //true if insertion breakpoints, false if gap-filling between contigs
+    
     //to print some statistics at the end
-    int _nb_breakpoints;
+    int _nb_breakpoints; //nb seeds in contig mode
     int _nb_filled_breakpoints;
     int _nb_multiple_fill;
+    int _nb_contigs;
+    int _nb_used_contigs;
+
 
     //useful to compute average abundance of each filled sequence
     Storage* _storage;
@@ -132,7 +137,8 @@ public:
     int _nb_mis_allowed;
     int _nb_gap_allowed;
 
-    int _overlap_length;
+    //parameter for gap-filling between contigs
+    int _contig_trim_size;
 
     string _vcf_file_name;
     FILE * _vcf_file;
@@ -145,7 +151,7 @@ public:
     //these two func moved to public because need access from functors breakpointFunctor and contigFunctor
     /** writes a given breakpoint in the output file
      */
-    void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring, bool breakpointMode);
+    void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring);
     void writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string SeedName, bool isRc);
     /** writes a given variant in the output vcf file
      */

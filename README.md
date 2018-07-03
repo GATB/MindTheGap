@@ -151,7 +151,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 	The fill module has several optional options:
     * `-max-nodes`: maximum number of nodes in contig graph  [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
     * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
-	* `-overlap`: size of sequence overlap between input contigs in `-contig` mode [default '0']. To be specified if it is larger than the kmer size used for gap-filling (expert usage).
+	* `-overlap`: size of sequence overlap between input contigs in `-contig` mode [default '0' means equal to kmer size]. To be specified only if it is larger than the kmer size used for gap-filling (expert usage).
 
 6. **MindTheGap Output**
     
