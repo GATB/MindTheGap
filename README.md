@@ -146,12 +146,12 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     
     In addition to the read or graph files, the fill module has one other mandatory option, either `-bkpt` or `-contig` depending on the type of gap-filling : assembling insertion variants or gap-filling between contigs respectively: 	
     * `-bkpt`: the breakpoint file path. This is one of the output of the Find module and contains for each detected insertion site its left and right kmers from and to which the local assembly will be performed (see section E for details about the format).
-	* `-contig`: the contig file path in fasta format. Note that only contigs larger than 2*kmerSize will be used.
+	* `-contig`: the contig file path in fasta format. Note that only contigs larger than 3*kmerSize will be used.
 	
 	The fill module has several optional options:
     * `-max-nodes`: maximum number of nodes in contig graph  [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
     * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
-	* `-overlap`: size of sequence overlap between input contigs in `-contig` mode [default '0' means equal to kmer size]. To be specified only if it is larger than the kmer size used for gap-filling (expert usage).
+	* `-overlap`: size of maximal expected sequence overlap between input contigs in `-contig` mode [default '0' means equal to kmer size]. In other words, it is the kmer size that was used for building the input contigs. To be specified only if it is larger than the kmer size used for gap-filling (expert usage).
 
 6. **MindTheGap Output**
     

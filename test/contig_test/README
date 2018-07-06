@@ -1,0 +1,54 @@
+# Claire Lemaitre
+# 06/07/2018
+
+# Creates a small dataset to test MindTheGap fill -contig
+# With :
+#  - several contigs, with 1 too small one
+#  - errors in anchors
+#  - 2 contigs that overlap of 30 nt.
+#  - 2 structural variants
+#  - 1 noise contig
+
+
+# 1. Generates a random genome
+~/workspace/divers_scripts/gener_alea 10000 1
+mv alea.seq genome.fasta
+
+# 2. Extract 10 contigs:
+ - contig1: 0:521
+ - contig2: 1000:1065 = contig too small
+ - contig3: 1156:2115
+ - contig4: 2268:3150
+ - contig5: 3120:3720 = overlap de 30 nt with last contig
+ - contig6: 6271:6911
+ - contig7: 7071:7796
+ - contig8: 8274:8679
+ - contig9: noise contig, comes from another random sequence : ~/workspace/divers_scripts/gener_alea 500 1; mv alea.seq contig9.fasta
+ - contig10: 9486:9999 : with 2 substitutions pos 40 G->C pos 57 T->C
+
+# 3. creates 2 structural variants :
+cp genome.fasta genome-variant.fasta, 2 deletions in genome-variant.fasta :
+ - deletion that removes contig7 : 6960-8080  --> gap-fill contig6->contig7, contig7->contig8 and contig6->contig8.  
+ - deletion that removes a large portion between contig5 and contig6 : 4000:5600 => 2 alternative gap-fill sequences.
+
+# 4. generates reads :
+2x30X : N*100/10000 = 30 => N=3000
+cp /Users/clemaitr/workspace/mutareads/*.qual .
+/Users/clemaitr/workspace/mutareads/mutareads genome.fasta temp1 3000 100 0.01 0 0
+/Users/clemaitr/workspace/mutareads/mutareads genome-variant.fasta temp2 3000 100 0.01 0 0
+cat temp1.fasta temp2.fasta > reads.fasta
+gzip reads.fasta
+rm -f *.qual
+
+# 5. put the data in data dir :
+cp reads.fasta.gz ../../data/contig-reads.fasta.gz
+cp contigs.fasta ../../data/
+
+
+# 5. generates gold results :
+../../build/bin/MindTheGap fill -in ../../data/contig-reads.fasta.gz -contig ../../data/contigs.fasta -abundance-min 3 -out gold -nb-cores 1 > gold.log
+
+# 6. dir cleaning :
+rm -f temp*.fasta
+rm -f contig9.fasta 
+

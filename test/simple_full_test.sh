@@ -18,6 +18,9 @@ testDir="test-output"
 outputPrefix=$testDir/full-test
 goldPrefix="full_test/gold"
 
+outputPrefix2=$testDir/contig-test
+goldPrefix2="contig_test/gold"
+
 
 ## First cleaning test dir
 if [ -d  $testDir ]; then
@@ -73,7 +76,7 @@ fi
 
 
 ################################################################################
-# we launch the find module
+# we launch the fill module
 ################################################################################
 ${bindir}/MindTheGap fill -graph $outputPrefix.h5 -bkpt $outputPrefix.breakpoints -out $outputPrefix -nb-cores 1 >>$outputPrefix.out 2> /dev/null
 
@@ -109,6 +112,46 @@ else
 echo "full-test fill vcf         : FAILED"
 RETVAL=1
 fi
+
+
+################################################################################
+# we launch the fill module in contig mode
+################################################################################
+${bindir}/MindTheGap fill -in ../data/contig-reads.fasta.gz -contig ../data/contigs.fasta -abundance-min 3 -out $outputPrefix2 -nb-cores 1 >>$outputPrefix2.out 2> /dev/null
+
+################################################################################
+# we check the results
+################################################################################
+tmp1=$outputPrefix2.insertions.fasta.tmp
+tmp2=$testDir/tmp2
+
+grep -v "^>" $outputPrefix2.insertions.fasta > $tmp1
+grep -v "^>" $goldPrefix2.insertions.fasta > $tmp2
+
+
+diff $tmp1 $tmp2 1> /dev/null 2>&1
+var=$?
+
+if [ $var -eq 0 ]
+then
+echo "contig-test fill fasta       : PASS"
+else
+echo "contig-test fill fasta       : FAILED"
+RETVAL=1
+fi
+
+# Checking the .gfa :
+diff $outputPrefix2.gfa $goldPrefix2.gfa 1> /dev/null 2>&1
+var=$?
+
+if [ $var -eq 0 ]
+then
+echo "contig-test fill gfa         : PASS"
+else
+echo "contig-test fill gfa         : FAILED"
+RETVAL=1
+fi
+
 
 
 ################################################################################

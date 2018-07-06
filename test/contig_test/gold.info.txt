@@ -1,0 +1,18 @@
+contig1		5	7627	3	1	1
+contig1_Rc		1	55	0
+contig3		5	6033	3	1	1
+contig3_Rc		1	1611	1	1	1
+contig4		5	4998	3	1	1
+contig4_Rc		1	2723	1	1	1
+contig5		5	4428	2	2	2
+contig5_Rc		1	3175	1	1	1
+contig6		3	3233	2	2	2
+contig6_Rc		4	7062	2	2	2
+contig7		1	2258	1	1	1
+contig7_Rc		4	7862	3	1	1
+contig8		1	1375	1	1	1
+contig8_Rc		4	3160	2	2	2
+contig9		1	31	0
+contig9_Rc		1	31	0
+contig10		1	54	0
+contig10_Rc		1	31	0

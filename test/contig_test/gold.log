@@ -1,0 +1,30 @@
+MindTheGap fill                         
+    version                                  : 2.2.0
+    gatb-core-library                        : 1.4.1
+    supported_kmer_sizes                     : 32 64 96 128
+Parameters                              
+    Input data                              
+        Reads                                    : reads.fasta
+        Contigs                                  : contigs.fasta
+    Graph                                   
+        kmer-size                                : 31
+        abundance_min (used)                     : 3
+        nb_solid_kmers                           : 10194
+        nb_branching_nodes                       : 46
+    Assembly options                        
+        max_depth                                : 10000
+        max_nodes                                : 100
+        contig trim size before gap-filling      : 31
+Results                                 
+    Contigs                                 
+        nb_input_contigs                         : 10
+        nb_used_contigs                          : 9
+        nb_input_seeds                           : 18
+        nb_filled_seeds                          : 13
+            as_unique_sequence                       : 9
+            as_multiple_sequence                     : 4
+    Time                                     : 0.0 s
+    Output files                            
+        assembled sequence file                  : gold.insertions.fasta
+        assembly graph file                      : gold.gfa
+        assembly statistics file                 : gold.info.txt
