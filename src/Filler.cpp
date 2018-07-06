@@ -679,46 +679,44 @@ void Filler::fillAny<span>::operator () (Filler* object)
         seedFile.open (seedFileName);
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
-            std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
+            std::string contigSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
             object->_nb_contigs++;
 
             // Write the original contigs to GFA
             // Contig has not been trimmed of overlap
-            fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getComment().c_str(),seedSequence.c_str());
+            fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getComment().c_str(),contigSequence.c_str());
 
             // Remove small contigs
-            
-            if(seedSequence.size() > (2*overlap)){
+            // limit size = 2*overlap+kmerSize, to ensure that seedSequence is located after targetSequence on the contig (they may overlap a little, but can not be equal).
+            if(contigSequence.size() > (2*overlap+kmerSize)){
                 
-                // first trimm contig of overlap nt from each extremity : no longer done this way, ie. physically trimmed, in order not to limit too much the contig size (otherwise limit = 2*overlap + kmerSize)
-                //seedSequence = seedSequence.substr(overlap, itSeq->getDataSize() - 2*overlap);
+                // create seed and targetDictionary = first and last kmers of the contig trimmed of overlap nt at each extremity, in both direction (forward and revcomp).
 
-                // create seed and targetDictionary = first and last kmers of the trimmed contig
-
-                std::string seedSequence_f = seedSequence.substr(seedSequence.size()-(overlap+kmerSize), kmerSize);
+                std::string seedSequence_f = contigSequence.substr(contigSequence.size()-(overlap+kmerSize), kmerSize);
                 std::string name = string(itSeq->getCommentShort());
-                std::string targetSequence_f =seedSequence.substr(overlap,kmerSize);
-                std::string seedSequence_Rc = revcomp_sequence(seedSequence);
-                std::string seedSequence_Rc_f= seedSequence_Rc.substr(seedSequence_Rc.size() - (overlap+kmerSize),kmerSize);
-                std::string targetSequence_Rc_f = seedSequence_Rc.substr(overlap,kmerSize);
+                std::string targetSequence_f =contigSequence.substr(overlap,kmerSize);
+                std::string contigSequence_Rc = revcomp_sequence(contigSequence);
+                std::string seedSequence_Rc= contigSequence_Rc.substr(contigSequence_Rc.size() - (overlap+kmerSize),kmerSize);
+                std::string targetSequence_Rc = contigSequence_Rc.substr(overlap,kmerSize);
                 seedDictionary.insert ({{seedSequence_f,std::make_pair(name, false)},
-                                        {seedSequence_Rc_f,std::make_pair(name, true)}
+                                        {seedSequence_Rc,std::make_pair(name, true)}
                                        });
                 all_targetDictionary.insert ({{targetSequence_f, std::make_pair(name, false)},
-                                          {targetSequence_Rc_f, std::make_pair(name, true)}
+                                          {targetSequence_Rc, std::make_pair(name, true)}
                                          });
 
                 // Output seed dictionary to a file
                 seedFile << ">"+string(itSeq->getCommentShort())+"\n";
                 seedFile << seedSequence_f << endl;
                 seedFile << ">"+string(itSeq->getCommentShort())+"_Rc\n";
-                seedFile << seedSequence_Rc_f << endl;
+                seedFile << seedSequence_Rc << endl;
 
                 object->_nb_used_contigs++;
 
             }
             else{
-                cerr << "Warning contig not used (too short: <= 2 x "<< overlap <<" nt): " << string(itSeq->getCommentShort()) << " of size "<< seedSequence.size() << " nt" << endl;
+                int limit = 2*overlap+kmerSize;
+                cerr << "Warning contig not used (too short: <= 2 x overlap + kmerSize = "<< limit <<" nt): " << string(itSeq->getCommentShort()) << " of size "<< contigSequence.size() << " nt" << endl;
             }
         }
         seedFile.close();
