@@ -200,10 +200,24 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 
     For both `.othervariants.vcf` and `insertions.vcf` files, the format follows the VCF specifications version 4.1 (see https://samtools.github.io/hts-specs/VCFv4.1.pdf). Positions are 1-based.
 	
-	For insertion variants, positions are left-normalized. This happens when there is a small (typically <5bp)) repeated sequence between the breakpoint site and one extremity of the inserted sequence. In this case, multiple positions are possible. Here, the leftmost position is reported and the number of possible positions is indicated in the INFO field (NPOS id). This latter value is the size of the repeated sequence + 1 (= fuzzy +1). Note that in this case the REF field not only contains the nucleotide before the insertion but also the repeated sequence (the REF field size is therefore equal to NPOS) and the ALT field contains the two copies of the repeated sequence (at both extremities). Example:
+	For insertion variants (`insertions.vcf` file only), positions are **left-normalized**. This happens when there is a small (typically <5bp)) repeated sequence between the breakpoint site and one extremity of the inserted sequence. In this case, multiple positions are possible. Here, the leftmost position is reported and the number of possible positions is indicated in the INFO field (NPOS id). This latter value is at least the size of the repeated sequence + 1 (>= fuzzy +1). Note that in this case the REF field not only contains the nucleotide before the insertion but also the repeated sequence (the REF field size is therefore equal to NPOS) and the ALT field contains the two copies of the repeated sequence (at both extremities). The length of the insertion can be obtained as the size difference between the ALT and REF fields. Example:
 	
-		chr4    618791     bkpt20  TAGG    TAGGTGTATTTAGCTCCGAGG   .       PASS    TYPE=INS;LEN=17;NPOS=4;AVK=22.71;MDK=23.00      GT      1/1
+		chr4    618791     bkpt20  TAGG    TAGGTGTATTTAGCTCCGAGG   .       PASS    TYPE=INS;LEN=17;QUAL=50;NSOL=1;NPOS=4;AVK=22.71;MDK=23.00      GT      1/1
 	 	#AGG is a repeat of size 3, there are 4 (NPOS) possible positions for an insertion of 17 nt from positions 618791 to 618794 on chr4
+	
+	Here is an example where the NPOS value is larger than the repeat size + 1
+		
+		chr5    1218353     bkpt51  TCCCC    TCCCCC   .       PASS    TYPE=INS;LEN=1;QUAL=50;NSOL=1;NPOS=5;AVK=22.71;MDK=23.00      GT      1/1
+		#The nucleotid C can be inserted in 5 alternative consecutive positions.
+		
+	INFO fields:  
+	* `TYPE`: variant type, INS for insertion
+	* `LEN`: insertion size in bp
+	* `QUAL`: quality of the insertion (quality scores range from 0 to 50, 50 being the best quality, see the different quality scores [below](#quality))
+	* `NSOL`: number of alternative sequences that were assembled at this position (note that to output multiple sequences, they must differ from each other significantly, ie. <90% identity)
+	* `NPOS`: number of possible positions where the insertion event can occur giving the same ALT sequence (see the left-normalization paragraph).
+	* `AVK`: average abundance of the inserted sequence (average value of the abundances of all its overlapping kmers)
+	* `MDK`: median abundance of the inserted sequence (median value of the abundances of all its overlapping kmers)
 	
 3. Assembled insertion format
     
@@ -231,18 +245,19 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 		#_Rc: absent for the source contig and present for the target contig, this means that the end of contig3 is gap-filled with the end of contig18 (that is with the beginning of the reverse complement of contig18).
 		#len_117_qual_50_median_cov_1350: information about the assembled gap-fill sequence
 	 
-    **Quality scores**:
+4. Assembled insertion quality scores:
+<a name="quality"></a>
     
     Each insertion is assigned a quality score ranging from 0 (low quality) to 50 (highest quality). This quality score reflects mainly repeat-associated criteria:
     * `qual=5`: if one of the breakpoint kmer could not be found exactly but with 2 errors (mismatches)
     * `qual=10`: if one of the breakpoint kmer could not be found exactly but with 1 error (mismatch)
-    * `qual=15`: if multiple sequences can be assembled for a given breakpoint (note that to output multiple sequences, they must differ from each other significantly, ie. <90% id)
+    * `qual=15`: if multiple sequences can be assembled for a given breakpoint (note that to output multiple sequences, they must differ from each other significantly, ie. <90% identity)
     * `qual=25`: if one of the breakpoint kmer is repeated in the reference genome (REPEATED field in the breakpoint file)
     * `qual=50`: otherwise.
 
-    **Info file**:
+5. Gap-filling information file:
 
-    For each breakpoint, some informations about the filling process are given in the file `.info.txt`, whether it has been successfully filled or not. This can help understand why some breakpoints could not be filled. Here are the description of the columns:
+    For each gap-fill, some informations about the filling process are given in the file `.info.txt`, whether it has been successfully filled or not. This can help understand why some breakpoints could not be filled. Here are the description of the columns:
     * column 1 : breakpoint name       
     * column 2-4 : number of nodes in the contig graph, total nt assembled, number of nodes containing the right breakpoint kmer
     * (optionnally) column 5-7 : same informations as in column 2-4 but for the filling process in the reverse direction from right to left kmer, activated only if the filling failed in the forward direction
@@ -262,9 +277,10 @@ This example can be run with the small dataset in directory `data/`, for instanc
 
     #fill
     bin/MindTheGap fill -graph example.h5 -bkpt example.breakpoints -out example
-    # 2 files are generated:
+    # 3 files are generated:
     #   example.insertions.fasta
     #   example.insertions.vcf
+	#   example.info.txt
 
 ## Utility programs
 
