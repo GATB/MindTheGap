@@ -4,6 +4,18 @@
 ## [Unreleased]
 
 --------------------------------------------------------------------------------
+## [2.2.0] - 2018-07-06
+
+* A nice novel feature: insertion variants are now output in vcf format! and with left-normalization (ie. if several equivalent positions are possible for a given insertion event, the left-most is output and the size of the ambiguity is indicated).
+* Some improvements and bug fixes:
+	* faster graph loading in fill module;
+	* if multiple inserted sequence solutions, better handling of very similar ones, the number of output solutions can be reduced;
+	* better handling of N stretches in the reference genome, resulting in less False Positive calls in find module;
+	* better recall for very small heterozygous insertion variants (bug fix when the insertion is size smaller or equal than the ambiguity size).
+	* a CI simple test for the Fill module with option `-contig`.
+	
+
+--------------------------------------------------------------------------------
 ## [2.1.0] - 2018-06-13
 
 A nice novel feature:
