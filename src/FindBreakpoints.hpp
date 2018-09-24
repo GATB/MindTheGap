@@ -26,7 +26,7 @@
  */
 #ifndef _TOOL_FindBreakpoints_HPP_
 #define _TOOL_FindBreakpoints_HPP_
-
+#define MAX_LINE_LEN 10000000
 /********************************************************************************/
 #include <gatb/gatb_core.hpp>
 #include <Finder.hpp>
@@ -369,14 +369,13 @@ void FindBreakpoints<span>::operator()()
 	
 	
 	
-	// We loop over sequences
-	for (it_seq->first(); !it_seq->isDone(); it_seq->next())
+		for (it_seq->first(); !it_seq->isDone(); it_seq->next())
 	{
 
 		this->m_kmer_begin = KmerCanonical();
 		this->m_kmer_end = KmerCanonical();
 		//DEBUG
-		//cout<<"sequence "<< (*it_seq)->getCommentShort() << endl;
+        	cout<<">"<< (*it_seq)->getCommentShort() << endl;
 
 		//Reintialize stretch_size for each sequence
 		this->m_solid_stretch_size = 0;
@@ -399,47 +398,143 @@ void FindBreakpoints<span>::operator()()
 		this->m_chrom_sequence = (*it_seq)->getDataBuffer();
 		this->m_chrom_name = (*it_seq)->getCommentShort();
 		this->m_position = 0;
-		
 		// We iterate the kmers.
-		for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++
-			 ) //,m_het_kmer_begin_index_CB++, m_het_kmer_end_index++
+		if (this->finder->_bed_file_name=="") 
 		{
-			if(!(*m_it_kmer).isValid())
-			{
+			for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++
+			 ) //,m_het_kmer_begin_index_CB++, m_het_kmer_end_index++
+        		{
+            
+				if(!(*m_it_kmer).isValid())
+				{
 				this->m_solid_stretch_size = 0;
-                this->m_gap_stretch_size = 0;
-                this->m_kmer_begin = KmerCanonical();
-                this->m_kmer_end = KmerCanonical();
+				this->m_gap_stretch_size = 0;
+				this->m_kmer_begin = KmerCanonical();
+				this->m_kmer_end = KmerCanonical();
                 //DEBUG
 				//cout<<"n";
-			}
-			else 
-			{
+				}
+				else 
+				{
 
-			//we need to convert the kmer in a node to query the graph.
-			Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
-			
-			uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
-			
-			//we notify all observer
-			this->notify(node, (*m_it_kmer).isValid());
-			
-			m_position = save_position;
-			
-			//save actual kmer for potential False Positive
-			m_previous_kmer = *m_it_kmer;
-			
-			//if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
-			nbkmersdone++;
-			if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
+				//we need to convert the kmer in a node to query the graph.
+				Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
+				
+				uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
+				
+				//we notify all observer
+				this->notify(node, (*m_it_kmer).isValid());
+				
+				m_position = save_position;
+				
+				//save actual kmer for potential False Positive
+				m_previous_kmer = *m_it_kmer;
+				
+				//if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
+				nbkmersdone++;
+				if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
+				}
 			}
 		}
+		else
+		{
+			string line;
+			ifstream reader(this->finder->_bed_file_name);
+			uint64_t  start_pos=0;
+			uint64_t  end_pos=0;
+			bool check=false;
 
-		//DEBUG
-		//cout<<endl;
-	}
-	
-	  _progress->finish ();
+
+			std::multimap<string,tuple<uint64_t ,uint64_t >> mymultimap;
+			// while(!reader.eof()){
+			std::multimap<string,tuple<uint64_t ,uint64_t >>::iterator it;
+			while(getline(reader,line))
+			{
+				if ((line.length()==0) ||(line.at(0)=='#') ||(line.at(0)=='@')  ) continue;
+				else 
+				{
+				string token;
+	    			stringstream iss;
+				vector < string > v;
+				std::tuple<uint64_t ,uint64_t > pos;
+				iss << line;
+				//cout << line << endl;
+				while(getline(iss,token,'\t'))
+					{
+						v.push_back(token);
+						
+				}
+					
+				pos=std::make_pair(std::stoi(v[1]),std::stoi(v[2]));
+				mymultimap.insert ( std::pair<string,tuple<uint64_t ,uint64_t >>(v[0],pos ));
+				//mymultimap.insert(make_pair(v[0], std::make_tuple(std::stoi(v[1]),std::stoi(v[2]))));
+				iss.clear();
+				}
+			 
+
+			}
+		//for (it=mymultimap.begin(); it!=mymultimap.end(); ++it)
+    	//		cout << (*it).first << " => " <<get<0>((*it).second) << '\n';
+			for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++) //,m_het_kmer_begin_index_CB++, m_het_kmer_end_index++
+       				{
+						
+					if (m_position >= end_pos)
+					{
+					//cout << m_position << "   " << start_pos << "    " << end_pos << endl;
+						for (it=mymultimap.begin(); it!=mymultimap.end(); ++it)
+						{
+							if (((*it).first==m_chrom_name) && (get<1>((*it).second)> m_position))
+							{
+								start_pos=get<0>((*it).second);
+								end_pos=get<1>((*it).second);
+								break;
+							}
+						}
+					}
+			if (m_position > end_pos)
+			{ 
+			//	continue;
+				break;
+			}
+
+            		if(!(*m_it_kmer).isValid() || (m_position<start_pos))
+			{				
+				this->m_solid_stretch_size = 0;
+				this->m_gap_stretch_size = 0;
+				this->m_kmer_begin = KmerCanonical();
+				this->m_kmer_end = KmerCanonical();
+						//DEBUG
+			      //	cout<<"n";
+			}
+               
+			
+			if(((*m_it_kmer).isValid()) && (m_position>=start_pos))
+			{
+				//we need to convert the kmer in a node to query the graph.
+				Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
+				
+				uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
+				
+				//we notify all observer
+				this->notify(node, (*m_it_kmer).isValid());
+				
+				m_position = save_position;
+				
+				//save actual kmer for potential False Positive
+				m_previous_kmer = *m_it_kmer;
+				
+				//if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
+				nbkmersdone++;
+				if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
+			}
+		}
+		      
+
+
+		}
+		_progress->finish ();
+		//cout << "\n";
+}
 }
 
 template<size_t span>

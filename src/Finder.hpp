@@ -50,7 +50,7 @@ static const char* STR_SNP_TYPE = "SNP";
 static const char* STR_MSNP_TYPE = "MSNP";
 static const char* STR_DEL_TYPE = "DEL";
 static const char* STR_BKP_TYPE = "BACKUP";
-
+static const char* STR_BED = "-bed";
 class Finder : public Tool
 {
 public:
@@ -80,7 +80,8 @@ public:
     FILE * _breakpoint_file;
     string _vcf_file_name;
     FILE * _vcf_file;
-
+    FILE * _bed_file;
+    string _bed_file_name;
 
     int _nb_homo_clean;
     int _nb_homo_fuzzy;

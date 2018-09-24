@@ -27,7 +27,7 @@
 #include <FindInsertion.hpp>
 #include <FindSNP.hpp>
 #include <limits> //for std::numeric_limits
-
+#include <map>
 //#define PRINT_DEBUG
 /********************************************************************************/
 
@@ -82,6 +82,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _snp = true;
     _backup = false;
     _deletion = true;
+    _bed_file_name="";
 	
 	setHelp(&HelpFinder);
 	setHelpTarget(this);
@@ -99,7 +100,8 @@ Finder::Finder ()  : Tool ("MindTheGap find")
 
     IOptionsParser* inputParser = new OptionsParser("Input / output");
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
-	inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT_TMP, "prefix for output temporary files", false, "."));
+    inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT_TMP, "prefix for output temporary files", false, "."));
+    inputParser->push_front (new OptionOneParam (STR_BED, "bed file", false,""));
 	
 	
     inputParser->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", true,""));
@@ -210,7 +212,11 @@ void Finder::execute ()
         getInput()->add (0, STR_URI_OUTPUT, outputPrefix);
     }
     
-
+    if(getInput()->get(STR_BED) != 0)
+    {	
+		_bed_file_name=getInput()->getStr(STR_BED);
+		
+     }
     // Getting the graph
 	
 
