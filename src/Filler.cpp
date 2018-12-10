@@ -55,15 +55,9 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     //TODO rajouter les parametres
     _nb_mis_allowed = 2;
     _nb_gap_allowed = 0;
-    
     _nb_breakpoints = 0;
     _nb_filled_breakpoints = 0;
     _nb_multiple_fill = 0;
-    _nb_contigs = 0;
-    _nb_used_contigs = 0;
-    _breakpointMode = true;
-    _contig_trim_size = 0;
-
 
 
     setHelp(&HelpFiller);
@@ -81,7 +75,7 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     generalParser->push_front (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
 
     IOptionsParser* inputParser = new OptionsParser("Input / output");
-    inputParser->push_front (new OptionOneParam (STR_CONTIG_OVERLAP, "Overlap between input contigs (default, ie. 0 = kmer size)",  false, "0"));
+    inputParser->push_front (new OptionOneParam (STR_CONTIG_OVERLAP, "Overlap between input contigs",  false, "0"));
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_BKPT, "breakpoint file", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_CONTIG, "contig file", false, ""));
@@ -137,9 +131,9 @@ void Filler::execute ()
 
     }
 
-    if ((getInput()->get(STR_URI_BKPT) != 0 && getInput()->get(STR_URI_CONTIG) != 0) || (getInput()->get(STR_URI_BKPT) == 0 && getInput()->get(STR_URI_CONTIG) == 0))
+    if (getInput()->get(STR_URI_BKPT) == 0 && getInput()->get(STR_URI_CONTIG) == 0)
         {
-                throw OptionFailure(getParser(), "option -bkpt and -contig are incompatible, but at least one of these is mandatory");
+                throw OptionFailure(getParser(), "option -bkpt or -contig is mandatory");
         }
 
 
@@ -202,8 +196,8 @@ void Filler::execute ()
     {
         //fprintf(log,"Loading the graph from file %s\n",getInput()->getStr(STR_URI_GRAPH).c_str());
 
-    	fprintf(stderr,"Loading the graph..."); //TODO better a progress bar
-    	fflush(stderr);
+        fprintf(stderr,"Loading the graph..."); //TODO better a progress bar
+        fflush(stderr);
         _graph = Graph::load (getInput()->getStr(STR_URI_GRAPH));
         _kmerSize = _graph.getKmerSize();
         fprintf(stderr,"done\n");
@@ -215,6 +209,15 @@ void Filler::execute ()
 
     _insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.fasta";
     _insert_file = fopen(_insert_file_name.c_str(), "w");
+    if (getInput()->get(STR_URI_CONTIG) != nullptr)
+    {
+        _gfa_file_name = getInput()->getStr(STR_URI_OUTPUT)+".gfa";
+        _gfa_file = fopen(_gfa_file_name.c_str(),"w");
+        if(_gfa_file == NULL){
+            string message = "Cannot open file "+ _gfa_file_name + " for writting";
+            throw Exception(message.c_str());
+        }
+    }
     if(_insert_file == NULL){
         string message = "Cannot open file "+ _insert_file_name + " for writting";
         throw Exception(message.c_str());
@@ -229,8 +232,6 @@ void Filler::execute ()
 
     if (getInput()->get(STR_URI_BKPT) != nullptr)
     {
-        _breakpointMode = true;
-        
         _vcf_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.vcf";
         _vcf_file = fopen(_vcf_file_name.c_str(), "w");
         if(_vcf_file == NULL){
@@ -241,48 +242,22 @@ void Filler::execute ()
         writeVcfHeader();
     }
 
-    if (getInput()->get(STR_URI_CONTIG) != nullptr)
-    {
-        _breakpointMode = false;
-
-        _gfa_file_name = getInput()->getStr(STR_URI_OUTPUT)+".gfa";
-        _gfa_file = fopen(_gfa_file_name.c_str(),"w");
-        if(_gfa_file == NULL){
-            string message = "Cannot open file "+ _gfa_file_name + " for writting";
-            throw Exception(message.c_str());
-        }
-    }
-
-	
-    
     //Getting the breakpoint sequences
-    if (_breakpointMode)
+    if (getInput()->get(STR_URI_BKPT) != nullptr)
        {
            _breakpointBank = new BankFasta(getInput()->getStr(STR_URI_BKPT));
 
        }
-    else
+    if (getInput()->get(STR_URI_CONTIG) != nullptr)
        {
            _breakpointBank = new BankFasta(getInput()->getStr(STR_URI_CONTIG));
 
         }
-    
+
     //Getting other parameters
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_depth = getInput()->getInt(STR_MAX_DEPTH);
     _max_nodes = getInput()->getInt(STR_MAX_NODES);
-    
-    _contig_trim_size = getInput()->getInt(STR_CONTIG_OVERLAP);
-    //making sure overlap >=kmerSize (to have >=kmerSize overlaps in gfa edges)
-    if(_contig_trim_size == 0){
-        _contig_trim_size = _kmerSize;
-    }
-    if(_contig_trim_size < _kmerSize){
-        _contig_trim_size = _kmerSize;
-        cerr << "Warning :  the contig overlap parameter should be greater or equal to kmer size, setting it to " << _kmerSize << endl;
-    }
-
-    
     // Now do the job
     time_t start_time = time(0);
 
@@ -293,15 +268,15 @@ void Filler::execute ()
     fclose(_insert_file);
     fclose(_insert_info_file);
 
-    if (_breakpointMode)
+    if (getInput()->get(STR_URI_BKPT) != nullptr)
     {
         fclose(_vcf_file);
     }
-    else
+    if (getInput()->get(STR_URI_CONTIG) != nullptr)
     {
         fclose(_gfa_file);
     }
-    
+
     // We gather some info/statistics to print in stdout
     resumeParameters();
 
@@ -311,22 +286,22 @@ void Filler::execute ()
 
 void Filler::writeVcfHeader(){
 
-	string sample="";
-	if (getInput()->get(STR_URI_INPUT) != 0){
-		sample = getInput()->getStr(STR_URI_INPUT);
-	}
-	if (getInput()->get(STR_URI_GRAPH) != 0){
-		sample=getInput()->getStr(STR_URI_GRAPH);
-	}
+    string sample="";
+    if (getInput()->get(STR_URI_INPUT) != 0){
+        sample = getInput()->getStr(STR_URI_INPUT);
+    }
+    if (getInput()->get(STR_URI_GRAPH) != 0){
+        sample=getInput()->getStr(STR_URI_GRAPH);
+    }
 
-	//getting the date
-	time_t current_time;
-	char* c_time_string;
-	current_time = time(NULL);
-	c_time_string = ctime(&current_time);
+    //getting the date
+    time_t current_time;
+    char* c_time_string;
+    current_time = time(NULL);
+    c_time_string = ctime(&current_time);
 
-	fprintf(_vcf_file,
-			"##fileformat=VCFv4.1\n\
+    fprintf(_vcf_file,
+            "##fileformat=VCFv4.1\n\
 ##filedate=%s\
 ##source=MindTheGap fill version %s\n\
 ##SAMPLE=file:%s\n\
@@ -341,7 +316,7 @@ void Filler::writeVcfHeader(){
 ##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n\
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",
 c_time_string, _mtg_version, sample.c_str(),getInput()->getStr(STR_URI_OUTPUT).c_str());
-    
+
 
 }
 
@@ -354,7 +329,7 @@ void Filler::resumeParameters(){
     getInfo()->add(1,"gatb-core-library",System::info().getVersion().c_str());
     getInfo()->add(1,"supported_kmer_sizes","%s", KSIZE_STRING);
     //getInfo()->add (1, &LibraryInfo::getInfo());
-    
+
     getInfo()->add(0,"Parameters");
     getInfo()->add(1,"Input data");
     if (getInput()->get(STR_URI_INPUT) != 0){
@@ -363,12 +338,12 @@ void Filler::resumeParameters(){
     if (getInput()->get(STR_URI_GRAPH) != 0){
         getInfo()->add(2,"Graph",getInput()->getStr(STR_URI_GRAPH).c_str());
     }
-    
-    if (_breakpointMode)
+
+    if (getInput()->get(STR_URI_BKPT) != nullptr)
     {
         getInfo()->add(2,"Breakpoints",getInput()->getStr(STR_URI_BKPT).c_str());
     }
-    else
+    if (getInput()->get(STR_URI_CONTIG) != nullptr)
     {
         getInfo()->add(2,"Contigs",getInput()->getStr(STR_URI_CONTIG).c_str());
     }
@@ -394,46 +369,30 @@ void Filler::resumeParameters(){
         }
 
     getInfo()->add(1,"Assembly options");
+    getParser()->push_front (new OptionOneParam (STR_MAX_DEPTH, "maximum length of insertions (nt)", false, "10000"));
     getInfo()->add(2,"max_depth","%i", _max_depth);
-    getInfo()->add(2,"max_nodes","%i", _max_nodes);
-    if (!_breakpointMode)
-    {
-        getInfo()->add(2,"contig trim size before gap-filling","%i", _contig_trim_size);
-    }
+    getInfo()->add(2,"max_nodes","%i", _max_nodes); //todo
 
 }
 
 void Filler::resumeResults(double seconds){
 
     getInfo()->add(0,"Results");
-    if(_breakpointMode)
-    {
-        getInfo()->add(1,"Breakpoints");
-        getInfo()->add(2,"nb_input_breakpoints","%i", _nb_breakpoints);
-        getInfo()->add(2,"nb_filled_breakpoints","%i", _nb_filled_breakpoints);
-    }
-    else
-    {
-        getInfo()->add(1,"Contigs");
-        getInfo()->add(2,"nb_input_contigs","%i", _nb_contigs);
-        getInfo()->add(2,"nb_used_contigs","%i", _nb_used_contigs);
-        getInfo()->add(2,"nb_input_seeds","%i", _nb_breakpoints);
-        getInfo()->add(2,"nb_filled_seeds","%i", _nb_filled_breakpoints);
-    }
-        getInfo()->add(3,"as_unique_sequence","%i", _nb_filled_breakpoints-_nb_multiple_fill);
-        getInfo()->add(3,"as_multiple_sequence","%i", _nb_multiple_fill);
-        
+    getInfo()->add(1,"Breakpoints");
+    getInfo()->add(2,"nb_input","%i", _nb_breakpoints);
+    getInfo()->add(2,"nb_filled","%i", _nb_filled_breakpoints);
+    getInfo()->add(3,"unique_sequence","%i", _nb_filled_breakpoints-_nb_multiple_fill);
+    getInfo()->add(3,"multiple_sequence","%i", _nb_multiple_fill);
     getInfo()->add(1,"Time", "%.1f s",seconds);
     getInfo()->add(1,"Output files");
     getInfo()->add(2,"assembled sequence file","%s",_insert_file_name.c_str());
-
-    if (_breakpointMode)
-    {
-        getInfo()->add(2,"insertion variant vcf file","%s",_vcf_file_name.c_str());
-    }
-    else
+    if (getInput()->get(STR_URI_CONTIG) != nullptr)
     {
         getInfo()->add(2,"assembly graph file","%s",_gfa_file_name.c_str());
+    }
+    if (getInput()->get(STR_URI_BKPT) != nullptr)
+    {
+        getInfo()->add(2,"insertion variant vcf file","%s",_vcf_file_name.c_str());
     }
     getInfo()->add(2,"assembly statistics file","%s",_insert_info_file_name.c_str());
 
@@ -462,6 +421,7 @@ public:
 
     bool is_anchor_repeated = false;
     bool reverse = false;
+    bool breakpointMode = false;
 
     string conc_targetSequence;
     bkpt_dict_t targetDictionary;
@@ -477,15 +437,15 @@ public:
             targetDictionary.insert({its->first,its->second});
         }
      }
-        
+
     std::vector<filled_insertion_t> filledSequences;
-     _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, targetDictionary, is_anchor_repeated, reverse );
+     _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, targetDictionary, is_anchor_repeated, reverse, seedName );
 
 
      // Write insertions to file
-     _object->writeFilledBreakpoint(filledSequences,seedName,infostring);
+     _object->writeFilledBreakpoint(filledSequences,seedName,infostring,breakpointMode);
      _object->writeToGFA(filledSequences,sourceSequence,seedName,isRc);
-        
+
 
      _nb_breakpoints++;
 
@@ -513,7 +473,7 @@ public:
         _global_nb_breakpoints = r._global_nb_breakpoints;
         _nb_breakpoints = 0;
         _tid =  __sync_fetch_and_add (_nb_living, 1);
-        
+
         //printf("CC creating thread id %i \n",_tid);
 
     }
@@ -551,7 +511,9 @@ public:
         }
         else //second sequence (target) of the breakpoint
         {
-            
+
+            bool breakpointMode = true;
+
             string sourceSequence =  string(_previousSeq.getDataBuffer(),_previousSeq.getDataSize());//previously L
 
             string breakpointName = string(_previousSeq.getCommentShort());
@@ -583,7 +545,7 @@ public:
             targetDictionary.insert ({targetSequence, std::make_pair(breakpointName_R, false)});
 
             //_object->gapFill<span>(infostring,_tid,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
-            _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, targetDictionary, is_anchor_repeated, false);
+            _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, targetDictionary, is_anchor_repeated, false, breakpointName);
 
             //If gap-filling failed in one direction, try the other direction (from target to source in revcomp)
             if(filledSequences.size()==0){
@@ -595,14 +557,14 @@ public:
 
 
                 //_object->GapFill<span>(infostring,_tid,sourceSequence2,targetSequence2,filledSequences,begin_kmer_repeated,end_kmer_repeated,true);
-                _object->gapFillFromSource<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, targetDictionary, is_anchor_repeated, true);
+                _object->gapFillFromSource<span>(infostring,_tid, sourceSequence2, targetSequence2,filledSequences, targetDictionary, is_anchor_repeated, true, breakpointName);
 
             }
 
-            _object->writeFilledBreakpoint(filledSequences,breakpointName,infostring);
+            _object->writeFilledBreakpoint(filledSequences,breakpointName,infostring,breakpointMode);
             _object->writeVcf(filledSequences,breakpointName,sourceSequence);
 
-            
+
             // We increase the breakpoint counter.
             _nb_breakpoints++;
 
@@ -663,11 +625,10 @@ template<size_t span>
 void Filler::fillAny<span>::operator () (Filler* object)
 {
     size_t kmerSize = object->_kmerSize;
-    int overlap = object->_contig_trim_size;
 
     BankFasta::Iterator itSeq (*object->_breakpointBank);
 
-    if (!object->_breakpointMode){
+    if (object->getInput()->get(STR_URI_CONTIG) != nullptr){
 
         bkpt_dict_t seedDictionary;
         bkpt_dict_t all_targetDictionary;
@@ -677,46 +638,46 @@ void Filler::fillAny<span>::operator () (Filler* object)
         ofstream seedFile;
         string seedFileName = object->getInput()->getStr(STR_URI_OUTPUT)+"_seed_dictionary.fasta";
         seedFile.open (seedFileName);
+        int overlap = object->getInput()->getInt(STR_CONTIG_OVERLAP);
         for (itSeq.first(); !itSeq.isDone(); itSeq.next())
         {
-            std::string contigSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
-            object->_nb_contigs++;
+            std::string seedSequence = string(itSeq->getDataBuffer(),itSeq->getDataSize());
 
-            // Write the original contigs to GFA
+            // Write the contigs to GFA
             // Contig has not been trimmed of overlap
-            fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getComment().c_str(),contigSequence.c_str());
+            fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getComment().c_str(),seedSequence.c_str());
 
-            // Remove small contigs
-            // limit size = 2*overlap+kmerSize, to ensure that seedSequence is located after targetSequence on the contig (they may overlap a little, but can not be equal).
-            if(contigSequence.size() > (2*overlap+kmerSize)){
-                
-                // create seed and targetDictionary = first and last kmers of the contig trimmed of overlap nt at each extremity, in both direction (forward and revcomp).
+            // Remove overlap supplied as parameter
+            // TODO : Remove small contigs
+            seedSequence = seedSequence.substr(overlap, itSeq->getDataSize() - 2*overlap);
 
-                std::string seedSequence_f = contigSequence.substr(contigSequence.size()-(overlap+kmerSize), kmerSize);
+
+             // create seed and targetDictionary
+
+            if(seedSequence.size() > (2*kmerSize)){
+                std::string seedSequence_f = seedSequence.substr(seedSequence.size()-(2*kmerSize), kmerSize);
                 std::string name = string(itSeq->getCommentShort());
-                std::string targetSequence_f =contigSequence.substr(overlap,kmerSize);
-                std::string contigSequence_Rc = revcomp_sequence(contigSequence);
-                std::string seedSequence_Rc= contigSequence_Rc.substr(contigSequence_Rc.size() - (overlap+kmerSize),kmerSize);
-                std::string targetSequence_Rc = contigSequence_Rc.substr(overlap,kmerSize);
+                std::string targetSequence_f =seedSequence.substr(kmerSize,kmerSize);
+                std::string seedSequence_Rc = revcomp_sequence(seedSequence);
+                std::string seedSequence_Rc_f= seedSequence_Rc.substr(seedSequence_Rc.size() - (2 *kmerSize),kmerSize);
+                std::string targetSequence_Rc_f = seedSequence_Rc.substr(kmerSize,kmerSize);
                 seedDictionary.insert ({{seedSequence_f,std::make_pair(name, false)},
-                                        {seedSequence_Rc,std::make_pair(name, true)}
+                                        {seedSequence_Rc_f,std::make_pair(name, true)}
                                        });
                 all_targetDictionary.insert ({{targetSequence_f, std::make_pair(name, false)},
-                                          {targetSequence_Rc, std::make_pair(name, true)}
+                                          {targetSequence_Rc_f, std::make_pair(name, true)}
                                          });
 
                 // Output seed dictionary to a file
                 seedFile << ">"+string(itSeq->getCommentShort())+"\n";
                 seedFile << seedSequence_f << endl;
                 seedFile << ">"+string(itSeq->getCommentShort())+"_Rc\n";
-                seedFile << seedSequence_Rc << endl;
+                seedFile << seedSequence_Rc_f << endl;
 
-                object->_nb_used_contigs++;
 
             }
             else{
-                int limit = 2*overlap+kmerSize;
-                cerr << "Warning contig not used (too short: <= 2 x overlap + kmerSize = "<< limit <<" nt): " << string(itSeq->getCommentShort()) << " of size "<< contigSequence.size() << " nt" << endl;
+                cerr << "Warning contig not used (too short): " << string(itSeq->getCommentShort()) << " of size "<< seedSequence.size() << " nt" << endl;
             }
         }
         seedFile.close();
@@ -724,7 +685,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
         u_int64_t nbBreakpointsEstimated = seedDictionary.size() ;  // Number of seeds to iterate
 
         object->setProgress (new ProgressSynchro (
-                                              object->createIteratorListener (nbBreakpointsEstimated, "Filling the contigs"),
+                                              object->createIteratorListener (nbBreakpointsEstimated, "Filling the breakpoints"),
                                               System::thread().newSynchronizer())
                          );
         object->_progress->init ();
@@ -734,7 +695,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
         BankFasta::Iterator it (inbank);
 
         int nb_living=0;
-        
+
 
         Dispatcher(object->getInput()->getInt(STR_NB_CORES)).iterate(it, contigFunctor<span>(object,&nb_living,&object->_nb_breakpoints,all_targetDictionary),30);
 
@@ -744,11 +705,11 @@ void Filler::fillAny<span>::operator () (Filler* object)
     }
 
 
-    if (object->_breakpointMode){
+    if (object->getInput()->get(STR_URI_BKPT) != nullptr){
         u_int64_t nbBreakpointsEstimated = object->_breakpointBank->estimateNbItems()  / 2 ;  // 2 seq per breakpoint
 
         object->setProgress (new ProgressSynchro (
-                                          object->createIteratorListener (nbBreakpointsEstimated, "Filling the breakpoints"),
+                                          object->createIteratorListener (nbBreakpointsEstimated, "Filling breakpoints"),
                                           System::thread().newSynchronizer())
                      );
         object->_progress->init ();
@@ -767,16 +728,15 @@ void Filler::fillAny<span>::operator () (Filler* object)
 }
 
 template<size_t span>
-void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary, bool is_anchor_repeated, bool reverse ){
+void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary, bool is_anchor_repeated, bool reverse,string breakpoint_name ){
     typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
 
 
     int nb_mis_allowed = _nb_mis_allowed;
-    
     if(is_anchor_repeated){
         nb_mis_allowed=0;
     }
-    
+
     //object used to mark the traversed nodes of the graph (note : it is reset at the beginning of construct_linear_seq)
     BranchingTerminator terminator (_graph);
     IterativeExtensions<span> extension (_graph, terminator, TRAVERSAL_CONTIG, ExtendStopMode_until_max_depth, SearchMode_Breadth, false, _max_depth, _max_nodes);
@@ -830,7 +790,12 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
     //if(verb)    fprintf(stderr," analysis..");
     bool success;
     set<pair<unlabeled_path,bkpt_t>> paths = graph.find_all_paths(terminal_nodes_with_endpos, success);
-    
+    /*for(set<pair<unlabeled_path,bkpt_t>>::iterator it= paths.begin(); it != paths.end(); it++)
+    {
+        cout << it->first << endl;
+    cout << it->second << endl;
+    }
+*/
 
     // We build a map to sort paths leading to the same target
     unordered_map<string,set<unlabeled_path>> paths_to_compare;
@@ -850,38 +815,79 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
         std::vector<filled_insertion_t> tmpSequences;
         set<unlabeled_path> current_paths = it->second;
         tmpSequences = graph.paths_to_sequences(current_paths,terminal_nodes_with_endpos);
-        
+
         int nb_filled_insertions = tmpSequences.size();
         nbTotal_filled_insertions += nb_filled_insertions;
-        
-        // remove almost identical sequences
-        if (tmpSequences.size() > 1)
+
+        //get type of bkpt HET + down or up
+        string token;
+        istringstream iss(breakpoint_name);
+        std::vector<string> tokens;
+        // we split the header and put it in a vector tokens
+        // split header breakpoint to extract information
+        while(getline(iss,token,'_')) tokens.push_back(token);
+        // variable to check type of insertion and if snp are around the insertion
+        string inser_type= tokens[6].c_str();
+        string snp_near_inser= tokens[7].c_str();
+
+        /*if (tmpSequences.size() == 1)// && (inser_type!="HET" && (snp_near_inser!="down" || snp_near_inser!="up")))
         {
             //if(verb)     printf(" [SUCCESS]\n");
-            remove_almost_identical_solutions(tmpSequences,90);
+            cout << " Only one seq found" << endl;
+        }*/
+        //cout << tmpSequences.size() << endl;
+        if(tmpSequences.size()==2 && inser_type=="HET" && (snp_near_inser=="down" || snp_near_inser=="up") & !reverse)
+        {
+            remove_false_Het_insertion(tmpSequences,snp_near_inser,sourceSequence,targetSequence);
+           // cout << " ENTER HET check" << endl;
         }
-        
+
+        if(tmpSequences.size()==2 && inser_type=="HET" && (snp_near_inser=="down" || snp_near_inser=="up") & reverse)
+            {
+                if (snp_near_inser =="down") snp_near_inser="up";
+                else snp_near_inser="down";
+                remove_false_Het_insertion(tmpSequences,snp_near_inser,sourceSequence,targetSequence);
+           //     cout << " ENTER HET check" << endl;
+
+            }
+
+
+
+        // remove almost identical sequences
+        if (tmpSequences.size() > 1)// && (inser_type!="HET" && (snp_near_inser!="down" || snp_near_inser!="up")))
+        {
+            //if(verb)     printf(" [SUCCESS]\n");
+            remove_almost_identical_solutions(tmpSequences,90,sourceSequence,targetSequence);
+        }
+
         int nb_reported_insertions = tmpSequences.size();
         nbTotal_reported_insertions += nb_reported_insertions;
 
         //Here add information for each filled insertion : coverage, quality, revcomp if reverse
-        
+
         /////////compute coverage of filled sequences // make sure to compute before reverse !!!
         ModelCanonical model (_kmerSize);
         int solution_rank = 1;
         for (std::vector<filled_insertion_t>::iterator it = tmpSequences.begin(); it != tmpSequences.end() ; ++it)
         {
+            if (it->sourceSeq=="" && it->targetSeq=="")
+            {
+                it->sourceSeq=sourceSequence;
+                it->targetSeq=targetSequence;
+                it->altered_seq=0;
+            }
+
             //Coverage computation
             typename ModelCanonical::Iterator itk (model);
-            std::string cseq = sourceSequence + it->seq;
+            std::string cseq = it->sourceSeq + it->seq;
             Data data ((char*)cseq.c_str());
-            
+
             itk.setData (data);
             std::vector<unsigned int> vec_abundances;
-            
+
             u_int64_t sum = 0;
             int nbkmers =0;
-            
+
             // We iterate the kmers of this seq
             for (itk.first(); !itk.isDone(); itk.next())
             {
@@ -897,48 +903,51 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
             it->median_coverage = median(vec_abundances);
             it->avg_coverage  = sum /(float) nbkmers;
             //End coverage computation
-            
+
             //add multiple solutions information
             it->solution_count = nb_reported_insertions;
             it->solution_rank = solution_rank;
-            
+
             //compute quality
             it->compute_qual(is_anchor_repeated);
-            
+
             // if reverse, rev-comp the filled sequence
             if(reverse)
             {
                 it->reverse();
+                //cout << "REVERSE" << endl;
             }
-            
+
             solution_rank += 1;
         }
-        
-        
+
+
+
+
         //Add tmpSequences to total filled sequence vector
         filledSequences.insert(filledSequences.end(),tmpSequences.begin(),tmpSequences.end());
-     
+
     }
-    
+
     if((nbTotal_filled_insertions>0) | reverse)
     {
         infostring +=   Stringify::format ("\t%d", nbTotal_filled_insertions) ;
         infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
     }
-    
-    
+
+
     remove(contig_file_name.c_str());
     remove((contig_graph_file_prefix+".graph").c_str());
 
 }
 
 
-void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences,  string seedName, std::string info){
-    
+void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences,  string seedName, std::string info, bool breakpointMode){
+
     flockfile(_insert_file);
 
-    //bool multiple_solution = false;
-    
+    bool multiple_solution = false;
+
     for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
     {
         string insertion = it->seq;
@@ -948,13 +957,13 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
         //discards insert too long (can happen when last node is very large)
         //		if(llen > max_insertions_size)
         //			continue;
-        
+
         std::ostringstream osolu_i;
         osolu_i <<   "solution " <<    it->solution_rank << "/" << it->solution_count ;
         string solu_i = it->solution_count >1 ?  osolu_i.str() : "" ;
-        
+
         //Writting sequence header
-        if(_breakpointMode) //-bkpt mode, to keep the same header name as before
+        if(breakpointMode) //-bkpt mode, to keep the same header name as before
         {
             fprintf(_insert_file,">%s_len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
                     seedName.c_str(),llen,it->qual,solu_i.c_str()
@@ -966,16 +975,16 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
                 targetName.append("_Rc");
             }
             int cov = it->median_coverage + 0.5;
-            
+
             string insertionName = ">"+seedName+";"+targetName+";len_"+to_string(llen)+"_qual_"+to_string(it->qual)+"_median_cov_"+to_string(cov)+"\t"+solu_i+"\n";
             fprintf(_insert_file,"%s",insertionName.c_str());
         }
-        
+
         //Writting DNA sequence
         fprintf(_insert_file,"%.*s\n",(int)llen,insertion.c_str() );
-        
-//        if(it->solution_count >1)
-//            multiple_solution = true;
+
+        if(it->solution_count >1)
+            multiple_solution = true;
     }
 
     funlockfile(_insert_file);
@@ -983,38 +992,45 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
     if(filledSequences.size()>0)
     {
         __sync_fetch_and_add(& _nb_filled_breakpoints,1);
-        //if(multiple_solution){
-        if(filledSequences.size()>1)
-        {
+        if(multiple_solution){
             __sync_fetch_and_add(& _nb_multiple_fill,1);
         }
     }
-    
+
 
     //breakpoint  info file
     flockfile(_insert_info_file);
-    
+
     fprintf(_insert_info_file,"%s\t%s\n",seedName.c_str(),info.c_str());
-    
+
     funlockfile(_insert_info_file);
 }
 
 void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string breakpointName, string sourceSequence){
-    
+
     flockfile(_vcf_file);
-    
+
     for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
     {
         string insertion = it->seq;
-        
-        vector<char> left(sourceSequence.begin(), sourceSequence.end());
+    size_t n_A = std::count(insertion.begin(), insertion.end(), 'A');
+    size_t n_T = std::count(insertion.begin(), insertion.end(), 'T');
+    size_t n_C = std::count(insertion.begin(), insertion.end(), 'C');
+    size_t n_G = std::count(insertion.begin(), insertion.end(), 'G');
+        string ref=it->sourceSeq;
+        vector<char> left(it->sourceSeq.begin(), it->sourceSeq.end());
         vector<char> filled(it->seq.begin(), it->seq.end());
-        
 
+        //cout <<"\n source " << ref.c_str() <<endl;
         //computing the longest common suffix between sourceSequence and insertion : fuzzy = LCSuf +1 = the number of alternative positions (fuzzy) and left normalized position
         int repeatSize=0;
+        int repeatSize_multiple=0;	// to handle repeated fuzzy insertion
         int i = left.size() - 1;
         int j = filled.size() - 1;
+        int k = left.size();
+        int l = filled.size() ;
+
+
         while (i>=0 && j>=0)
         {
             if (left[i] == filled[j])
@@ -1024,13 +1040,48 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
                 j-= 1;
                 if(j==-1) //see below for examples where this may be important
                 {
-                    j = filled.size() - 1;
+                    if ((n_A == filled.size()) || (n_T == filled.size()) || (n_C == filled.size()) || (n_G == filled.size()))  j = filled.size() - 1;
+                    else
+                    {
+                        int max =l/2;
+                        for (int i=2; i == max; i++)
+                        {
+                            if ( l % i ==0)
+                                {
+                                int total=1;
+                                for (int a =0; a<l-i; a+=i)
+                                {
+
+                                    string sub1 =insertion.substr(a,i);
+                                    string sub2=insertion.substr(a+i,i);
+                                                                        if (sub1!=sub2) break;
+                                    else total+=1;
+                                }
+                                    if (total==l/i)
+                                    {
+                                        string minimum_suffixe=insertion.substr(0,l/i);
+                                        int compteur=k-i;
+                                        while (true)
+                                        {
+                                            if (ref.substr(compteur,i)==minimum_suffixe)
+                                            {
+                                            //cout << "\n ref substr :" << ref.substr(compteur,i) << " minmum_suffixe" << minimum_suffixe << endl;
+                                            repeatSize_multiple+=l/i;
+                                            compteur-=i;
+                                            }
+                                            else break;
+                                        }
+                                    }
+                            }
+                    }
                 }
             }
-            else{
-                break;
-            }
         }
+            else break;
+
+    }
+
+
         //Deal with the case where j=-1 :
         // for instance : insertion  = C
         // sourceSequence = ACCCC
@@ -1043,51 +1094,82 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
         // solution = "buffer circulaire" il faut que filled[-1] renvoie la derniere lettre (et plus besoin de && j>=0
 
         //WARNING : this was not well tested (case j==-1) TODO
-        
+
         //left normalization: if repeatSize>0 alt field is the concatenation of the char before insertion, the repeated sequence (of size=repeatSize) and the assembled sequence, the ref field is the char before insertion + the repeated sequence (of size=fuzzy)
-        
-        insertion=sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1)+insertion;
-        string ref = sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1);
-        
-        
+        int test=left.size();
+        //cout << "\n test :" << test << " repeatSize" << repeatSize << "\n" << endl;
+        //cout <<"\n source " << ref.c_str() << "\n ref" << ref.c_str() << "\n insertion " << insertion.c_str() <<endl;
+        //cout << "\n " << repeatSize_multiple << " " << repeatSize << endl;
+        if (repeatSize_multiple!=0) repeatSize=repeatSize_multiple;
+        if (repeatSize == test){
+                    ref ="";
+                    //cout << "source : "<< sourceSequence << "\n ref :" << ref.size() << "\n insertion :" << insertion<< endl;
+            }
+            else
+            {
+                insertion=sourceSequence.substr(sourceSequence.size()-(repeatSize+1),1)+insertion;
+                ref = sourceSequence.substr(sourceSequence.size()-(repeatSize+1),1);
+
+                //cout << "source AL : "<< sourceSequence << "\n ref AL :" << ref << "\n insertion AL :" << insertion<< endl;
+
+            }
         string token;
         istringstream iss(breakpointName);
         std::vector<string> tokens;
         // we split the header and put it in a vector tokens
         // split header breakpoint to extract information
         while(getline(iss,token,'_')) tokens.push_back(token);
-        
+
         //cerr << tokens.size() << endl;
-        
+
         string bkpt=breakpointName;
         string position = ".";
         string chromosome = ".";
         string GT = "./.";
-        if (tokens.size()==7){ //MindTheGap find expected format
+        if (tokens.size()==8){ //MindTheGap find expected format
+
+        // Condition to handle case repeatSize==Sourcesequence.size(), produced segmentation fault
+
+
             bkpt = tokens[0].c_str();
-            int pos = atoi(tokens[3].c_str())-ref.size()+1;
+            //cout << "\n BKPT :" << bkpt << " ALTERED_SEQ" << it->altered_seq << " POS" << atoi(tokens[3].c_str()) <<  endl;
+            int pos = atoi(tokens[3].c_str())-repeatSize+1+it->altered_seq;
             position = to_string(pos);
             chromosome = tokens[1].c_str();
             string genotype = tokens[6].c_str();
             GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
+            // "." in vcf indicates that source sequence is in the end of the insertion, case repeatSize==sourceSequence.size()
+            if (ref=="") ref=".";
         }
-        
+    // Case to handle backup option (tokens.size==8)
+        else {
+                bkpt = tokens[0].c_str();
+                bkpt+=tokens[2].c_str();
+                int pos = atoi(tokens[4].c_str())-repeatSize+1+it->altered_seq;
+
+                position = to_string(pos);
+                chromosome = tokens[1].c_str();
+                string genotype = tokens[7].c_str();
+                GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
+                if (ref=="") ref=".";
+        }
+
         int qual = it->qual;
         int size = insertion.size()-ref.size();
         int nsol = it->solution_count;
-        int npos = repeatSize+1;
-        
+        int npos = repeatSize;
         // write in vcf format
         fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
-        
+
     }
-    
+
     funlockfile(_vcf_file);
-    
+
 }
 
 void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string seedName, bool isRc){
 
+    int overlap = getInput()->getInt(STR_CONTIG_OVERLAP);
     string seedDirection = "+";
     string targetDirection;
     string seedNameNode = seedName;
@@ -1114,9 +1196,8 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
             string solu_i = it->solution_count >1 ?  osolu_i.str() : "" ;
 
 
-            // Add seed and target kmers to insertion seq : no longer done any more
+            // Add seed and target kmers to insertion seq
             //insertion = sourceSequence + insertion + it->targetId
-        
             bkpt_t targetId = it->targetId_anchor;
             string targetName = targetId.first;
 
@@ -1136,10 +1217,10 @@ void Filler::writeToGFA(std::vector<filled_insertion_t>& filledSequences, string
             // Write link between nodes
 
             // From seed to gapfilling
-            fprintf(_gfa_file,"L\t%s\t%s\t%s\t+\t%iM\n",seedName.c_str(),seedDirection.c_str(),nodeName.c_str(),_contig_trim_size);
+            fprintf(_gfa_file,"L\t%s\t%s\t%s\t+\t%iM\n",seedName.c_str(),seedDirection.c_str(),nodeName.c_str(),_kmerSize+overlap);
 
             // From gapfilling to seed
-            fprintf(_gfa_file,"L\t%s\t+\t%s\t%s\t%iM\n",nodeName.c_str(),targetName.c_str(),targetDirection.c_str(),_contig_trim_size);
+            fprintf(_gfa_file,"L\t%s\t+\t%s\t%s\t%iM\n",nodeName.c_str(),targetName.c_str(),targetDirection.c_str(),_kmerSize+overlap);
 
     }
     funlockfile(_gfa_file);
@@ -1180,7 +1261,7 @@ set< info_node_t >  Filler::find_nodes_containing_multiple_R(bkpt_dict_t targetD
         for (unsigned int j = 0; j < nodelen-_kmerSize+1 && !arret; j++)
         {
             //best_match = 0; //commented by CL 06/06/18 bug fix (this line prevented to find target kmers with errors in the middle of the contig)
-            
+
             for (auto it=targetDictionary.begin(); it !=targetDictionary.end() && !arret; ++it)
                 {
                     string ide = (it->second).first;

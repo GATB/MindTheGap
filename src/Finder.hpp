@@ -28,10 +28,11 @@ using namespace std;
 /********************************************************************************/
 
 static const char* STR_URI_REF = "-ref";
-static const char* STR_MAX_REPEAT = "-max-rep";;
+static const char* STR_MAX_REPEAT = "-max-rep";
 static const char* STR_HET_MAX_OCC = "-het-max-occ";
 static const char* STR_SNP_MIN_VAL = "-snp-min-val";
 
+static const char* STR_BED = "-bed";
 static const char* STR_HOMO_ONLY = "-homo-only";
 static const char* STR_INSERT_ONLY = "-insert-only";
 static const char* STR_SNP_ONLY = "-snp-only";
@@ -58,8 +59,8 @@ public:
     // Constructor
     Finder ();
     ~Finder ();
-	
-	void FinderHelp();
+
+    void FinderHelp();
 
     const char* _mtg_version;
     size_t _kmerSize;
@@ -80,8 +81,8 @@ public:
     FILE * _breakpoint_file;
     string _vcf_file_name;
     FILE * _vcf_file;
-
-
+    FILE * _bed_file;
+    string _bed_file_name;
     int _nb_homo_clean;
     int _nb_homo_fuzzy;
     int _nb_hetero_clean;
@@ -95,9 +96,9 @@ public:
     // Actual job done by the tool is here
     void execute ();
 
-    
+
 private:
-    
+
     /** fills getInfo() with parameters informations
      */
     void resumeParameters();
@@ -120,4 +121,5 @@ private:
 /********************************************************************************/
 
 #endif /* _TOOL_Finder_HPP_ */
+
 

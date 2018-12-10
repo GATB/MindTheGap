@@ -104,15 +104,10 @@ public:
 
     BankFasta* _breakpointBank;
 
-    bool _breakpointMode; //true if insertion breakpoints, false if gap-filling between contigs
-    
     //to print some statistics at the end
-    int _nb_breakpoints; //nb seeds in contig mode
+    int _nb_breakpoints;
     int _nb_filled_breakpoints;
     int _nb_multiple_fill;
-    int _nb_contigs;
-    int _nb_used_contigs;
-
 
     //useful to compute average abundance of each filled sequence
     Storage* _storage;
@@ -137,8 +132,7 @@ public:
     int _nb_mis_allowed;
     int _nb_gap_allowed;
 
-    //parameter for gap-filling between contigs
-    int _contig_trim_size;
+    int _overlap_length;
 
     string _vcf_file_name;
     FILE * _vcf_file;
@@ -151,7 +145,7 @@ public:
     //these two func moved to public because need access from functors breakpointFunctor and contigFunctor
     /** writes a given breakpoint in the output file
      */
-    void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring);
+    void writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequences, string breakpointName, std::string infostring, bool breakpointMode);
     void writeToGFA(std::vector<filled_insertion_t>& filledSequences, string sourceSequence, string SeedName, bool isRc);
     /** writes a given variant in the output vcf file
      */
@@ -164,7 +158,7 @@ public:
                  ,bool reversed =false);*/
 
     template<size_t span>
-    void gapFillFromSource(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary,bool is_anchor_repeated, bool reverse );
+    void gapFillFromSource(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary,bool is_anchor_repeated, bool reverse, string SeedName );
 
     gatb::core::tools::dp::IteratorListener* _progress;
 

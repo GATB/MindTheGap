@@ -25,7 +25,7 @@
 #include <set>
 #include <stdlib.h>
 #include <vector>
-#include <algorithm> 
+#include <algorithm>
 #include <iostream>
 
 using namespace std;
@@ -46,26 +46,27 @@ typedef unordered_map<string, bkpt_t> bkpt_dict_t;
 class filled_insertion_t
 {
 public:
-	
+
     filled_insertion_t(string insert, int nb_errors, bkpt_t targetId) : nb_errors_in_anchor(nb_errors), targetId_anchor(targetId)	{
-		seq = insert;
-	}
+        seq = insert;
+    }
     filled_insertion_t(string insert, int nb_errors) : nb_errors_in_anchor(nb_errors) {
         seq = insert;
     }
-	
-	string seq;
-	int nb_errors_in_anchor;
+
+    string seq;
+    int nb_errors_in_anchor;
     //bool is_anchor_repeated;
-	
-	float avg_coverage;
-	float median_coverage;
+
+    float avg_coverage;
+    float median_coverage;
     bkpt_t targetId_anchor;
-    
+    int altered_seq;
     int qual;
     int solution_count;
     int solution_rank;
-
+    string sourceSeq;
+    string targetSeq;
     //required to be inserted in set
     bool operator< (const filled_insertion_t & other) const
     {
@@ -74,21 +75,21 @@ public:
         else
             return this->seq < other.seq;
     }
-	
+
     void reverse()
     {
         string reversed = revcomp_sequence(this->seq);
         this->seq = reversed;
-        
+
     }
-    
+
     void compute_qual(bool is_anchor_repeated)
-	{
+    {
         int quality = 50;
 
         if(is_anchor_repeated)
             quality = 25;
-        
+
         if(solution_count>1)
             quality = 15;
 
@@ -97,10 +98,10 @@ public:
 
         if(nb_errors_in_anchor==2)
             quality = 5;
-				
-		this->qual = quality;
-		
-	}
+
+        this->qual = quality;
+
+    }
 };
 
 
@@ -128,8 +129,9 @@ bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int i
 /**
  * reduces the redundancy int the vector of filled sequences : removes from the input vectot the sequences that are more than 90% similar with at least an other one in the vector.
  */
-void remove_almost_identical_solutions(std::vector<filled_insertion_t>& consensuses, int identity_threshold);
+void remove_almost_identical_solutions(std::vector<filled_insertion_t>& consensuses, int identity_threshold,string sourceSequence,string targetSequence);
 
+void remove_false_Het_insertion (std::vector<filled_insertion_t>& consensuses, string info_hetero, string sourceSequence, string targetSequence);
 
 double median(std::vector<unsigned int> &v);
 

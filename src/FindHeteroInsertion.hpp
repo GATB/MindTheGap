@@ -45,44 +45,127 @@ FindHeteroInsertion<span>::FindHeteroInsertion(FindBreakpoints<span> * find) : I
 template<size_t span>
 bool FindHeteroInsertion<span>::update()
 {
-	if(!this->_find->homo_only())
-	{
-		// hetero site detection
-		if(!this->_find->kmer_end_is_repeated() && this->_find->current_info().nb_in == 2 && !this->_find->recent_hetero())
-		{
-			//loop over putative repeat size (0=clean, >0 fuzzy), reports only the smallest repeat size found.
-			for(int i = 0; i <= this->_find->max_repeat(); i++)
-			{
-				if(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 && !this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated)
-				{
-					//hetero breakpoint found
-					string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer);
-					//string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
+    if(!this->_find->homo_only() )
+    {
+        //cout << this->_find->model().toString(this->_find->current_info().kmer) << endl;
+        //if (this->_find->current_info().nb_out == 2 ) { cout << " NB_OUT = 2 :" <<  this->_find->model().toString(this->_find->current_info().kmer) << "POSITION : " << this->_find->position() << endl;}
+       // if (this->_find->current_info().nb_in == 2 ) { cout <<  " NB_in = 2 :" <<  this->_find->model().toString(this->_find->current_info().kmer) << "POSITION : " << this->_find->position() << endl; }
+        //cout << "Gap size" << this->_find->gap_stretch_size() <<"snp_near " << this->_find->recent_snp() <<  endl;
+        // hetero site detection
+        if(!this->_find->kmer_end_is_repeated() && this->_find->current_info().nb_in == 2 && !this->_find->recent_hetero() && this->_find->gap_stretch_size()==0)
+        {
+            //std::cout<<"\n Heterozygote suspect " << this->_find->position()-1  << endl;
+            //std::cout << " gap stretch size " <<  this->_find->gap_stretch_size() << endl;
+            //loop over putative repeat size (0=clean, >0 fuzzy), reports only the smallest repeat size found.
+
+            for(int i = 0; i <= this->_find->max_repeat(); i++)
+            {
+        //cout<<" \n" << i << this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index() +i).kmer)<< endl;
+                if(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 && !this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated) //this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 &&
+                {
+                    //std::cout<<"\n Heterozygote suspect " << this->_find->position()-1  << endl;
+                    //hetero breakpoint found
+                    string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer);
+                    //string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
                     //modif 15/06/2018 to check !!! (before in case of fuzzy>0, the end and right kmers overlapped, => insertion of wrong size (- fuzzy), missing the repeat + loss of recall if insertion of size < repeat)
                     string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() + i]), this->_find->kmer_size());
-					this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
-					
-					this->_find->breakpoint_id_iterate();
-					
-					if(i==0)
-					{
-						this->_find->hetero_clean_iterate();
-					}
-					else
-					{
-						this->_find->hetero_fuzzy_iterate();
-					}
-					
-					this->_find->recent_hetero(this->_find->max_repeat()); // we found a breakpoint, the next hetero one mus be at least _max_repeat apart from this one.
-					return true; //reports only the smallest repeat size found.
-				}
-			}
-		}
-		
-		this->_find->recent_hetero(max(0, this->_find->recent_hetero() - 1));  // when recent_hetero=0 : we are sufficiently far from the previous hetero-site
-	}
-	
-	return false;
+                    string found_snp="none";
+                    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,found_snp,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
+
+                    this->_find->breakpoint_id_iterate();
+
+                    if(i==0)
+                    {
+                        this->_find->hetero_clean_iterate();
+                    }
+                    else
+                    {
+                        this->_find->hetero_fuzzy_iterate();
+                    }
+
+                    this->_find->recent_hetero(this->_find->max_repeat()); // we found a breakpoint, the next hetero one mus be at least _max_repeat apart from this one.
+                    return true; //reports only the smallest repeat size found.
+                }
+            }
+        }
+            // Find heterozygote insertion with SNP upstream the insertion (<k-1 distance)
+            if(!this->_find->kmer_end_is_repeated() && this->_find->current_info().nb_in == 2 && !this->_find->recent_hetero() )
+            {
+
+               if(this->_find->recent_snp()>0 || this->_find->gap_stretch_size()>0 )
+               {
+
+
+                // cout << "Gap size" << this->_find->gap_stretch_size() <<"snp_near " << this->_find->recent_snp() <<  endl;
+                // TODO : FUZZY INSERTION
+                //cout << "\n POSITION INIT : " << this->_find->position() <<endl;
+                    for(size_t i =0; i <= this->_find->kmer_size(); i++)
+                    {
+                       // cout << "\n I " << i << endl;
+                      // cout << "\n " << " POSITION " <<  this->_find->position()-1-i<< "\n SEQU : " <<this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i-1)).kmer) << endl;
+                       if(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).nb_out==1 && !this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).is_repeated)
+                       {
+                           //cout << "\n I " << i << endl;
+                           //cout << "\n " << " POSITION " <<  this->_find->position()-1-i << "\n SEQU : " <<this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).kmer) << "\n nb out" << this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).nb_out << endl;
+                           //cout << " \n GAP : " << this->_find->gap_stretch_size() << endl;
+                           //cout << "\n TEST" << endl;
+                           string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).kmer);
+                           string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
+                           string found_snp="up";
+                           this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1-i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,found_snp,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
+
+                           this->_find->breakpoint_id_iterate();
+                           // TODO FUZZY INSERTION
+                           this->_find->hetero_clean_iterate();
+                           this->_find->recent_hetero(this->_find->max_repeat());
+                           this->_find->recent_snp(0);
+                           return true;
+                       }
+                    }
+                }
+            }
+
+
+        //Find heterozygote insertion with SNP downstream the insertion (<k-1 distance) TODO NOT DONE
+        if(!this->_find->kmer_end_is_repeated() && this->_find->current_info().nb_in == 1 && !this->_find->recent_hetero() )
+        {
+           if(this->_find->recent_snp()>0 || this->_find->gap_stretch_size()>0 )
+           {
+           // cout << "\n POSITION INIT : " << this->_find->position() <<endl;
+           // cout << "\n seq :" << this->_find->model().toString(this->_find->current_info().kmer) << endl;
+           // cout << " \n GAP : " << this->_find->gap_stretch_size() << endl;
+               // cout << "Gap size" << this->_find->gap_stretch_size() <<"snp_near " << this->_find->recent_snp() << "recent hetero" << this->_find->recent_hetero() <<  endl;
+                for(size_t i =0; i <= this->_find->kmer_size(); i++)
+                {
+                    //cout << "\n I " << i << endl;
+                    //cout << "\n " << " POSITION " <<  this->_find->position()-1-i-this->_find->gap_stretch_size() << "\n SEQU : " <<this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i-+this->_find->gap_stretch_size()).kmer) << endl;
+                   if(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).nb_out==2 && !this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).is_repeated)
+                   {
+                       //cout << "\n I " << i << endl;
+                       //cout << "\n " << " POSITION " <<  this->_find->position()-1-i << "\n SEQU : " <<this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).kmer) << "\n nb out" << this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).nb_out << endl;
+                       //cout << " \n GAP : " << this->_find->gap_stretch_size() << endl;
+                       string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-i).kmer);
+                       string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
+                       string found_snp="down";
+                       this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1-i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,found_snp,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
+
+                       this->_find->breakpoint_id_iterate();
+                       // TODO FUZZY INSERTION
+                       this->_find->hetero_clean_iterate();
+                       this->_find->recent_hetero(this->_find->max_repeat());
+                       this->_find->recent_snp(0);
+                       return true;
+                   }
+                }
+            }
+        }
+        //cout << "\n OK" <<  this->_find->m_recent_hetero() << endl;
+
+        this->_find->recent_hetero(max(0, this->_find->recent_hetero() - 1));  // when recent_hetero=0 : we are sufficiently far from the previous hetero-site
+
+    }
+
+    return false;
 }
 
 #endif /* _TOOL_FindHetero_HPP_ */

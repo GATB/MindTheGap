@@ -27,7 +27,8 @@
 #include <FindInsertion.hpp>
 #include <FindSNP.hpp>
 #include <limits> //for std::numeric_limits
-
+#include <map>
+//#define MAX_LINE_LEN 1000
 //#define PRINT_DEBUG
 /********************************************************************************/
 
@@ -42,11 +43,11 @@ Finder::~Finder()
 
 void HelpFinder(void* target)
 {
-	if(target!=NULL)
-	{
-		Finder * obj = (Finder *) target;
-		obj->FinderHelp();
-	}
+    if(target!=NULL)
+    {
+        Finder * obj = (Finder *) target;
+        obj->FinderHelp();
+    }
 }
 /*********************************************************************
  ** METHOD  :
@@ -75,22 +76,21 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _nb_solo_snp = 0;
     _nb_multi_snp = 0;
     _nb_backup = 0;
-    
     _homo_only = false;
     _homo_insert = true;
     _hete_insert = true;
     _snp = true;
     _backup = false;
     _deletion = true;
-	
-	setHelp(&HelpFinder);
-	setHelpTarget(this);
-	
+    _bed_file_name="";
+    setHelp(&HelpFinder);
+    setHelpTarget(this);
+
     // Option parser, with several sub-parsers
     setParser (new OptionsParser ("MindTheGap find"));
 
     IOptionsParser* generalParser = new OptionsParser("General");
-	
+
     // generalParser->push_back (new OptionNoParam (STR_VERSION, "version", false)); // move this option in the main.cpp
     generalParser->push_front (new OptionOneParam (STR_VERBOSE,     "verbosity level",      false, "1"  ));
     generalParser->push_front (new OptionOneParam (STR_MAX_MEMORY, "max memory for graph building (in MBytes)", false, "2000"));
@@ -99,12 +99,13 @@ Finder::Finder ()  : Tool ("MindTheGap find")
 
     IOptionsParser* inputParser = new OptionsParser("Input / output");
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
-	inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT_TMP, "prefix for output temporary files", false, "."));
-	
-	
+    inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT_TMP, "prefix for output temporary files", false, "."));
+
+
     inputParser->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", true,""));
     inputParser->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
+    inputParser->push_front (new OptionOneParam (STR_BED, "bed file", false,""));
 
     IOptionsParser* finderParser = new OptionsParser("Detection");
     finderParser->push_front (new OptionNoParam (STR_INSERT_ONLY, "search only insertion breakpoints (do not report other variants)", false));
@@ -144,7 +145,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     //TODO for release : change 3 -> auto
     graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "auto"));
     graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
-	//IOptionsParser* graphParser = SortingCountAlgorithm<>::getOptionsParser(false);
+    //IOptionsParser* graphParser = SortingCountAlgorithm<>::getOptionsParser(false);
     //graphParser->setName ("Graph building");
 
     /** We hide some options. */
@@ -161,16 +162,16 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     getParser()->push_front(finderParser);
     getParser()->push_front(graphParser);
     getParser()->push_front(inputParser);
-    
+
 }
 
 
 void Finder::FinderHelp()
 {
-	cout << endl << "Usage:  MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
-	OptionsHelpVisitor v(cout);
-	getParser()->accept(v);
-	throw Exception(); // to get out with EXIT_FAILURE
+    cout << endl << "Usage:  MindTheGap find (-in <reads.fq> | -graph <graph.h5>) -ref <reference.fa> [options]" << endl;
+    OptionsHelpVisitor v(cout);
+    getParser()->accept(v);
+    throw Exception(); // to get out with EXIT_FAILURE
 }
 
 /*********************************************************************
@@ -183,7 +184,7 @@ void Finder::FinderHelp()
  *********************************************************************/
 void Finder::execute ()
 {
-    
+
 
 
     // Checks mandatory options
@@ -191,9 +192,9 @@ void Finder::execute ()
     {
         throw OptionFailure(getParser(), "ERROR: options -graph and -in are incompatible, but at least one of these is mandatory");
     }
-    
+
     if (getInput()->get(STR_URI_REF) == 0){
-    	throw OptionFailure(getParser(), "ERROR: option -ref is mandatory");
+        throw OptionFailure(getParser(), "ERROR: option -ref is mandatory");
     }
 
 
@@ -206,25 +207,31 @@ void Finder::execute ()
         tstruct = *localtime(&now);
         strftime(buf, sizeof(buf), "%Y-%m-%d.%I:%M", &tstruct);
         string outputPrefix="MindTheGap_Expe-"+string(buf);
-        
+
         getInput()->add (0, STR_URI_OUTPUT, outputPrefix);
     }
-    
 
+
+
+    if(getInput()->get(STR_BED) != 0)
+    {
+        _bed_file_name=getInput()->getStr(STR_BED);
+
+     }
     // Getting the graph
-	
+
 
     // Case 1 : -in option, we create the graph from read files
     if (getInput()->get(STR_URI_INPUT) != 0)
     {
         //fprintf(log,"Creating the graph from file(s) %s\n",getInput()->getStr(STR_URI_INPUT).c_str());
-        
+
         // We need to add the options of dbgh5/Graph that were masked to the user
-    	getInput()->add(0,STR_SOLIDITY_KIND, "sum"); //way to consider a solid kmer with several datasets (sum, min or max)
+        getInput()->add(0,STR_SOLIDITY_KIND, "sum"); //way to consider a solid kmer with several datasets (sum, min or max)
 
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
-		//getInput()->add(0,STR_URI_OUTPUT_TMP, ".");
+        //getInput()->add(0,STR_URI_OUTPUT_TMP, ".");
         getInput()->add(0,STR_BLOOM_TYPE, "basic"); //neighbor basic cache
         getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //DO NOT use cascading : generates too many FP inside  pas bien car bcp plus de FP non critique au milieur trou
         getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
@@ -240,20 +247,20 @@ void Finder::execute ()
         getInput()->add(0,STR_STORAGE_TYPE,"hdf5");
 
         //getInput()->add(0,STR_URI_SOLID_KMERS, ""); //DONOT uncomment this line, otherwise solid kmers are stored in file ./.h5 outside from the considered graph h5 file.
-        
+
         //Warning if kmer size >128 cascading debloom does not work
         if(getInput()->getInt(STR_KMER_SIZE)>128){
             getInput()->get(STR_DEBLOOM_TYPE)->value="original";
         }
-        
+
         //de Bruijn graph building
         _graph = Graph::create (getInput());
 
-		
+
         _kmerSize = getInput()->getInt(STR_KMER_SIZE);
-        
+
     }
-    
+
     // Case 2 : -graph option, we load the graph from a .h5 file
     if (getInput()->get(STR_URI_GRAPH) != 0)
     {
@@ -275,9 +282,9 @@ void Finder::execute ()
     _vcf_file_name = getInput()->getStr(STR_URI_OUTPUT)+".othervariants.vcf";
     _vcf_file = fopen(_vcf_file_name.c_str(), "w");
     if(_vcf_file == NULL){
-    	//cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
-    	string message = "Cannot open file "+ _vcf_file_name + " for writting";
-    	throw Exception(message.c_str());
+        //cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
+        string message = "Cannot open file "+ _vcf_file_name + " for writting";
+        throw Exception(message.c_str());
     }
     writeVcfHeader();
 
@@ -285,7 +292,7 @@ void Finder::execute ()
     //_refBank = new BankFasta(getInput()->getStr(STR_URI_REF));
     _refBank = Bank::open(getInput()->getStr(STR_URI_REF)); // more general can be a list or a file of files
     _refBank->use(); //to be able to use the bank several times (do not forget at the end to do _refBank->forget() = delete)
-    
+
     //Getting other parameters
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_repeat = getInput()->getInt(STR_MAX_REPEAT);
@@ -293,82 +300,82 @@ void Finder::execute ()
     _snp_min_val=getInput()->getInt(STR_SNP_MIN_VAL);
 
     if(_het_max_occ<1){
-    	_het_max_occ=1;
+        _het_max_occ=1;
     }
 
     if(getInput()->get(STR_HOMO_ONLY) != 0)
     {
-	_homo_only = true;
-	_homo_insert = true;
-	_hete_insert = false;
-	_snp = true;
-	_backup = false;
-	_deletion = true;
+    _homo_only = true;
+    _homo_insert = true;
+    _hete_insert = false;
+    _snp = true;
+    _backup = false;
+    _deletion = true;
     }
-    
+
     if(getInput()->get(STR_INSERT_ONLY) != 0)
     {
-	_homo_only = false;
-	_homo_insert = true;
-	_hete_insert = true;
-	_snp = false;
-	_backup = false;
-	_deletion = false;
+    _homo_only = false;
+    _homo_insert = true;
+    _hete_insert = true;
+    _snp = false;
+    _backup = false;
+    _deletion = false;
     }
 
     if(getInput()->get(STR_SNP_ONLY) != 0)
     {
-	_homo_only = true;
-	_homo_insert = false;
-	_hete_insert = false;
-	_snp = true;
-	_backup = false;
-	_deletion = false;
+    _homo_only = true;
+    _homo_insert = false;
+    _hete_insert = false;
+    _snp = true;
+    _backup = false;
+    _deletion = false;
     }
 
     if(getInput()->get(STR_DELETION_ONLY) != 0)
     {
-	_homo_only = true;
-	_homo_insert = false;
-	_hete_insert = false;
-	_snp = false;
-	_backup = false;
-	_deletion = true;
+    _homo_only = true;
+    _homo_insert = false;
+    _hete_insert = false;
+    _snp = false;
+    _backup = false;
+    _deletion = true;
     }
 
     if(getInput()->get(STR_HETERO_ONLY) != 0)
     {
-	_homo_only = false;
-	_homo_insert = false;
-	_hete_insert = true;
-	_snp = false;
-	_backup = false;
-	_deletion = false;
+    _homo_only = false;
+    _homo_insert = false;
+    _hete_insert = true;
+    _snp = false;
+    _backup = false;
+    _deletion = false;
     }
 
     if(getInput()->get(STR_WITH_BACKUP) != 0)
     {
-	_backup = true;
+    _backup = true;
     }
 
     if(getInput()->get(STR_NO_SNP) != 0)
     {
-	_snp = false;
+    _snp = false;
     }
 
     if(getInput()->get(STR_NO_INSERT) != 0)
     {
-	_homo_insert = false;
+    _homo_insert = false;
     }
 
     if(getInput()->get(STR_NO_DELETION) != 0)
     {
-	_deletion = false;
+    _deletion = false;
     }
 
     if(getInput()->get(STR_NO_HETERO) != 0)
     {
-	_hete_insert = false;
+    _hete_insert = false;
     }
 
     // Now do the job
@@ -389,7 +396,7 @@ void Finder::execute ()
 }
 
 void Finder::resumeParameters(){
-    
+
     getInfo()->add(0,"MindTheGap find");
     getInfo()->add(1,"version",_mtg_version);
     getInfo()->add(1,"gatb-core-library",System::info().getVersion().c_str());
@@ -411,9 +418,9 @@ void Finder::resumeParameters(){
     //In MindTheGap, solidity-kind always at "sum" (not tunable)
     //getInfo()->add(2,"solidity_kind",_graph.getInfo().getStr("solidity_kind").c_str());
     try { // use try/catch because this key is present only if auto asked
-    	getInfo()->add(2,"abundance_min (auto inferred)",_graph.getInfo().getStr("cutoffs_auto.values").c_str());
+        getInfo()->add(2,"abundance_min (auto inferred)",_graph.getInfo().getStr("cutoffs_auto.values").c_str());
     } catch (Exception e) {
-    	// doing nothing
+        // doing nothing
     }
     string min_abundance;
     //if(_graph.getInfo().getStr("solidity_kind")=="sum"){
@@ -428,15 +435,15 @@ void Finder::resumeParameters(){
     getInfo()->add(2,"abundance_min (used)",min_abundance);
 
     try { // version actuelle info manquante si -graph
-    	getInfo()->add(2,"abundance_max",_graph.getInfo().getStr("abundance_max").c_str());
+        getInfo()->add(2,"abundance_max",_graph.getInfo().getStr("abundance_max").c_str());
     } catch (Exception e) {
-    	// doing nothing
+        // doing nothing
     }
     try { // entour try/catch ici au cas ou le nom de la cle change dans gatb-core
-    	getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
-    	getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
+        getInfo()->add(2,"nb_solid_kmers",_graph.getInfo().getStr("kmers_nb_solid").c_str());
+        getInfo()->add(2,"nb_branching_nodes",_graph.getInfo().getStr("nb_branching").c_str());
     } catch (Exception e) {
-    	// doing nothing
+        // doing nothing
     }
 
     getInfo()->add(1,"Breakpoint detection options");
@@ -446,7 +453,7 @@ void Finder::resumeParameters(){
     getInfo()->add(2,"hete_insertions","%s", _hete_insert ? "yes" : "no");
     getInfo()->add(2,"snp","%s", _snp ? "yes" : "no");
     //getInfo()->add(2,"backup","%s", _backup ? "yes" : "no");
-    getInfo()->add(2,"deletion","%s", _deletion ? "yes" : "no");    
+    getInfo()->add(2,"deletion","%s", _deletion ? "yes" : "no");
 }
 
 void Finder::resumeResults(double seconds){
@@ -479,22 +486,22 @@ void Finder::resumeResults(double seconds){
 
 void Finder::writeVcfHeader(){
 
-	string sample="";
-	if (getInput()->get(STR_URI_INPUT) != 0){
-		sample = getInput()->getStr(STR_URI_INPUT);
-	}
-	if (getInput()->get(STR_URI_GRAPH) != 0){
-		sample=getInput()->getStr(STR_URI_GRAPH);
-	}
+    string sample="";
+    if (getInput()->get(STR_URI_INPUT) != 0){
+        sample = getInput()->getStr(STR_URI_INPUT);
+    }
+    if (getInput()->get(STR_URI_GRAPH) != 0){
+        sample=getInput()->getStr(STR_URI_GRAPH);
+    }
 
-	//getting the date
-	time_t current_time;
-	char* c_time_string;
-	current_time = time(NULL);
-	c_time_string = ctime(&current_time);
+    //getting the date
+    time_t current_time;
+    char* c_time_string;
+    current_time = time(NULL);
+    c_time_string = ctime(&current_time);
 
-	fprintf(_vcf_file,
-			"##fileformat=VCFv4.1\n\
+    fprintf(_vcf_file,
+            "##fileformat=VCFv4.1\n\
 ##filedate=%s\
 ##source=MindTheGap find version %s\n\
 ##SAMPLE=file:%s\n\
@@ -510,40 +517,43 @@ c_time_string, _mtg_version, sample.c_str(),getInput()->getStr(STR_URI_REF).c_st
 template<size_t span>
 void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 {
-	FindBreakpoints<span> findBreakpoints(object);
-	
-	/* Add Gap observer */
-	if(object->_snp)
-	{
-		findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
-		//findBreakpoints.addGapObserver(new FindFuzzySNP<span>(&findBreakpoints));
-		findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
-		findBreakpoints.addGapObserver(new FindMultiSNPrev<span>(&findBreakpoints));
+    FindBreakpoints<span> findBreakpoints(object);
 
-	}
-	
-	if(object->_deletion)
-	{
-		findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
-	}
-	
-	if(object->_homo_insert)
-	{
-		findBreakpoints.addGapObserver(new FindCleanInsertion<span>(&findBreakpoints));
-		findBreakpoints.addGapObserver(new FindFuzzyInsertion<span>(&findBreakpoints));
-	}
-	
-	if(object->_backup)
-	{
-		findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
-	}
-	
-	/* Add kmer observer*/
-	if(object->_hete_insert)
-	{
-		findBreakpoints.addKmerObserver(new FindHeteroInsertion<span>(&findBreakpoints));
-	}
-	
-	/* Run */
-	findBreakpoints();
+    /* Add Gap observer */
+    if(object->_snp)
+    {
+        findBreakpoints.addGapObserver(new FindSoloSNP<span>(&findBreakpoints));
+        //findBreakpoints.addGapObserver(new FindFuzzySNP<span>(&findBreakpoints));
+        findBreakpoints.addGapObserver(new FindMultiSNP<span>(&findBreakpoints));
+        findBreakpoints.addGapObserver(new FindMultiSNPrev<span>(&findBreakpoints));
+
+    }
+
+    if(object->_deletion)
+    {
+        findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
+    }
+
+    /* Add kmer observer*/
+    if(object->_hete_insert)
+    {
+        findBreakpoints.addKmerObserver(new FindHeteroInsertion<span>(&findBreakpoints));
+    }
+
+    if(object->_homo_insert)
+    {
+        findBreakpoints.addGapObserver(new FindCleanInsertion<span>(&findBreakpoints));
+        findBreakpoints.addGapObserver(new FindFuzzyInsertion<span>(&findBreakpoints));
+    }
+
+    if(object->_backup)
+    {
+        findBreakpoints.addGapObserver(new FindBackup<span>(&findBreakpoints));
+    }
+
+
+
+    /* Run */
+    findBreakpoints();
 }
+
