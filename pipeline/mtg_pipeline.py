@@ -36,9 +36,10 @@ parserCore = parser.add_argument_group("[core options]")
 parserMain.add_argument('-in', action="store", dest="input_file", help="input reads file", required=False)
 parserMain.add_argument('-1', action="store", dest="input_file1", help="input reads first file", required=False)
 parserMain.add_argument('-2', action="store", dest="input_file2", help="input reads second file", required=False)
+parserMain.add_argument('-fof', action="store", dest="input_fof", help="input file of read files", required=False)
 parserMain.add_argument('-out', action="store", dest="out", default="./mtg_results", help="output directory for result files")
 
-parserMapping.add_argument('-ref', action="store", dest="ref_genome", help="bwa index", required=True)
+parserMapping.add_argument('-ref', action="store", dest="ref_genome", help="bwa index", required=False)
 
 parserAssembly.add_argument('-minia-bin', action="store", dest="minia_bin", help="path to Minia binary")
 parserAssembly.add_argument('-assembly-kmer-size', action="store", dest="minia_kmer_size", help="kmer size used for Minia mapping", default="31")
@@ -59,14 +60,14 @@ parserCore.add_argument('-nb-cores', action="store", dest="nb_cores", help="numb
 
 args =  parser.parse_args()
 
-if args.input_file is None and (args.input_file1 is None or args.input_file2 is None) :
-    parser.error("Please supply reads as -in or -1/-2")
+if args.input_file is None and (args.input_file1 is None or args.input_file2 is None) and (args.input_fof is None):
+    parser.error("Please supply reads as -in or -1/-2 or -fof")
 
 if args.continue_contigs is None and args.ref_genome is None:
     parser.error("Either -ref or -contigs is required")
 
 if args.continue_contigs is None and args.minia_bin is None and shutil.which("minia") is None :
-    parser.error("Either -ref or -minia-bin is required")
+    parser.error("minia is not in PATH, please supply -minia-bin argument")
 
 if (shutil.which("MindTheGap") is None or shutil.which("dbgh5") is None) and args.mtg_dir is None:
     parser.error("MindTheGap and dbgh5 are not in PATH, please supply -mtg-dir argument")
@@ -100,42 +101,88 @@ if args.continue_contigs is None:
     mappingDir = os.path.join(outDir, "mapping")
     if not os.path.exists(mappingDir): os.makedirs(mappingDir)
 
-    #Create commands
-    mappingCommand = "bwa mem"
-    mappingCommand += " -t " + args.nb_cores
-    mappingCommand += " " + args.ref_genome
-    if args.input_file is None:
-        mappingCommand += " " + args.input_file1 + " " + args.input_file2
-    else:
-         mappingCommand += " " + args.input_file
+    input1 = []
+    input2 = []
+    #Getting input files
+    if args.input_file is not None:
+        input1.append(args.input_file)
+        input2.append("")
+    if args.input_file1 is not None:
+        input1.append(args.input_file1)
+        input2.append(args.input_file2)
+    if args.input_fof is not None:
+        fofFile=open(args.input_fof,'r')
+        for line in fofFile:
+            input1.append(line)
+            input2.append("")
+
     mappingLog = os.path.join(logsDir,"mapping.log")
 
-    sam2bamCommand = "samtools view -b -F 4 -"
-    bamFile = os.path.join(mappingDir,"mapped.bam")
+
+    #Check if ref is indexed
+    if not os.path.exists(args.ref_genome+".bwt"):
+        logger.info("Indexing reference genome")
+        indexCommand = "bwa index " + args.ref_genome
+        with open(mappingLog,"wb") as log:
+            p = subprocess.Popen(indexCommand.split(),stdout=log,stderr=log)
+        p.wait()
+        if p.returncode != 0: logger.error("Indexing ref genome failed"); exit(1)
+
+    logger.info("Starting mapping")
+
 
     fqFile = os.path.join(mappingDir,"mapped_reads.fastq")
-    bam2fqCommand = "samtools bam2fq " + mappingDir + "/mapped.bam"
+    catCommand = "cat "
+    nbTotReads = 0
 
-    # Executing
-    logger.info("Starting mapping")
-    logger.info("\tCall : "+ mappingCommand)
+    for i in range(len(input1)):
+        name="file" + str(i)
+        #Create commands
+        mappingCommand = "bwa mem"
+        mappingCommand += " -t " + args.nb_cores
+        mappingCommand += " " + args.ref_genome
+        mappingCommand += " " + input1[i] + " " + input2[i]
 
-    with open(mappingLog,"wb") as out:
-        p1 = subprocess.Popen(mappingCommand.split(),stdout=subprocess.PIPE,stderr=out)
-        p2 = subprocess.Popen(sam2bamCommand.split(),stdin=p1.stdout,stdout=open(bamFile,"w"),stderr=out)
-    p2.wait()
-    if p2.returncode != 0: logger.error("Mapping failed"); exit(1)
+        sam2bamCommand = "samtools view -b -F 4 -"
+        bamFile = os.path.join(mappingDir, name + ".bam")
 
-    with open(fqFile,"wb") as out,open(mappingLog,"wb") as log:
-        p = subprocess.Popen(bam2fqCommand.split(),stdout=out,stderr=subprocess.PIPE)
-        out.close()
+        tmpFqFile = os.path.join(mappingDir, name + "_mapped_reads.fastq")
+        bam2fqCommand = "samtools bam2fq " + bamFile
+
+        # Executing
+        logger.info("\tCall : "+ mappingCommand)
+
+        with open(mappingLog,"wb") as out:
+            p1 = subprocess.Popen(mappingCommand.split(),stdout=subprocess.PIPE,stderr=out)
+            p2 = subprocess.Popen(sam2bamCommand.split(),stdin=p1.stdout,stdout=open(bamFile,"w"),stderr=out)
+        p2.wait()
+        if p2.returncode != 0: logger.error("Mapping failed"); exit(1)
+
+        with open(tmpFqFile,"wb") as out,open(mappingLog,"wb") as log:
+            p = subprocess.Popen(bam2fqCommand.split(),stdout=out,stderr=subprocess.PIPE)
+            out.close()
+        p.wait()
+        if p.returncode != 0: logger.error("Conversion to fastq failed"); exit(1)
+
+        logger.info(name + " : Mapping done")
+        logLine = p.stderr.readlines()[-1]
+        nbReads = [int(s) for s in logLine.split() if s.isdigit()]
+        logger.info(name + " : " + str(nbReads)+" reads mapped")
+
+        catCommand += " " + tmpFqFile
+
+        nbTotReads += sum(nbReads)
+
+    #Concatenation of fastq files
+    with open(fqFile,"wb") as out, open(mappingLog,"wb") as log:
+        #print(catCommand)
+        p = subprocess.Popen(catCommand.split(),stdout=out,stderr=log)
     p.wait()
-    if p.returncode != 0: logger.error("Conversion to fastq failed"); exit(1)
+    if p.returncode != 0: logger.error("Cat fastq files failed"); exit(1)
 
-    logger.info("Mapping done")
-    logLine = p.stderr.readlines()[-1]
-    nbReads = [int(s) for s in logLine.split() if s.isdigit()]
-    logger.info(str(nbReads)+" reads mapped")
+    logger.info("All mapping done")
+    logger.info(str(nbTotReads)+" reads mapped")
+
 
 mappingTime = time.time()
 mappingDuration = round(mappingTime - startTime,1)
@@ -163,11 +210,6 @@ if args.continue_contigs is None:
     assemblyCommand += " -out-tmp " + assemblyDir
     assemblyLog = os.path.join(logsDir,"assembly.log")
 
-    scriptPath = sys.path[0]
-    filteringCommand = os.path.join(scriptPath,"filter_contigs.py")
-    filteringCommand.append(args.min_contig_size)
-
-    logger.info("Starting assembly")
     logger.info("Starting assembly")
     logger.info("\tCall : "+ assemblyCommand)
     logger.info("\tLog file : "+assemblyLog)
@@ -177,8 +219,14 @@ if args.continue_contigs is None:
     p.wait()
     if p.returncode != 0: logger.error("Assembly failed"); exit(1)
 
-    logger.info("Assembly done")
     contigFile = assemblyPrefix + ".contigs.fa"
+
+    #Check if assembly succeeded :
+    if not os.path.exists(contigFile):
+        logger.error("Assembly failed: no contig output (try with other parameters)"); exit(1)
+
+    logger.info("Assembly done")
+
 
 else:
     contigFile = args.continue_contigs
@@ -188,9 +236,13 @@ else:
 contig_stats(contigFile)
 
 logger.info("Filtering contigs")
+scriptPath = sys.path[0]
+filteringCommand = os.path.join(scriptPath,"filter_contigs.py")
+filteringCommand += " " + args.min_contig_size
+
 filteredFile = assemblyPrefix + "_filtered_"+args.min_contig_size+".fa"
 with open(contigFile,"r") as input, open(filteredFile,"w") as output:
-    p = subprocess.Popen(filteringCommand,stdin=input,stdout=output)
+    p = subprocess.Popen(filteringCommand.split(),stdin=input,stdout=output)
 p.wait()
 logger.info("Contigs filtered")
 contig_stats(filteredFile)
@@ -217,10 +269,13 @@ if args.continue_h5 is None:
     else:
         h5Command = [os.path.join(args.mtg_dir,"ext/gatb-core/bin/dbgh5")]
     h5Command = ["/home/genouest/genscale/cguyomar/git/MindTheGap/build/ext/gatb-core/bin/dbgh5"]
-    if args.input_file is None:
+    if args.input_file1 is not None:
         h5Command.extend(["-in",args.input_file1+","+args.input_file2])
-    else:
+    if args.input_file is not None:
         h5Command.extend(["-in",args.input_file])
+    if args.input_fof is not None:
+        h5Command.extend(["-in",args.input_fof])
+
     h5Command.extend(["-kmer-size",args.mtg_kmer_size])
     h5Command.extend(["-abundance-min",args.mtg_abundance])
     h5Command.extend(["-out",h5File])
@@ -285,7 +340,7 @@ for line in logFile:
         logger.info(line.rstrip())
 
 logger.info("Runtime :")
-logger.info("Mapping : " + str(mappingDuration))
-logger.info("Assembly : " + str(assemblyDuration))
-logger.info("Graph creation : " + str(graphDuration))
-logger.info("Gapfilling : " + str(gapfillingDuration))
+logger.info("\tMapping : " + str(mappingDuration))
+logger.info("\tAssembly : " + str(assemblyDuration))
+logger.info("\tGraph creation : " + str(graphDuration))
+logger.info("\tGapfilling : " + str(gapfillingDuration))
