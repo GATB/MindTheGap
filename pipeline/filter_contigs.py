@@ -10,10 +10,13 @@ for line_in in sys.stdin:
     line = line_in.strip()
     if line.startswith('>'):
         if length > minLength:
-            print(seq)
+            print(seq.strip("\n"))
         seq = line+"\n"
         length=0
     else:
         length+=len(line)
         seq+=line
         seq+="\n"
+#last contig
+if length > minLength:
+    print(seq.strip("\n"))
