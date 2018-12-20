@@ -42,7 +42,7 @@ parserMain.add_argument('-out', action="store", dest="out", default="./mtg_resul
 parserMapping.add_argument('-ref', action="store", dest="ref_genome", help="bwa index", required=False)
 
 parserAssembly.add_argument('-minia-bin', action="store", dest="minia_bin", help="path to Minia binary")
-parserAssembly.add_argument('-assembly-kmer-size', action="store", dest="minia_kmer_size", help="kmer size used for Minia mapping", default="31")
+parserAssembly.add_argument('-assembly-kmer-size', action="store", dest="minia_kmer_size", help="kmer size used for Minia assembly (should be given even if bypassing minia assembly step, usefull knowledge for gap-filling)", default="31")
 parserAssembly.add_argument('-assembly-abundance-min', action="store", dest="minia_abundance", help="Minimal abundance of kmers used for assembly", default="auto")
 parserAssembly.add_argument('-min-contig-size', action="store", dest="min_contig_size", default="0", help="minimal size for a contig to be used in gapfilling")
 
@@ -60,8 +60,8 @@ parserCore.add_argument('-nb-cores', action="store", dest="nb_cores", help="numb
 
 args =  parser.parse_args()
 
-if args.input_file is None and (args.input_file1 is None or args.input_file2 is None) and (args.input_fof is None):
-    parser.error("Please supply reads as -in or -1/-2 or -fof")
+if args.input_file is None and (args.input_file1 is None or args.input_file2 is None) and (args.input_fof is None) and (args.continue_h5 is None or args.continue_contigs is None):
+    parser.error("Please supply reads as -in or -1/-2 or -fof or -graph")
 
 if args.continue_contigs is None and args.ref_genome is None:
     parser.error("Either -ref or -contigs is required")
@@ -303,15 +303,12 @@ if args.mtg_dir is None:
 else:
     mtgCommand = [os.path.join(args.mtg_dir,"bin/MindTheGap")]
 mtgCommand.append("fill" )
-if args.continue_contigs is None:
-    mtgCommand.extend(["-contig",filteredFile])
-else:
-    mtgCommand.extend(["-contig",args.continue_contigs])
+mtgCommand.extend(["-contig",filteredFile])
 if args.continue_h5 is None:
     mtgCommand.extend(["-graph",h5File])
 else:
     mtgCommand.extend(["-graph",args.continue_h5])
-mtgCommand.extend(["-abundance-min",args.mtg_abundance])
+#mtgCommand.extend(["-abundance-min",args.mtg_abundance])
 mtgCommand.extend(["-overlap",args.minia_kmer_size])
 mtgCommand.extend(["-out",gapfillingPrefix])
 mtgCommand.extend(["-nb-cores",args.nb_cores])
