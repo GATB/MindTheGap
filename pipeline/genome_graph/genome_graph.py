@@ -11,7 +11,8 @@ g.edges : adjacency list of the nodes.
 '''
 
 import re
-
+from pipeline.genome_graph.utils import reverse_complement
+from pipeline.genome_graph.SequenceAlignment import NeedlemanWunsch
 
 class GenomeNode:
 
@@ -89,6 +90,13 @@ class GenomeGraph:
        def get_neighbors(self,nodeId):
               return(self.edges[nodeId])
 
+       def get_node_seq(self,nodeId):
+              if nodeId < 0:
+                     nodeSeq = reverse_complement(self.nodes[-nodeId].nodeSeq.strip())
+              else:
+                     nodeSeq = self.nodes[nodeId].nodeSeq.strip()
+              return(nodeSeq)
+   
            
        @classmethod
        def read_gfa(self,file):
@@ -122,3 +130,59 @@ class GenomeGraph:
               return(g)
 
 
+       ###########  Graph simplification ###########
+
+       def pop_bubble(self,nodeId):
+              n1 = self.get_neighbors(nodeId).copy()
+              n2 = self.get_neighbors(-nodeId).copy()
+
+              if len(n1)==len(n2)==1:
+                     r = self.get_neighbors(-n1.pop())
+                     l = self.get_neighbors(-n2.pop())
+                     assert -nodeId in r and nodeId in l
+
+                     r_rev = {-i for i in r}
+
+                     inter = l & r_rev
+                     assert nodeId in inter
+
+                     if len(inter)>0:
+                            toRemove = self.compare_nodes(inter)
+                            print(toRemove)
+                            for node in toRemove:
+                                   print("Redundant node : " + self.nodes[abs(node)].nodeName)
+                                   print(node)
+                                   self.rem_node(abs(node))
+
+       def pop_all_bubbles(self):
+              for node in list(self.nodes):
+                     print(node)
+                     if node in self.nodes.keys():
+                            self.pop_bubble(node)
+              
+
+
+       def compare_nodes(self,nodeSet):
+              uniq = set()
+              remove = set()
+              for node in nodeSet:
+                     nodeSeq = self.get_node_seq(node) # Gets rc if node<0
+                            
+                     if node in uniq:
+                            continue
+                     foundmatch = False
+                     for refNode in uniq:
+                            refSeq =  self.get_node_seq(refNode)
+                            if refSeq == nodeSeq:
+                                   remove.add(node)
+                                   foundmatch = True
+                            else:
+                                   nw = NeedlemanWunsch(refSeq, nodeSeq, 10, -5, -5)
+                                   id = nw.getIdentity()
+                                   if id > 0.9:
+                                          remove.add(node)
+                                          foundmatch = True
+                                   print(id)
+                     if not foundmatch:
+                            uniq.add(node)
+              return(remove)

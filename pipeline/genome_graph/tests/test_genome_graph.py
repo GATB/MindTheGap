@@ -43,5 +43,14 @@ class GenomeGraphTests(unittest.TestCase):
         assert(g.nodes[1] in g.nodes.values())
         assert(GenomeNode('ATCG','node') not in g.nodes.values() )
 
+    def test_simple_bubles_removal(self):
+        g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
+        g.pop_all_bubbles()
+        assert(len(g.nodes)==19)
+        for node in g.nodes.keys():
+            assert len(g.get_neighbors(node)) <= 1
+            assert len(g.get_neighbors(-node)) <= 1
+
+
 if __name__ == '__main__':
     unittest.main()
