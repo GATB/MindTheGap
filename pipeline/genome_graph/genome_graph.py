@@ -12,6 +12,7 @@ g.edges : adjacency list of the nodes.
 
 import re
 
+
 class GenomeNode:
 
        def __init__(self,nodeSeq,nodeName):
@@ -61,12 +62,12 @@ class GenomeGraph:
 
        def add_edge(self, src,dst):
               self.edges[src].add(dst)
-              self.edges[dst].add(src)
+              self.edges[-dst].add(-src)
 
        def rem_edge(self,src,dst):
               try:
                      self.edges[src].remove(dst)
-                     self.edges[dst].remove(src)
+                     self.edges[-dst].remove(-src)
               except KeyError:
                      print("Edge not in graph")
               
@@ -77,18 +78,18 @@ class GenomeGraph:
                      print("Node not in graph")
 
               for n in self.get_neighbors(nodeId).copy():
-                     self.rem_edge(n,nodeId)
+                     self.rem_edge(-n,-nodeId)
 
               for n in self.get_neighbors(-nodeId).copy():
-                     self.rem_edge(n,-nodeId)
+                     self.rem_edge(-n,nodeId)
 
               self.edges.pop(nodeId)
-              print(-nodeId)
               self.edges.pop(-nodeId)
 
        def get_neighbors(self,nodeId):
               return(self.edges[nodeId])
 
+           
        @classmethod
        def read_gfa(self,file):
               
@@ -119,10 +120,5 @@ class GenomeGraph:
 
                                    g.add_edge(startNode,endNode)                                  
               return(g)
-
-
-
-
-
 
 

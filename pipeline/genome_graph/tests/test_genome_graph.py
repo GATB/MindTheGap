@@ -9,9 +9,8 @@ class GenomeGraphTests(unittest.TestCase):
         g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
         assert(g.nNodes()==28)
         assert(g.nEdges()==36)
-        assert(g.edges[11]=={1,2}) # FF gapfilling
-        assert(g.edges[13]=={-1,-2}) ## RR gapfilling
-    
+        assert(g.edges[11]=={2})
+        assert(g.edges[13]=={-1})
     def test_add_node(self):
         g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
 
@@ -30,7 +29,7 @@ class GenomeGraphTests(unittest.TestCase):
     def test_add_edge(self):
         g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
         g.add_edge(1,2)
-        assert(1 in g.get_neighbors(2))
+        assert(-1 in g.get_neighbors(-2))
         assert(2 in g.get_neighbors(1))
 
     def test_rem_edge(self):
