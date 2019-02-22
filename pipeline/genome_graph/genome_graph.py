@@ -11,8 +11,8 @@ g.edges : adjacency list of the nodes.
 '''
 
 import re
-from pipeline.genome_graph.utils import reverse_complement
-from pipeline.genome_graph.SequenceAlignment import NeedlemanWunsch
+from utils import reverse_complement
+from SequenceAlignment import NeedlemanWunsch
 
 class GenomeNode:
 
@@ -127,7 +127,33 @@ class GenomeGraph:
                                           endNode = - endNode
 
                                    g.add_edge(startNode,endNode)                                  
-              return(g)
+              return(g)     
+
+       def write_gfa(self,filename):
+              with open(filename,"w") as f:
+                     for node in self.nodes.values():
+                            f.write("S\t"+node.nodeName+"\t"+node.nodeSeq)
+                     written_edges = set()
+                     for src_id in self.nodes.keys():
+                            src_name = self.nodes[abs(src_id)].nodeName
+                            for dst_id in self.edges[src_id]:
+                                   if (src_id,dst_id) not in written_edges:
+                                          dst_name = self.nodes[abs(dst_id)].nodeName
+                                          if dst_id > 0:
+                                                 f.write("L\t"+src_name+"\t+\t"+dst_name+"\t+\t"+self.overlap)
+                                          else:
+                                                 f.write("L\t"+src_name+"\t+\t"+dst_name+"\t-\t"+self.overlap)
+                                          written_edges.add((src_id,dst_id))
+                                          written_edges.add((-dst_id,-src_id))
+                            for dst_id in self.edges[-src_id]:
+                                   if (-src_id,dst_id) not in written_edges:
+                                          dst_name = self.nodes[abs(dst_id)].nodeName
+                                          if dst_id > 0:
+                                                 f.write("L\t"+src_name+"\t-\t"+dst_name+"\t+\t"+self.overlap)
+                                          else:
+                                                 f.write("L\t"+src_name+"\t-\t"+dst_name+"\t-\t"+self.overlap)
+                                          written_edges.add((-src_id,dst_id))
+                                          written_edges.add((-dst_id,src_id))
 
 
        ###########  Graph simplification ###########
@@ -148,15 +174,11 @@ class GenomeGraph:
 
                      if len(inter)>0:
                             toRemove = self.compare_nodes(inter)
-                            print(toRemove)
                             for node in toRemove:
-                                   print("Redundant node : " + self.nodes[abs(node)].nodeName)
-                                   print(node)
                                    self.rem_node(abs(node))
 
        def pop_all_bubbles(self):
               for node in list(self.nodes):
-                     print(node)
                      if node in self.nodes.keys():
                             self.pop_bubble(node)
               
@@ -182,7 +204,6 @@ class GenomeGraph:
                                    if id > 0.9:
                                           remove.add(node)
                                           foundmatch = True
-                                   print(id)
                      if not foundmatch:
                             uniq.add(node)
               return(remove)
