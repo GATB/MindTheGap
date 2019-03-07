@@ -11,8 +11,8 @@ g.edges : adjacency list of the nodes.
 '''
 
 import re
-from utils import reverse_complement
-from SequenceAlignment import NeedlemanWunsch
+from pipeline.genome_graph.utils import reverse_complement
+from pipeline.genome_graph.SequenceAlignment import NeedlemanWunsch
 
 class GenomeNode:
 
@@ -61,14 +61,14 @@ class GenomeGraph:
               self.edges[nodeId] = set()
               self.edges[-nodeId] = set()
 
-       def add_edge(self, src,dst):
-              self.edges[src].add(dst)
-              self.edges[-dst].add(-src)
+       def add_edge(self,n1,n2):
+              self.edges[n1].add(n2)
+              self.edges[-n2].add(-n1)
 
-       def rem_edge(self,src,dst):
+       def rem_edge(self,n1,n2):
               try:
-                     self.edges[src].remove(dst)
-                     self.edges[-dst].remove(-src)
+                     self.edges[n1].remove(n2)
+                     self.edges[-n2].remove(-n1)
               except KeyError:
                      print("Edge not in graph")
               
@@ -109,13 +109,14 @@ class GenomeGraph:
                             nlines += 1
                             if re.match(r"S.*", line):
                                    nodeName = line.split("\t")[1]
-                                   nodeSeq = line.split("\t")[2]
+                                   nodeSeq = line.split("\t")[2].strip()
                                    g.add_node(nodeName,nodeSeq)
                                    nodeIds[nodeName] = g.nNodes()
                             elif re.match(r"L.*",line):
                                    startName,startDir,endName,endDir,overlap = line.split("\t")[1:]
-
+                                   
                                    if g.overlap == 0:
+                                          overlap = int(overlap.replace('M\n',''))
                                           g.overlap = overlap
                                    
                                    startNode = nodeIds[startName]
@@ -130,9 +131,10 @@ class GenomeGraph:
               return(g)     
 
        def write_gfa(self,filename):
+              overlap = str(self.overlap) + "M"
               with open(filename,"w") as f:
                      for node in self.nodes.values():
-                            f.write("S\t"+node.nodeName+"\t"+node.nodeSeq)
+                            f.write("S\t"+node.nodeName+"\t"+node.nodeSeq+"\n")
                      written_edges = set()
                      for src_id in self.nodes.keys():
                             src_name = self.nodes[abs(src_id)].nodeName
@@ -140,18 +142,18 @@ class GenomeGraph:
                                    if (src_id,dst_id) not in written_edges:
                                           dst_name = self.nodes[abs(dst_id)].nodeName
                                           if dst_id > 0:
-                                                 f.write("L\t"+src_name+"\t+\t"+dst_name+"\t+\t"+self.overlap)
+                                                 f.write("L\t"+src_name+"\t+\t"+dst_name+"\t+\t"+overlap+"\n")
                                           else:
-                                                 f.write("L\t"+src_name+"\t+\t"+dst_name+"\t-\t"+self.overlap)
+                                                 f.write("L\t"+src_name+"\t+\t"+dst_name+"\t-\t"+overlap+"\n")
                                           written_edges.add((src_id,dst_id))
                                           written_edges.add((-dst_id,-src_id))
                             for dst_id in self.edges[-src_id]:
                                    if (-src_id,dst_id) not in written_edges:
                                           dst_name = self.nodes[abs(dst_id)].nodeName
                                           if dst_id > 0:
-                                                 f.write("L\t"+src_name+"\t-\t"+dst_name+"\t+\t"+self.overlap)
+                                                 f.write("L\t"+src_name+"\t-\t"+dst_name+"\t+\t"+overlap+"\n")
                                           else:
-                                                 f.write("L\t"+src_name+"\t-\t"+dst_name+"\t-\t"+self.overlap)
+                                                 f.write("L\t"+src_name+"\t-\t"+dst_name+"\t-\t"+overlap+"\n")
                                           written_edges.add((-src_id,dst_id))
                                           written_edges.add((-dst_id,src_id))
 
