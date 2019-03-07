@@ -63,5 +63,8 @@ class LinearPath:
         neighbors_right = g.get_neighbors(self.nodeIds[-1])
         for n in neighbors_right:
             g.add_edge(newId,n)
+        
+        for node in self.nodeIds:
+            g.rem_node(abs(node))
 
             
