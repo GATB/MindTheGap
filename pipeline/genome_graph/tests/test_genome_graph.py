@@ -1,6 +1,8 @@
 import unittest
 
 from pipeline.genome_graph.genome_graph import *
+from pipeline.genome_graph.paths import *
+from pipeline.genome_graph.utils import *
 
 
 class GenomeGraphTests(unittest.TestCase):
@@ -51,6 +53,22 @@ class GenomeGraphTests(unittest.TestCase):
             assert len(g.get_neighbors(node)) <= 1
             assert len(g.get_neighbors(-node)) <= 1
 
+
+    def test_branching_path(self):
+        g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
+        p = LinearPath(g,1)
+        for node in g.nodes.keys():
+            p1 = LinearPath(g,node)
+            p2 = LinearPath(g,-node)
+            assert p1.extend(g)==False
+            assert p2.extend(g)==False
+
+    def test_one_linear_path(self):
+        g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
+        g.pop_all_bubbles()
+        p = LinearPath(g,1)
+        assert p.extend(g) == True
+        
 
 if __name__ == '__main__':
     unittest.main()
