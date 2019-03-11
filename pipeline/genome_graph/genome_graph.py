@@ -39,6 +39,7 @@ class GenomeGraph:
               self.nodes = {}
               self.edges = {}
               self.overlap = 0
+              self.maxId = 0
 
        def nNodes(self):
               return(len(self.nodes))
@@ -54,9 +55,11 @@ class GenomeGraph:
                      print("Node already in graph")
                      
               if len(self.nodes)>0:
-                     nodeId = max(self.nodes.keys())+1
+                     self.maxId = self.maxId+1
+                     nodeId = self.maxId
               else: 
                      nodeId = 1
+                     self.maxId = 1
               self.nodes[nodeId] = newNode
               self.edges[nodeId] = set()
               self.edges[-nodeId] = set()
