@@ -1,5 +1,5 @@
 from pipeline.genome_graph.utils import reverse_complement
-from pipeline.genome_graph.genome_graph import *
+#from pipeline.genome_graph.genome_graph import *
 
 class LinearPath:
     def __init__(self,g,nodeId):

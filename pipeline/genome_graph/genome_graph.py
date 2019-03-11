@@ -13,6 +13,7 @@ g.edges : adjacency list of the nodes.
 import re
 from pipeline.genome_graph.utils import reverse_complement
 from pipeline.genome_graph.SequenceAlignment import NeedlemanWunsch
+from pipeline.genome_graph.paths import LinearPath
 
 class GenomeNode:
 
@@ -212,3 +213,24 @@ class GenomeGraph:
                      if not foundmatch:
                             uniq.add(node)
               return(remove)
+       
+       def merge_all_linear_paths(self):
+              visited_nodes = set()
+              node = 1
+              while node < self.maxId:
+                     if node in self.nodes.keys() and node not in visited_nodes:
+                            p = LinearPath(self,node)
+                            extendable = p.extend_right(self)
+                            while extendable:
+                                   extendable = p.extend_right(self)
+                            extendable = p.extend_left(self)
+                            while extendable:
+                                   extendable = p.extend_left(self)
+                            abs_nodes = [abs(n) for n in p.nodeIds]
+                            visited_nodes.update(abs_nodes)
+                            if p.nNodes > 1:
+                                   print("Found one linear path of "+str(len(abs_nodes))+" nodes")
+                                   return(p)
+                                   p.merge(self)
+                     node += 1
+
