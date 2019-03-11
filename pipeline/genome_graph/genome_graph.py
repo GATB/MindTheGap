@@ -203,7 +203,7 @@ class GenomeGraph:
                             else:
                                    nw = NeedlemanWunsch(refSeq, nodeSeq, 10, -5, -5)
                                    id = nw.getIdentity()
-                                   if id > 0.9:
+                                   if id > 0.95:
                                           remove.add(node)
                                           foundmatch = True
                      if not foundmatch:
