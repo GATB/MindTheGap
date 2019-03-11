@@ -55,19 +55,30 @@ class GenomeGraphTests(unittest.TestCase):
 
 
     def test_branching_path(self):
+        # Simple graph only contains branching nodes
         g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
         p = LinearPath(g,1)
         for node in g.nodes.keys():
             p1 = LinearPath(g,node)
             p2 = LinearPath(g,-node)
-            assert p1.extend(g)==False
-            assert p2.extend(g)==False
+            assert p1.extend_right(g)==False
+            assert p2.extend_right(g)==False
 
     def test_one_linear_path(self):
         g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
         g.pop_all_bubbles()
         p = LinearPath(g,1)
-        assert p.extend(g) == True
+        assert p.extend_right(g) == True
+
+    def test_path_extend(self):
+        # Assert that left and right extend have the same output
+        g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
+        g.pop_all_bubbles()
+        p1 = LinearPath(g,1)
+        p1.extend_right(g)
+        p2 = LinearPath(g,11)
+        p2.extend_left(g)
+        p1.nodeIds ==  p2.nodeIds == [1,11]
         
 
 if __name__ == '__main__':
