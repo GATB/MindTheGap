@@ -67,10 +67,9 @@ class LinearPath:
         newName = self.getName(g)
         newSeq = self.getSeq(g)
         g.add_node(newName,newSeq)
-        newId = max(g.nodes.keys())
-        print(newId)
+        newId = g.maxId
 
-        neighbors_left = g.get_neighbors(-self.nodeIds[1])
+        neighbors_left = g.get_neighbors(-self.nodeIds[0])
         for n in neighbors_left:
             g.add_edge(-newId,n)
 
