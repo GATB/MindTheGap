@@ -80,6 +80,16 @@ class GenomeGraphTests(unittest.TestCase):
         p2.extend_left(g)
         p1.nodeIds ==  p2.nodeIds == [1,11]
         
+    def test_simplify_graph(self):
+        g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
+        g.pop_all_bubbles()
+        g.merge_all_linear_paths()
+        assert(len(g.nodes)==1)
+
+        g2 = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple4.gfa")
+        g2.pop_all_bubbles()
+        g2.merge_all_linear_paths()
+
 
 if __name__ == '__main__':
     unittest.main()

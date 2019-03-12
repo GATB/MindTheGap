@@ -230,7 +230,6 @@ class GenomeGraph:
                             visited_nodes.update(abs_nodes)
                             if p.nNodes > 1:
                                    print("Found one linear path of "+str(len(abs_nodes))+" nodes")
-                                   return(p)
                                    p.merge(self)
                      node += 1
 
