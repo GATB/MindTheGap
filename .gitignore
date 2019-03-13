@@ -1,2 +1,4 @@
 build*
 test/output
+.vscode/settings.json
+*.pyc

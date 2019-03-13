@@ -79,7 +79,7 @@ class GenomeGraphTests(unittest.TestCase):
         p2 = LinearPath(g,11)
         p2.extend_left(g)
         p1.nodeIds ==  p2.nodeIds == [1,11]
-        
+
     def test_simplify_graph(self):
         g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple.gfa")
         g.pop_all_bubbles()

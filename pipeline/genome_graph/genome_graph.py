@@ -11,7 +11,7 @@ g.edges : adjacency list of the nodes.
 '''
 
 import re
-from pipeline.genome_graph.utils import reverse_complement
+from pipeline.genome_graph.utils import reverse_complement,compare_strings
 from pipeline.genome_graph.SequenceAlignment import NeedlemanWunsch
 from pipeline.genome_graph.paths import LinearPath
 
@@ -233,3 +233,60 @@ class GenomeGraph:
                                    p.merge(self)
                      node += 1
 
+       def merge_redundant_gapfillings(self,nodeId):
+
+              # Starting from a node, look if an identical part of the adjacent nodes can be merged.
+              # - get adjacent sequences
+              # - use a 100bp window to find potential similar sequences
+              # - for each 100bp primer, 
+              #      - find the position of the first divergence
+              #      - create a new node and shorten previous nodes
+              
+              # Should we only start from a contig node? It makes the program specific to mtg output
+              
+              neighbors = self.get_neighbors(nodeId)
+              neighbors_sequences = [self.get_node_seq(node) for node in neighbors]
+
+              seqStarts = set()
+              for seq in neighbors_sequences:
+                     if seq[0:100] not in seqStarts:  # What if length <100?
+                            seqStarts.add(seq[0:100])
+
+              nbSeq = 0 # Number of different merges
+              for seqStart in seqStarts:
+                     ref = ""
+                     refNode = 0
+                     breakPos = {}
+
+                     for neighbor in neighbors:
+                            nseq = self.get_node_seq(neighbor)
+                            if nseq[0:100] == seqStart:
+                                   if len(ref)==0:
+                                          ref = nseq
+                                          refNode = neighbor
+                                   else:
+                                          breakPos[neighbor] = compare_strings(ref,nseq)
+                     print(len(breakPos))
+                     if len(breakPos)==0:
+                            continue
+                     mergePos = min(breakPos.values())
+                     
+                     consensus = ref[0:mergePos]
+                     
+                     # Add merged node
+                     if nodeId < 0:
+                            dir = "L"
+                     else :
+                            dir = "R"
+                     
+                     newName = self.nodes[nodeId].nodeName + "_extended_" + dir
+                     #self.add_node()
+
+
+                     return(mergePos)
+
+g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple4.gfa")
+g.pop_all_bubbles()
+g.merge_all_linear_paths()
+
+g.merge_redundant_gapfillings(1)                                          
