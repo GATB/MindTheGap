@@ -454,11 +454,16 @@ public:
     string sourceSequence = string(sequence.getDataBuffer(),sequence.getDataSize());
 
     string seedName = sequence.getComment();
+    string seedNameRc;
     string infostring;
     bool isRc = !seedName.compare (seedName.length() - 3, 3, "_Rc");
-
-    //cout << seedName << endl;
-
+    
+    if (isRc) 
+    {
+        seedNameRc = seedName.substr(0,seedName.length() - 3);
+    } else 
+    {   seedNameRc = seedName + "_Rc";
+    }
 
     bool is_anchor_repeated = false;
     bool reverse = false;
@@ -471,11 +476,12 @@ public:
         string& targetName= its->second.first;
         string tempName = targetName;
         if(its->second.second) tempName += "_Rc";
-        if (tempName.compare(seedName) != 0 )
+
+        if (tempName.compare(seedName) != 0 && tempName.compare(seedNameRc) != 0) // Avoid solutions Looping on the same contig
         {
             conc_targetSequence.append(its->first);
             targetDictionary.insert({its->first,its->second});
-        }
+        } 
      }
         
     std::vector<filled_insertion_t> filledSequences;
