@@ -456,7 +456,14 @@ public:
     string seedName = sequence.getComment();
     string seedNameRc;
     string infostring;
-    bool isRc = !seedName.compare (seedName.length() - 3, 3, "_Rc");
+    bool isRc;
+    if (seedName.length() < 3)  // Fix for short contig names 
+    {
+        isRc = false;
+    } else {
+        isRc = !seedName.compare (seedName.length() - 3, 3, "_Rc");
+    }
+    
     
     if (isRc) 
     {
