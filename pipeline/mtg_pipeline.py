@@ -36,7 +36,7 @@ parserCore = parser.add_argument_group("[core options]")
 parserMain.add_argument('-in', action="store", dest="input_file", help="input reads file", required=False)
 parserMain.add_argument('-1', action="store", dest="input_file1", help="input reads first file", required=False)
 parserMain.add_argument('-2', action="store", dest="input_file2", help="input reads second file", required=False)
-parserMain.add_argument('-fof', action="store", dest="input_fof", help="input file of read files", required=False)
+parserMain.add_argument('-fof', action="store", dest="input_fof", help="input file of read files (if paired files, 2 columns tab-separated)", required=False)
 parserMain.add_argument('-out', action="store", dest="out", default="./mtg_results", help="output directory for result files")
 
 parserMapping.add_argument('-ref', action="store", dest="ref_genome", help="bwa index", required=False)
@@ -113,8 +113,13 @@ if args.continue_contigs is None:
     if args.input_fof is not None:
         fofFile=open(args.input_fof,'r')
         for line in fofFile:
-            input1.append(line)
-            input2.append("")
+            line = line.rstrip()
+            sp = line.split("\t")
+            input1.append(sp[0])
+            if len(sp)>1:
+                input2.append(sp[1])
+            else:
+                input2.append("")
 
     mappingLog = os.path.join(logsDir,"mapping.log")
 
