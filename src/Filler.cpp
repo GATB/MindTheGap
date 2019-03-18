@@ -697,7 +697,7 @@ void Filler::fillAny<span>::operator () (Filler* object)
 
             // Write the original contigs to GFA
             // Contig has not been trimmed of overlap
-            fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getComment().c_str(),contigSequence.c_str());
+            fprintf(object->_gfa_file,"S\t%s\t%s\n", itSeq->getCommentShort().c_str(),contigSequence.c_str());
 
             // Remove small contigs
             // limit size = 2*overlap+kmerSize, to ensure that seedSequence is located after targetSequence on the contig (they may overlap a little, but can not be equal).
