@@ -244,7 +244,8 @@ class GenomeGraph:
               
               # Should we only start from a contig node? It makes the program specific to mtg output
               
-              neighbors = self.get_neighbors(nodeId)
+              neighbors = self.get_neighbors(nodeId).copy()
+              print(neighbors)
               neighbors_sequences = [self.get_node_seq(node) for node in neighbors]
 
               seqStarts = set()
@@ -255,9 +256,8 @@ class GenomeGraph:
               nbSeq = 0 # Number of different merges
               for seqStart in seqStarts:
                      ref = ""
-                     refNode = 0
                      breakPos = {}
-
+                     
                      for neighbor in neighbors:
                             nseq = self.get_node_seq(neighbor)
                             if nseq[0:100] == seqStart:
@@ -267,11 +267,12 @@ class GenomeGraph:
                                    else:
                                           breakPos[neighbor] = compare_strings(ref,nseq)
                      print(len(breakPos))
+                     
                      if len(breakPos)==0:
                             continue
                      mergePos = min(breakPos.values())
                      
-                     consensus = ref[0:mergePos]
+                     consensus = ref[0:mergePos-1]
                      
                      # Add merged node
                      if nodeId < 0:
@@ -279,14 +280,27 @@ class GenomeGraph:
                      else :
                             dir = "R"
                      
-                     newName = self.nodes[nodeId].nodeName + "_extended_" + dir
-                     #self.add_node()
+                     newName = self.nodes[abs(nodeId)].nodeName + "_extended_" + dir
+                     
+                     print(newName)
+                     # Get properties
+                     self.add_node(newName,consensus)
+                     newId = max(self.nodes.keys())
+                     self.add_edge(nodeId,newId)
+                     
+                     # Create edges to new node
+                     for n in neighbors:
+                            self.add_edge(newId,n)
+                            self.rem_edge(nodeId,n)
+
+                     # Shorten neighbor nodes and cut edges
+                     for n in neighbors:
+                            if n > 0:
+                                   self.nodes[n].nodeSeq = self.nodes[n].nodeSeq[mergePos-self.overlap-1:] 
+                            else:
+                                   self.nodes[-n].nodeSeq = self.nodes[-n].nodeSeq[0:-(mergePos-self.overlap-1)] 
+
+                     
 
 
-                     return(mergePos)
 
-g = GenomeGraph.read_gfa("pipeline/genome_graph/data/simple4.gfa")
-g.pop_all_bubbles()
-g.merge_all_linear_paths()
-
-g.merge_redundant_gapfillings(1)                                          
