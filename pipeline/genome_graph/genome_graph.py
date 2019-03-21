@@ -11,9 +11,9 @@ g.edges : adjacency list of the nodes.
 '''
 
 import re
-from pipeline.genome_graph.utils import reverse_complement,compare_strings
-from pipeline.genome_graph.SequenceAlignment import NeedlemanWunsch
-from pipeline.genome_graph.paths import LinearPath
+from utils import reverse_complement,compare_strings
+from SequenceAlignment import NeedlemanWunsch
+from paths import LinearPath
 
 class GenomeNode:
 
@@ -300,7 +300,13 @@ class GenomeGraph:
                             else:
                                    self.nodes[-n].nodeSeq = self.nodes[-n].nodeSeq[0:-(mergePos-self.overlap-1)] 
 
-                     
+       def merge_all_gapfillings(self):
+              visited_nodes = set()
+              node = 1
+              while node < self.maxId:
+                     if node in self.nodes.keys() and node not in visited_nodes:
+                            self.merge_redundant_gapfillings(node)
+                            self.merge_redundant_gapfillings(-node)
 
-
-
+                            visited_nodes.add(node)
+                     node += 1              

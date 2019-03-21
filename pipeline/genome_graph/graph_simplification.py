@@ -15,8 +15,14 @@ opts = op.parse_args()
 
 g = genome_graph.GenomeGraph.read_gfa(opts.infile)
 
+
 g.pop_all_bubbles()
 
+g.merge_all_linear_paths()
+
+g.merge_all_gapfillings()
+
+# rerun linear path
 g.merge_all_linear_paths()
 
 g.write_gfa(opts.outfile)
