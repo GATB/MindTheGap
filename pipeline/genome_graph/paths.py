@@ -37,12 +37,9 @@ class LinearPath:
 
     def getSeq(self,g):
         seq = ''
-        rev = False
         for node in self.nodeIds:
             nodeSeq = g.nodes[abs(node)].nodeSeq
             if node < 0:
-                rev = not rev
-            if rev:
                 nodeSeq = reverse_complement(nodeSeq)
             if seq != '':
                 nodeSeq = nodeSeq[g.overlap:]    
