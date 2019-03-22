@@ -111,15 +111,15 @@ if args.continue_contigs is None:
         input1.append(args.input_file1)
         input2.append(args.input_file2)
     if args.input_fof is not None:
-        fofFile=open(args.input_fof,'r')
-        for line in fofFile:
-            line = line.rstrip()
-            sp = line.split("\t")
-            input1.append(sp[0])
-            if len(sp)>1:
-                input2.append(sp[1])
-            else:
-                input2.append("")
+        with open(args.input_fof,"r") as fofFile:
+            for line in fofFile:
+                line = line.rstrip()
+                sp = line.split("\t")
+                input1.append(sp[0])
+                if len(sp)>1:
+                    input2.append(sp[1])
+                else:
+                    input2.append("")
 
     mappingLog = os.path.join(logsDir,"mapping.log")
 
@@ -273,13 +273,20 @@ if args.continue_h5 is None:
         h5Command = ["dbgh5"]
     else:
         h5Command = [os.path.join(args.mtg_dir,"ext/gatb-core/bin/dbgh5")]
-    h5Command = ["/home/genouest/genscale/cguyomar/git/MindTheGap/build/ext/gatb-core/bin/dbgh5"]
     if args.input_file1 is not None:
         h5Command.extend(["-in",args.input_file1+","+args.input_file2])
     if args.input_file is not None:
         h5Command.extend(["-in",args.input_file])
     if args.input_fof is not None:
-        h5Command.extend(["-in",args.input_fof])
+        input_file_list=[]
+        with open(args.input_fof,"r") as fofFile:
+            for line in fofFile:
+                line = line.rstrip()
+                sp = line.split("\t")
+                input_file_list.append(sp[0])
+                if len(sp)>1:
+                    input_file_list.append(sp[1])
+        h5Command.extend(["-in",",".join(input_file_list)])
 
     h5Command.extend(["-kmer-size",args.mtg_kmer_size])
     h5Command.extend(["-abundance-min",args.mtg_abundance])
