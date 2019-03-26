@@ -36,6 +36,8 @@ static const char* STR_CONTIG_OVERLAP = "-overlap";
 static const char* STR_URI_BKPT = "-bkpt";
 static const char* STR_MAX_DEPTH = "-max-length";
 static const char* STR_MAX_NODES = "-max-nodes";
+static const char* STR_FILTER = "-filter";
+
 
 
  class info_node_t
@@ -101,7 +103,7 @@ public:
     Graph _graph;
 
     int _nbCores;
-
+	bool _filter;
     BankFasta* _breakpointBank;
 
     //to print some statistics at the end

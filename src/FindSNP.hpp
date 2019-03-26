@@ -24,7 +24,7 @@
 /*******************************************************************************/
 #include <IFindObserver.hpp>
 #include <FindBreakpoints.hpp>
-
+#include <Finder.hpp>
 template<size_t span>
 class FindSNP : public IFindObserver<span>
 {
@@ -73,6 +73,9 @@ protected :
     bool snp_at_begin(unsigned char* beginpos, size_t limit, KmerType* ret_nuc, KmerType* ref_nuc, unsigned int* nb_kmer_val);
 
     char nuc_to_char(KmerType nuc);
+
+    /*Finder access*/
+    Finder* finder;
 };
 
 template<size_t span>
@@ -524,6 +527,12 @@ void FindMultiSNP<span>::correct_history(unsigned char pos, KmerType nuc)
     {
         unsigned char index = (i + pos) % 256;
         this->_find->het_kmer_history(index).kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, this->_find->kmer_size() - i);
+        /*Node node(Node::Value(this->_find->het_kmer_history(index).kmer));
+        this->_find->het_kmer_history(index).nb_in=this->finder->_graph.indegree (node);
+        this->_find->het_kmer_history(index).nb_out=this->finder->_graph.outdegree (node);
+        //checking if the k-1 suffix is repeated
+        */
+
     }
 }
 

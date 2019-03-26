@@ -67,6 +67,7 @@ public:
     int solution_rank;
     string sourceSeq;
     string targetSeq;
+	int solution_count_het_snp=0;
     //required to be inserted in set
     bool operator< (const filled_insertion_t & other) const
     {

@@ -81,11 +81,15 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     inputParser->push_front (new OptionOneParam (STR_URI_CONTIG, "contig file", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
+	inputParser->push_front (new OptionOneParam (STR_FILTER, "activate filter", false));
 
+
+	
     IOptionsParser* fillerParser = new OptionsParser("Assembly");
     //TODO HERE PUT THE FILL OPTIONS
     fillerParser->push_front (new OptionOneParam (STR_MAX_DEPTH, "maximum length of insertions (nt)", false, "10000"));
     fillerParser->push_front (new OptionOneParam (STR_MAX_NODES, "maximum number of nodes in contig graph (nt)", false, "100"));
+
 
     IOptionsParser* graphParser = new OptionsParser("Graph building");
     string abundanceMax = Stringify::format("%ld", std::numeric_limits<CountNumber>::max()); //to be sure in case CountNumber definition changes
@@ -93,6 +97,7 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     graphParser->push_front (new OptionOneParam (STR_KMER_ABUNDANCE_MIN, "minimal abundance threshold for solid kmers", false, "auto"));
     graphParser->push_front (new OptionOneParam (STR_KMER_SIZE, "size of a kmer", false, "31"));
 
+		
 
     getParser()->push_front(generalParser);
     getParser()->push_front(fillerParser);
@@ -258,6 +263,10 @@ void Filler::execute ()
     _nbCores = getInput()->getInt(STR_NB_CORES);
     _max_depth = getInput()->getInt(STR_MAX_DEPTH);
     _max_nodes = getInput()->getInt(STR_MAX_NODES);
+	if (getInput()->get(STR_FILTER)!=0)
+	{
+		_filter=true;
+	}
     // Now do the job
     time_t start_time = time(0);
 
@@ -267,11 +276,8 @@ void Filler::execute ()
     //job is done, closing the output files
     fclose(_insert_file);
     fclose(_insert_info_file);
+    fclose(_vcf_file);
 
-    if (getInput()->get(STR_URI_BKPT) != nullptr)
-    {
-        fclose(_vcf_file);
-    }
     if (getInput()->get(STR_URI_CONTIG) != nullptr)
     {
         fclose(_gfa_file);
@@ -299,9 +305,9 @@ void Filler::writeVcfHeader(){
     char* c_time_string;
     current_time = time(NULL);
     c_time_string = ctime(&current_time);
-
+    cerr << " start writing vcf" << endl;
     fprintf(_vcf_file,
-            "##fileformat=VCFv4.1\n\
+"##fileformat=VCFv4.1\n\
 ##filedate=%s\
 ##source=MindTheGap fill version %s\n\
 ##SAMPLE=file:%s\n\
@@ -309,6 +315,8 @@ void Filler::writeVcfHeader(){
 ##INFO=<ID=TYPE,Number=1,Type=String,Description=\"INS\">\n\
 ##INFO=<ID=LEN,Number=1,Type=Integer,Description=\"variant size\">\n\
 ##INFO=<=QUAL,Number=.,Type=Integer,Description=\"Quality of the insertion\">\n\
+##FILTER=<ID=PASS,Description=\"Strong assembly support, exact anchor have been found\">\n\
+##FILTER=<ID=LOWQUAL,Description=\"Insertion assembled with non exact anchor (1 or 2 errors)\">\n\
 ##INFO=<=AVK,Number=.,Type=Float,Description=\"Average k-mer coverage along the insertion\">\n\
 ##INFO=<=MDK,Number=.,Type=Float,Description=\"Median k-mer coverage along the insertion\">\n\
 ##INFO=<=NSOL,Number=1,Type=String,Description=\"number of alternative insertion sequences for the breakpoint\">\n\
@@ -528,9 +536,17 @@ public:
             string breakpointName_R = string(sequence.getCommentShort());
             bool end_kmer_repeated = sequence.getComment().find("REPEATED") !=  std::string::npos;
             bool is_anchor_repeated = begin_kmer_repeated || end_kmer_repeated;
-
+        //cerr << "\n BKPt " << breakpointName << "   " << sourceSequence << endl;
+            string token;
+            istringstream iss(breakpointName);
+            std::vector<string> tokens;
+            // we split the header and put it in a vector tokens
+            // split header breakpoint to extract information
+            while(getline(iss,token,'_')) tokens.push_back(token);
+            // variable to check type of insertion and if snp are around the insertion
+            string inser_types= tokens[6].c_str();
+            string snp_near_insert= tokens[7].c_str();
             //printf("nb_mis_allowed %i \n",nb_mis_allowed);
-
             //Initialize set of filled sequences
             std::vector<filled_insertion_t> filledSequences;
             bkpt_dict_t targetDictionary;
@@ -543,12 +559,16 @@ public:
                 targetSequence.substr(0,_object->_kmerSize); //prefix of size _kmerSize
             }
             targetDictionary.insert ({targetSequence, std::make_pair(breakpointName_R, false)});
-
+            
             //_object->gapFill<span>(infostring,_tid,sourceSequence,targetSequence,filledSequences,begin_kmer_repeated,end_kmer_repeated);
+            //if (inser_types!="HET" && snp_near_insert!="up")
+            //{
             _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, targetDictionary, is_anchor_repeated, false, breakpointName);
-
+            //}
+            //cerr << " \n BKPTname" << breakpointName << endl;
             //If gap-filling failed in one direction, try the other direction (from target to source in revcomp)
-            if(filledSequences.size()==0){
+            if(filledSequences.size()==0) //||(inser_types=="HET" && snp_near_insert=="up"))
+            {
                 string targetSequence2 = revcomp_sequence(sourceSequence);
                 targetDictionary.clear();
                 targetDictionary.insert({targetSequence2, std::make_pair(breakpointName, false)});
@@ -731,7 +751,6 @@ template<size_t span>
 void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary, bool is_anchor_repeated, bool reverse,string breakpoint_name ){
     typedef typename gatb::core::kmer::impl::Kmer<span>::ModelCanonical ModelCanonical;
 
-
     int nb_mis_allowed = _nb_mis_allowed;
     if(is_anchor_repeated){
         nb_mis_allowed=0;
@@ -796,7 +815,6 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
     cout << it->second << endl;
     }
 */
-
     // We build a map to sort paths leading to the same target
     unordered_map<string,set<unlabeled_path>> paths_to_compare;
     for (set<pair<unlabeled_path,bkpt_t>>::iterator it = paths.begin(); it!=paths.end();it++)
@@ -815,10 +833,9 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
         std::vector<filled_insertion_t> tmpSequences;
         set<unlabeled_path> current_paths = it->second;
         tmpSequences = graph.paths_to_sequences(current_paths,terminal_nodes_with_endpos);
-
+        bool check_het=false;
         int nb_filled_insertions = tmpSequences.size();
         nbTotal_filled_insertions += nb_filled_insertions;
-
         //get type of bkpt HET + down or up
         string token;
         istringstream iss(breakpoint_name);
@@ -829,24 +846,36 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
         // variable to check type of insertion and if snp are around the insertion
         string inser_type= tokens[6].c_str();
         string snp_near_inser= tokens[7].c_str();
-
         /*if (tmpSequences.size() == 1)// && (inser_type!="HET" && (snp_near_inser!="down" || snp_near_inser!="up")))
         {
             //if(verb)     printf(" [SUCCESS]\n");
             cout << " Only one seq found" << endl;
         }*/
-        //cout << tmpSequences.size() << endl;
-        if(tmpSequences.size()==2 && inser_type=="HET" && (snp_near_inser=="down" || snp_near_inser=="up") & !reverse)
+        //cerr  << tmpSequences.size() <<" Source "<< sourceSequence <<endl;
+
+        if(tmpSequences.size()>1 && inser_type=="HET" && (snp_near_inser=="down" || snp_near_inser=="up") & !reverse)
         {
             remove_false_Het_insertion(tmpSequences,snp_near_inser,sourceSequence,targetSequence);
+            if (tmpSequences.size() > 1)// && (inser_type!="HET" && (snp_near_inser!="down" || snp_near_inser!="up")))
+            {
+                //if(verb)     printf(" [SUCCESS]\n");
+                remove_almost_identical_solutions(tmpSequences,90,sourceSequence,targetSequence);
+            }
+            check_het=true;
            // cout << " ENTER HET check" << endl;
         }
 
-        if(tmpSequences.size()==2 && inser_type=="HET" && (snp_near_inser=="down" || snp_near_inser=="up") & reverse)
+        if(tmpSequences.size()>1 && inser_type=="HET" && (snp_near_inser=="down" || snp_near_inser=="up") & reverse)
             {
                 if (snp_near_inser =="down") snp_near_inser="up";
                 else snp_near_inser="down";
                 remove_false_Het_insertion(tmpSequences,snp_near_inser,sourceSequence,targetSequence);
+                if (tmpSequences.size() > 1)// && (inser_type!="HET" && (snp_near_inser!="down" || snp_near_inser!="up")))
+                {
+                    //if(verb)     printf(" [SUCCESS]\n");
+                    remove_almost_identical_solutions(tmpSequences,90,sourceSequence,targetSequence);
+                }
+                check_het=true;
            //     cout << " ENTER HET check" << endl;
 
             }
@@ -854,7 +883,7 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
 
 
         // remove almost identical sequences
-        if (tmpSequences.size() > 1)// && (inser_type!="HET" && (snp_near_inser!="down" || snp_near_inser!="up")))
+        if (tmpSequences.size() > 1 && !check_het)// && (inser_type!="HET" && (snp_near_inser!="down" || snp_near_inser!="up")))
         {
             //if(verb)     printf(" [SUCCESS]\n");
             remove_almost_identical_solutions(tmpSequences,90,sourceSequence,targetSequence);
@@ -862,6 +891,7 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
 
         int nb_reported_insertions = tmpSequences.size();
         nbTotal_reported_insertions += nb_reported_insertions;
+
 
         //Here add information for each filled insertion : coverage, quality, revcomp if reverse
 
@@ -875,8 +905,9 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
                 it->sourceSeq=sourceSequence;
                 it->targetSeq=targetSequence;
                 it->altered_seq=0;
+                //cout << " ERROR"<< endl;
             }
-
+            //cerr << "\n SOURCEF " << it->sourceSeq << " TargetF " << it->targetSeq << " Seq" << it->seq <<   endl;
             //Coverage computation
             typename ModelCanonical::Iterator itk (model);
             std::string cseq = it->sourceSeq + it->seq;
@@ -891,9 +922,11 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
             // We iterate the kmers of this seq
             for (itk.first(); !itk.isDone(); itk.next())
             {
+               // cout << " kmer : " << model.toString(itk->value()) << endl;
                 Node node(Node::Value(itk->value()));
                 unsigned int cov = _graph.queryAbundance(node);
                 //TODO add warning if cov==0
+                //cout << " k mer " << model.toString(itk->value()) << endl;
                 if(cov==0){
                     cerr << "WARNING Unknown kmer : " << model.toString(itk->value()) << endl;
                 }
@@ -1013,25 +1046,17 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
     for (std::vector<filled_insertion_t>::iterator it = filledSequences.begin(); it != filledSequences.end() ; ++it)
     {
         string insertion = it->seq;
-    size_t n_A = std::count(insertion.begin(), insertion.end(), 'A');
-    size_t n_T = std::count(insertion.begin(), insertion.end(), 'T');
-    size_t n_C = std::count(insertion.begin(), insertion.end(), 'C');
-    size_t n_G = std::count(insertion.begin(), insertion.end(), 'G');
         string ref=it->sourceSeq;
         vector<char> left(it->sourceSeq.begin(), it->sourceSeq.end());
         vector<char> filled(it->seq.begin(), it->seq.end());
 
-        //cout <<"\n source " << ref.c_str() <<endl;
+        //cout <<"\n source 1 " << ref.c_str() <<endl;
         //computing the longest common suffix between sourceSequence and insertion : fuzzy = LCSuf +1 = the number of alternative positions (fuzzy) and left normalized position
         int repeatSize=0;
-        int repeatSize_multiple=0;	// to handle repeated fuzzy insertion
         int i = left.size() - 1;
         int j = filled.size() - 1;
-        int k = left.size();
-        int l = filled.size() ;
 
-
-        while (i>=0 && j>=0)
+        while (i>0 && j>=0)
         {
             if (left[i] == filled[j])
             {
@@ -1040,47 +1065,12 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
                 j-= 1;
                 if(j==-1) //see below for examples where this may be important
                 {
-                    if ((n_A == filled.size()) || (n_T == filled.size()) || (n_C == filled.size()) || (n_G == filled.size()))  j = filled.size() - 1;
-                    else
-                    {
-                        int max =l/2;
-                        for (int i=2; i == max; i++)
-                        {
-                            if ( l % i ==0)
-                                {
-                                int total=1;
-                                for (int a =0; a<l-i; a+=i)
-                                {
-
-                                    string sub1 =insertion.substr(a,i);
-                                    string sub2=insertion.substr(a+i,i);
-                                                                        if (sub1!=sub2) break;
-                                    else total+=1;
-                                }
-                                    if (total==l/i)
-                                    {
-                                        string minimum_suffixe=insertion.substr(0,l/i);
-                                        int compteur=k-i;
-                                        while (true)
-                                        {
-                                            if (ref.substr(compteur,i)==minimum_suffixe)
-                                            {
-                                            //cout << "\n ref substr :" << ref.substr(compteur,i) << " minmum_suffixe" << minimum_suffixe << endl;
-                                            repeatSize_multiple+=l/i;
-                                            compteur-=i;
-                                            }
-                                            else break;
-                                        }
-                                    }
-                            }
-                    }
+                    j=filled.size()-1;
                 }
-            }
-        }
+             }
             else break;
 
-    }
-
+        }
 
         //Deal with the case where j=-1 :
         // for instance : insertion  = C
@@ -1096,23 +1086,20 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
         //WARNING : this was not well tested (case j==-1) TODO
 
         //left normalization: if repeatSize>0 alt field is the concatenation of the char before insertion, the repeated sequence (of size=repeatSize) and the assembled sequence, the ref field is the char before insertion + the repeated sequence (of size=fuzzy)
-        int test=left.size();
-        //cout << "\n test :" << test << " repeatSize" << repeatSize << "\n" << endl;
-        //cout <<"\n source " << ref.c_str() << "\n ref" << ref.c_str() << "\n insertion " << insertion.c_str() <<endl;
-        //cout << "\n " << repeatSize_multiple << " " << repeatSize << endl;
-        if (repeatSize_multiple!=0) repeatSize=repeatSize_multiple;
-        if (repeatSize == test){
-                    ref ="";
-                    //cout << "source : "<< sourceSequence << "\n ref :" << ref.size() << "\n insertion :" << insertion<< endl;
-            }
-            else
-            {
-                insertion=sourceSequence.substr(sourceSequence.size()-(repeatSize+1),1)+insertion;
-                ref = sourceSequence.substr(sourceSequence.size()-(repeatSize+1),1);
 
-                //cout << "source AL : "<< sourceSequence << "\n ref AL :" << ref << "\n insertion AL :" << insertion<< endl;
 
-            }
+        //cout << "source : "<< ref << "\n ref :" << ref.size() << "\n insertion :" << insertion<< endl;
+        insertion=ref.substr(sourceSequence.size()-(repeatSize+1))+insertion;
+        ref = ref.substr(sourceSequence.size()-(repeatSize+1),1);
+        //cout << "Algo 1 insertion " << insertion.c_str() << "ref" << ref <<  endl;
+        //TESTER
+        insertion =insertion.substr(0,insertion.size()-repeatSize);
+        //cout << "Algo 2 insertion " << insertion.c_str() << endl;
+        //OLD_Left Normalization : contains fuzzy sequence in reference and alt :
+            //insertion=sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1)+insertion;
+            //string ref = sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1);
+        //cout << "source AL : "<< sourceSequence << "\n ref AL :" << ref << "\n insertion AL :" << insertion<< endl;
+
         string token;
         istringstream iss(breakpointName);
         std::vector<string> tokens;
@@ -1126,43 +1113,67 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
         string position = ".";
         string chromosome = ".";
         string GT = "./.";
-        if (tokens.size()==8){ //MindTheGap find expected format
+		string genotype;
+		string snp_pos;
+        if (tokens.size()==8)
+        { //MindTheGap find expected format
 
         // Condition to handle case repeatSize==Sourcesequence.size(), produced segmentation fault
 
 
             bkpt = tokens[0].c_str();
             //cout << "\n BKPT :" << bkpt << " ALTERED_SEQ" << it->altered_seq << " POS" << atoi(tokens[3].c_str()) <<  endl;
-            int pos = atoi(tokens[3].c_str())-repeatSize+1+it->altered_seq;
+            int pos = atoi(tokens[3].c_str())-repeatSize-1;
             position = to_string(pos);
             chromosome = tokens[1].c_str();
-            string genotype = tokens[6].c_str();
+            genotype = tokens[6].c_str();
+			snp_pos=tokens[7].c_str();
             GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
             // "." in vcf indicates that source sequence is in the end of the insertion, case repeatSize==sourceSequence.size()
             if (ref=="") ref=".";
         }
     // Case to handle backup option (tokens.size==8)
-        else {
+        else
+        {
                 bkpt = tokens[0].c_str();
                 bkpt+=tokens[2].c_str();
-                int pos = atoi(tokens[4].c_str())-repeatSize+1+it->altered_seq;
+                int pos = atoi(tokens[4].c_str())-repeatSize-1;
 
                 position = to_string(pos);
                 chromosome = tokens[1].c_str();
-                string genotype = tokens[7].c_str();
+                genotype = tokens[7].c_str();
+				snp_pos=tokens[7].c_str();
                 GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
                 if (ref=="") ref=".";
         }
-
         int qual = it->qual;
         int size = insertion.size()-ref.size();
         int nsol = it->solution_count;
         int npos = repeatSize;
+		int nsol_het_snp=it->solution_count_het_snp;
+		//cout << "\n NB sol het" << nsol_het_snp << endl;
         // write in vcf format
-        fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
-
-    }
-
+	   if (_filter)
+	   {
+		   if ((genotype=="HET" && snp_pos!="none" && nsol_het_snp==0 )|(nsol>2) |(genotype=="HET" && nsol>1))
+		   {
+				  break;// fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tFAILED\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
+		   }
+		   /*if((qual<=10) | (nsol>2))
+		   {
+		    fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tLOWQUAL\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
+		   }*/
+			else 
+			{
+			// write in vcf format
+			fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
+			}
+		}
+		else
+		{
+					fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
+		}
+	}
     funlockfile(_vcf_file);
 
 }

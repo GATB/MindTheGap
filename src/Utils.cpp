@@ -202,112 +202,7 @@ bool all_consensuses_almost_identical(set<filled_insertion_t> consensuses, int i
     }
     return true;
 }
-/*
-// used to remove specific insertion, has to be heterozygote and has been identified as get snp around insertion (in find function)
-void remove_false_Het_insertion (std::vector<filled_insertion_t>& consensuses, string info_hetero,string sourceSequence,string targetSequence)
-{
-    std::vector<filled_insertion_t> final_set;
-    int seen=0;
-    int size_first;
-    vector<char> filled_first;
-    string Seq_first;
-    string Seq_second;
-    int counter = 0;
-    for (std::vector<filled_insertion_t>::iterator it_a=consensuses.begin(); it_a!=consensuses.end(); ++it_a) // could be improved : no need to compare first seq
-    {
-            cout << "\n" << it_a->seq << endl;
-            if (seen==0) // the first sequence is the shortest and supposed to be the one with the snp + nucleotide between snp and insertion
-            {
-                vector<char> filled_f(it_a->seq.begin(), it_a->seq.end());
-                filled_first=filled_f;
-                Seq_first=it_a->seq;
-                size_first = filled_first.size();
-            }
-            else
-            {
-                if (info_hetero=="down")
-                {
-                    vector<char> filled_second(it_a->seq.begin(), it_a->seq.end());
-                    Seq_second=it_a->seq;
-                    int size_second = filled_second.size();
-                    while (size_first>0 && size_second>0) // Check if the shortest sequence is found at one of the end. It is done 1 nt by 1 nt
-                    {
-                        //cout << size_first << "    " << size_second << endl;
-                        //cout << filled_first[size_first] << "   " << filled_second[size_second] << endl;
-                    if (filled_first[size_first]==filled_second[size_second])
-                    {
-
-                        size_first--;
-                        size_second--;
-                        counter++;
-
-                    }
-                    else throw std::invalid_argument( "ERROR HET_DOWN" );
-                   }
-                    if (filled_second.size()>filled_first.size())
-                    {
-                        it_a->seq=it_a->seq.substr(0,filled_second.size()-filled_first.size());
-                        it_a->sourceSeq=sourceSequence;
-                        it_a->targetSeq=Seq_first+targetSequence.substr(0,it_a->sourceSeq.size()-filled_first.size());
-                        //calcul abondance besoin de modifier la target !
-                    }
-                    else
-                    {
-                        it_a->seq=Seq_first.substr(0,filled_first.size()-filled_second.size());
-                        it_a->sourceSeq=sourceSequence;
-                        it_a->targetSeq=Seq_second+targetSequence.substr(0,it_a->sourceSeq.size()-filled_second.size());
-                    }
-                    final_set.push_back(*it_a);
-                    consensuses=final_set;
-                    //cout << it_a->seq << endl;
-                    break;
-                 }
-                if (info_hetero=="up")
-                {
-
-                    vector<char> filled_second(it_a->seq.begin(), it_a->seq.end());
-                    int size_second = filled_second.size();
-                    Seq_second=it_a->seq;
-                    while (size_first>0 && size_second>0)
-                    {
-                        if (filled_first[counter]==filled_second[counter])
-                        {
-                            size_first--;
-                            size_second--;
-                            counter++;
-                        }
-                        else throw std::invalid_argument( "ERROR HET_UP" );
-                    }
-                    cout << counter << endl;
-                    if (filled_second.size()>filled_first.size())
-                    {
-                        it_a->seq=it_a->seq.substr(0,filled_second.size()-filled_first.size());
-                        it_a->sourceSeq=sourceSequence.substr(filled_first.size(),sourceSequence.size())+Seq_first;
-                        it_a->altered_seq=counter;
-                        it_a->targetSeq=targetSequence;
-                    }
-                    else
-                    {
-                        it_a->seq=Seq_first.substr(0,filled_first.size()-filled_second.size());
-                        it_a->sourceSeq=sourceSequence.substr(filled_second.size(),sourceSequence.size())+Seq_second;
-                        it_a->altered_seq=counter;
-                        it_a->targetSeq=targetSequence;
-                    }
-                    //cout << " SOURCE " << it_a->sourceSeq  << " Filled first " << Seq_first << endl ;
-
-                    //cout <<  "\n" << it_a->sourceSeq << endl;
-                    final_set.push_back(*it_a);
-                    consensuses=final_set;
-                    //cout << it_a->seq << endl;
-
-                    break;
-                }
-            }
-            seen++;
-        }
-
-    }
-*/
+// Remove insertions that correspond to reference sequences that contain only SNP
 void remove_false_Het_insertion (std::vector<filled_insertion_t>& consensuses, string info_hetero,string sourceSequence,string targetSequence)
 {
     std::vector<filled_insertion_t> final_set;
@@ -318,9 +213,13 @@ void remove_false_Het_insertion (std::vector<filled_insertion_t>& consensuses, s
     string smallest_seq;
     string current_seq;
     int current_size_seq;
+     //cout << "SEQ " <<  endl;
+     //Smallest sequence filled is supposed to be the one corresponding to the reference
     for (std::vector<filled_insertion_t>::iterator it_a=consensuses.begin(); it_a!=consensuses.end(); ++it_a) // could be improved : no need to compare first seq
     {
+
         vector<char> filled_f(it_a->seq.begin(), it_a->seq.end());
+        //cout << "\n SEQ " << it_a->seq << endl;
         current_seq=it_a->seq;
         current_size_seq = filled_f.size();
         if (counter==0)
@@ -339,29 +238,44 @@ void remove_false_Het_insertion (std::vector<filled_insertion_t>& consensuses, s
             smallest_seq_pos=counter;
         }
         counter++;
+
     }
     int it_pos=0;
-    counter=0;
+    //cout << "Smallest seq" << smallest_seq << endl;
     bool Check_push_smallest_seq=false;
     int size_second;
+    //Remove sequence corresponding to the SNP + sequence between SNP and start of insertion
      for (std::vector<filled_insertion_t>::iterator it_b=consensuses.begin(); it_b!=consensuses.end(); ++it_b)
      {
-
-         int smallest_seq_size_2=smallest_seq_size;
-         if (info_hetero=="down" && it_pos!= smallest_seq_pos)
+		 int old_temp_size = consensuses.size();
+		it_b->solution_count_het_snp=old_temp_size;
+		 //cout << "\n compare " << (it_b->seq).compare(smallest_seq) << endl;
+        if ((it_b->seq).compare(smallest_seq)!=0)
+         {
+         counter=0;
+         int smallest_seq_size_2=smallest_seq_size-1;
+         // TODO : Chan
+		 //cout << info_hetero << endl;
+         if (info_hetero=="down")
          {
              vector<char> filled_second(it_b->seq.begin(), it_b->seq.end());
              //string Seq_second=it_b->seq;
-             size_second = filled_second.size();
+             size_second = filled_second.size()-1;
              //cout << it_b->seq << "    " << smallest_seq << endl;
+			 //cout << smallest_seq_size_2 << size_second << endl;
+			 //cout << "END " << smallest_seq_vector[smallest_seq_size_2] << filled_second[size_second] << endl;
 
-             while (smallest_seq_size_2>0 && size_second>0) // Check if the shortest sequence is found at one of the end. It is done 1 nt by 1 nt
+
+             while (smallest_seq_size_2>0 && size_second>=0) // Check if the shortest sequence is found at one of the end. It is done 1 nt by 1 nt
              {
-             if (smallest_seq_vector[smallest_seq_size_2-1]==filled_second[size_second-1])
+				 //cout << "END " << smallest_seq_vector[smallest_seq_size_2] << filled_second[size_second] << endl;
+             if (smallest_seq_vector[smallest_seq_size_2]==filled_second[size_second])
              {
+                 //cout << smallest_seq_vector[smallest_seq_size_2] << filled_second[size_second] << endl;
                  smallest_seq_size_2--;
                  size_second--;
                  counter++;
+                 continue;
              }
              else
              {
@@ -375,32 +289,38 @@ void remove_false_Het_insertion (std::vector<filled_insertion_t>& consensuses, s
                      final_set.push_back(*it_b);
                      Check_push_smallest_seq=true;
                  }
-                 cout << " ALTE : " << it_b->altered_seq << " SEQ : " << it_b->seq << endl;
+                 //cout << " ALTE : " << it_b->altered_seq << " SEQ : " << it_b->seq << endl;
                  break;
              }
             }
              if (smallest_seq_size_2!=0) continue;
              else
              {
+			
              it_b->seq=it_b->seq.substr(0,filled_second.size()-smallest_seq_vector.size());
              it_b->sourceSeq=sourceSequence;
+			 //cout << " SEQA0 : " << it_b->seq << endl;
+             // Have to change insertion position
+             it_b->altered_seq=counter;
+
              it_b->targetSeq=smallest_seq+targetSequence.substr(0,it_b->sourceSeq.size()-smallest_seq_vector.size());
              final_set.push_back(*it_b);
+
 
              }
           }
 
+         //cout << "SMall 2 : " << smallest_seq << " Longest " << it_b->seq << endl;
 
-         if (info_hetero=="up"&& it_pos!= smallest_seq_pos)
+         if (info_hetero=="up")
          {
 
              vector<char> filled_second(it_b->seq.begin(), it_b->seq.end());
              size_second = filled_second.size();
              //cout << it_b->seq << endl;
-             while (smallest_seq_size_2>0 && size_second>0)
+             while (smallest_seq_size_2>0 && size_second>=0)
              {
                  //cout << smallest_seq_size_2 << "    " << size_second << endl;
-
                  if (smallest_seq_vector[counter]==filled_second[counter])
                  {
                      smallest_seq_size_2--;
@@ -419,7 +339,7 @@ void remove_false_Het_insertion (std::vector<filled_insertion_t>& consensuses, s
                          final_set.push_back(*it_b);
                          Check_push_smallest_seq=true;
                      }
-                     cout << " ALTE : " << it_b->altered_seq << " SEQ : " << it_b->seq << endl;
+                     //cout << " ALTE : " << it_b->altered_seq << " SEQ : " << it_b->seq << endl;
 
                      break;
                  }
@@ -428,17 +348,37 @@ void remove_false_Het_insertion (std::vector<filled_insertion_t>& consensuses, s
 
              else
              {
-             it_b->seq=it_b->seq.substr(0,filled_second.size()-smallest_seq_vector.size());
-             it_b->sourceSeq=sourceSequence.substr(smallest_seq_vector.size(),sourceSequence.size())+smallest_seq;
-             it_b->altered_seq=counter;
-             it_b->targetSeq=targetSequence;
-             final_set.push_back(*it_b);
+             //cout << "TEST " << it_b->seq <<  endl;
+             //cout << "First " << size_second << "  " << smallest_seq_vector.size() << endl;
+             it_b->seq=it_b->seq.substr(smallest_seq_vector.size());
+             //cout << "SMALLEST " << smallest_seq.size() <<"  SEQ : " << smallest_seq << endl;
+             if (smallest_seq_vector.size()>sourceSequence.size())
+             {
+                 it_b->sourceSeq=smallest_seq.substr(smallest_seq_vector.size()-sourceSequence.size());
+				 it_b->altered_seq=0;
+             	it_b->targetSeq=targetSequence;
+             	final_set.push_back(*it_b);
+                 //cout << " original seq" << smallest_seq << " new ref "<< it_b->sourceSeq << endl;
+             }
+             else
+             {
+                 it_b->sourceSeq=sourceSequence.substr(smallest_seq_vector.size())+smallest_seq;
+				 it_b->altered_seq=0;
+             	it_b->targetSeq=targetSequence;
+             	final_set.push_back(*it_b);
+             }
+             //cout << " SEQ old " << sourceSequence << " CUt " << sourceSequence.substr(smallest_seq_vector.size(),sourceSequence.size()) << " NEW " << it_b->sourceSeq << " SEQ filled " << it_b->seq << endl;
+             //it_b->altered_seq=counter;
+             //cout << "Second" << endl;
+
+             
              //cout << it_a->seq << endl;
-             cout << " ALTE : " << it_b->altered_seq << " SEQ : " << it_b->seq << endl;
+             //cout << " ALTE : " << it_b->altered_seq << " SEQ : " << it_b->seq << endl;
 
              }
          }
         it_pos++;
+     }
      }
      consensuses=final_set;
 }
@@ -452,8 +392,12 @@ void remove_almost_identical_solutions(std::vector<filled_insertion_t>& consensu
 
     for (std::vector<filled_insertion_t>::iterator it_a=consensuses.begin(); it_a!=consensuses.end(); ++it_a) // could be improved : no need to compare first seq
     {
+		if (it_a->sourceSeq=="" && it_a->targetSeq=="")
+		{
         it_a->targetSeq=targetSequence;
         it_a->sourceSeq=sourceSequence;
+        it_a->altered_seq=0;
+		}
         bool found_a_similar_seq = false;
         for (std::vector<filled_insertion_t>::iterator it_b=final_set.begin(); it_b!=final_set.end(); ++it_b){
             if (it_a->seq.compare(it_b->seq) == 0 || needleman_wunsch(it_a->seq,it_b->seq, NULL, NULL, NULL) * 100 >= identity_threshold){ // time optimisation ? if identical sequences, will not run needleman
@@ -462,7 +406,9 @@ void remove_almost_identical_solutions(std::vector<filled_insertion_t>& consensu
                 if(it_a->nb_errors_in_anchor < it_b->nb_errors_in_anchor){
                     it_b->seq = it_a->seq;
                     it_b->nb_errors_in_anchor = it_a->nb_errors_in_anchor;
-
+                    it_b->targetSeq=targetSequence;
+                    it_b->sourceSeq=sourceSequence;
+                    it_b->altered_seq=0;
                 }
                 found_a_similar_seq = true;
                 break;
