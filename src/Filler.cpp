@@ -484,7 +484,7 @@ public:
         string tempName = targetName;
         if(its->second.second) tempName += "_Rc";
 
-        if (tempName.compare(seedName) != 0 && tempName.compare(seedNameRc) != 0) // Avoid solutions Looping on the same contig
+        if (tempName.compare(seedName) != 0) // Avoid solutions Looping on the same contig
         {
             conc_targetSequence.append(its->first);
             targetDictionary.insert({its->first,its->second});
