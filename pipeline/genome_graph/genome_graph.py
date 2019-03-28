@@ -13,7 +13,7 @@ g.edges : adjacency list of the nodes.
 import re
 from utils import reverse_complement,compare_strings
 from SequenceAlignment import NeedlemanWunsch
-from paths import LinearPath
+from paths import Path,setExtend
 
 class GenomeNode:
 
@@ -219,13 +219,13 @@ class GenomeGraph:
               node = 1
               while node < self.maxId:
                      if node in self.nodes.keys() and node not in visited_nodes:
-                            p = LinearPath(self,node)
-                            extendable = p.extend_right(self)
+                            p = Path(self,node)
+                            extendable = p.extend_linear_right(self)
                             while extendable:
-                                   extendable = p.extend_right(self)
-                            extendable = p.extend_left(self)
+                                   extendable = p.extend_linear_right(self)
+                            extendable = p.extend_linear_left(self)
                             while extendable:
-                                   extendable = p.extend_left(self)
+                                   extendable = p.extend_linear_left(self)
                             abs_nodes = [abs(n) for n in p.nodeIds]
                             visited_nodes.update(abs_nodes)
                             if p.nNodes > 1:
@@ -309,4 +309,20 @@ class GenomeGraph:
                             self.merge_redundant_gapfillings(-node)
 
                             visited_nodes.add(node)
-                     node += 1              
+                     node += 1   
+
+       def find_all_paths(self,startNode):
+       # Enumerates all possible paths going through a node
+              p = Path(g,startNode)
+              paths = {p}
+              extended = setExtend(paths,g)
+              nbExtension = 1
+              while extended != paths and nbExtension < 35:
+                     print(nbExtension)
+                     nbExtension += 1
+                     if max([len(p.nodeIds) for p in {p}]) > 120:
+                            return(extended)
+                     # There are smarter things to do
+                     paths = extended.copy()
+                     extended = setExtend(paths,g)
+              return(extended)

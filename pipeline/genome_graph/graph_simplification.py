@@ -13,7 +13,7 @@ op.add_argument("infile")
 op.add_argument("outfile")
 opts = op.parse_args()
 
-g = genome_graph.GenomeGraph.read_gfa(opts.infile)
+g = genome_graph.GenomeGraph.read_gfa(opts.infile) 
 
 
 g.pop_all_bubbles()
