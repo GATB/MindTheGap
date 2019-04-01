@@ -21,7 +21,7 @@ ofile = open(opts.outfile, "w")
 for n in g.nodes.values():
     seq = n.nodeSeq
     name = n.nodeName
-    if len(seq) > opts.minlength:
+    if len(seq) > int(opts.minlength):
         ofile.write(">" + name + "\n" + seq + "\n")
 ofile.close()
 
