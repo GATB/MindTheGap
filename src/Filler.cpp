@@ -1153,6 +1153,8 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
 		int nsol_het_snp=it->solution_count_het_snp;
 		//cout << "\n NB sol het" << nsol_het_snp << endl;
         // write in vcf format
+       if (size > 0)
+       {
 	   if (_filter)
 	   {
 		   if ((genotype=="HET" && snp_pos!="none" && nsol_het_snp==0 )|(nsol>2) |(genotype=="HET" && nsol>1))
@@ -1174,6 +1176,7 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
 					fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
 		}
 	}
+    }
     funlockfile(_vcf_file);
 
 }

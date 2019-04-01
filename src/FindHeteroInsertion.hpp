@@ -24,7 +24,6 @@
 /*******************************************************************************/
 #include <IFindObserver.hpp>
 #include <FindBreakpoints.hpp>
-#include <gatb/gatb_core.hpp>
 template<size_t span>
 class FindHeteroInsertion : public IFindObserver<span>
 {
@@ -45,7 +44,6 @@ FindHeteroInsertion<span>::FindHeteroInsertion(FindBreakpoints<span> * find) : I
 template<size_t span>
 bool FindHeteroInsertion<span>::update()
 {
-    //typedef Kmer<span>::ModelCanonical                 ModelCanonical;
     if(!this->_find->homo_only() )
     {
         //cout << this->_find->model().toString(this->_find->current_info().kmer) << endl;
@@ -76,7 +74,7 @@ bool FindHeteroInsertion<span>::update()
                     size_t kmerSize=strlen(c_end);
                     ModelCanonical model (kmerSize);
                     ModelCanonical::Kmer kmers = model.codeSeed (c_end, Data::ASCII);  */
-                    if ((kmer_end_str.find("N")) | (kmer_end_str.find("n"))) return false;
+                    //if ((kmer_end_str.find("N")) | (kmer_end_str.find("n"))) return false;
                     this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,found_snp,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
 
                     this->_find->breakpoint_id_iterate();
@@ -133,7 +131,7 @@ bool FindHeteroInsertion<span>::update()
                            //cout << " BEGIN " << kmer_begin_str << " END " << kmer_end_str << endl;
                            //cout <<" \n ID "<< this->_find->breakpoint_id() << " Position " << this->_find->position()-1-i << endl;
                            //cout << "Begin   " << kmer_begin_str << "End   " << kmer_end_str << endl;
-                           if ((kmer_end_str.find("N")) | (kmer_end_str.find("n"))) return false;
+                           //if ((kmer_end_str.find("N")) | (kmer_end_str.find("n"))) return false;
 
                            this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,found_snp,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
 
@@ -171,7 +169,7 @@ bool FindHeteroInsertion<span>::update()
                        string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
                        //string kmer_end_str =string(&(this->_find->chrom_seq()[this->_find->position() - i]), this->_find->kmer_size());
                        string found_snp="down";
-                       if ((kmer_end_str.find("N")) | (kmer_end_str.find("n"))) return false;
+                       //if ((kmer_end_str.find("N")) | (kmer_end_str.find("n"))) return false;
 
                        this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1-i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,found_snp,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
 

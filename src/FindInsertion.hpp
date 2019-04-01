@@ -45,6 +45,10 @@ FindCleanInsertion<span>::FindCleanInsertion(FindBreakpoints<span> * find) : IFi
 template<size_t span>
 bool FindCleanInsertion<span>::update()
 {
+    bool check=false;
+
+//cout<<" \n" << i << this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index() +i).kmer)<< endl;
+
     if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
         return false;
@@ -55,6 +59,32 @@ bool FindCleanInsertion<span>::update()
         // obtains the kmer sequence
         string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
         string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
+
+        for(int i = -1; i <= this->_find->max_repeat()+1; i++)
+        {
+        string kmer_begin_str_1 = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer); //this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 &&
+        if (!kmer_begin_str_1.compare(kmer_begin_str))
+        {
+            if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out = 0)
+            {
+                return false;
+            }
+            else
+            {
+              check=true;
+            }
+
+        }
+    }
+    /*if (check==false)
+    {
+        cout << "error not found kmer begin in history" << endl;
+    }
+    else
+    {
+        cout << "Good" << endl;
+    }*/
+
 
         //position : this->_find->position() is the beginning of the second found kmer after the gap : -2 ie position of the last 0, ie position just before (at the left of) the insertion site (0-based)
         this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, kmer_begin_str, kmer_end_str, 0,STR_HOM_TYPE,"none",  this->_find->kmer_begin_is_repeated() ,this->_find->kmer_end_is_repeated()  );
@@ -102,6 +132,8 @@ FindFuzzyInsertion<span>::FindFuzzyInsertion(FindBreakpoints<span> * find) : IFi
 template<size_t span>
 bool FindFuzzyInsertion<span>::update()
 {
+    bool check=false;
+
     if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
         return false;
@@ -115,6 +147,35 @@ bool FindFuzzyInsertion<span>::update()
         // obtains the kmer sequence
         string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
         string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
+
+
+        for(int i = -1; i <= this->_find->max_repeat()+1; i++)
+        {
+    //cout<<" \n" << i << this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index() +i).kmer)<< endl;
+            string kmer_begin_str_1 = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer); //this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 &&
+            if (!kmer_begin_str_1.compare(kmer_begin_str))
+            {
+                if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out = 0)
+                {
+                    return false;
+                }
+                else
+                {
+                  check=true;
+                }
+
+            }
+        }
+
+        /*if (check==false)
+        {
+            cout << "error not found kmer begin in history" << endl;
+        }
+        else
+        {
+            cout << "Good" << endl;
+        }
+        */
         string found_snp="none";
         //position : this->_find->position() is the beginning of the second found kmer after the gap : -2 ie position of the last 0, ie position just before (at the left of) the insertion site (0-based)
         this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size, STR_HOM_TYPE,found_snp,   this->_find->kmer_begin_is_repeated() , this->_find->kmer_end_is_repeated());
