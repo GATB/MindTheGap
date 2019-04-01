@@ -168,7 +168,7 @@ class GenomeGraph:
               n1 = self.get_neighbors(nodeId).copy()
               n2 = self.get_neighbors(-nodeId).copy()
 
-              if len(n1)==len(n2)==1:
+              if len(n1)==len(n2)==1 and n1!=n2: # n1!=n2 to avoid cases of self-looping gapfillings
                      r = self.get_neighbors(-n1.pop())
                      l = self.get_neighbors(-n2.pop())
                      assert -nodeId in r and nodeId in l
@@ -245,7 +245,13 @@ class GenomeGraph:
               # Should we only start from a contig node? It makes the program specific to mtg output
               
               neighbors = self.get_neighbors(nodeId).copy()
-              print(neighbors)
+
+              # Avoid case where two ends of a sequence are neighbors
+              for n in neighbors:
+                     if -n in neighbors:  
+                            return(0)
+              #print(neighbors)
+
               neighbors_sequences = [self.get_node_seq(node) for node in neighbors]
 
               seqStarts = set()
@@ -266,7 +272,7 @@ class GenomeGraph:
                                           refNode = neighbor
                                    else:
                                           breakPos[neighbor] = compare_strings(ref,nseq)
-                     print(len(breakPos))
+                     #print(len(breakPos))
                      
                      if len(breakPos)==0:
                             continue
@@ -282,7 +288,7 @@ class GenomeGraph:
                      
                      newName = self.nodes[abs(nodeId)].nodeName + "_extended_" + dir
                      
-                     print(newName)
+                     # print(newName)
                      # Get properties
                      self.add_node(newName,consensus)
                      newId = max(self.nodes.keys())
@@ -318,7 +324,7 @@ class GenomeGraph:
               extended = setExtend(paths,g)
               nbExtension = 1
               while extended != paths and nbExtension < 35:
-                     print(nbExtension)
+                     #print(nbExtension)
                      nbExtension += 1
                      if max([len(p.nodeIds) for p in {p}]) > 120:
                             return(extended)
