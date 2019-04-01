@@ -319,16 +319,16 @@ class GenomeGraph:
 
        def find_all_paths(self,startNode):
        # Enumerates all possible paths going through a node
-              p = Path(g,startNode)
+              p = Path(self,startNode)
               paths = {p}
-              extended = setExtend(paths,g)
+              extended = setExtend(paths,self)
               nbExtension = 1
-              while extended != paths and nbExtension < 35:
+              while extended != paths and nbExtension < 100:
                      #print(nbExtension)
                      nbExtension += 1
                      if max([len(p.nodeIds) for p in {p}]) > 120:
                             return(extended)
                      # There are smarter things to do
                      paths = extended.copy()
-                     extended = setExtend(paths,g)
+                     extended = setExtend(paths,self)
               return(extended)

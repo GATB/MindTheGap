@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Remove redundant gapfillings in a MindTheGap assembly graph
+Output all sequences of a GFA graph longuer than minlength to a fasta file
 """
 
 import argparse
