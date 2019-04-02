@@ -22,6 +22,7 @@ for n in g.nodes:
     name = g.nodes[n].nodeName
     if len(seq) > maxLen:
         longestNode = n
+        maxLen = len(seq)
 
 paths = g.find_all_paths(n)
 
