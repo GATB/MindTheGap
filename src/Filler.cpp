@@ -170,15 +170,15 @@ void Filler::execute ()
 
         getInput()->add(0,STR_BANK_CONVERT_TYPE,"tmp");
         getInput()->add(0,STR_URI_OUTPUT_DIR, ".");
-        getInput()->add(0,STR_URI_OUTPUT_TMP, ".");
-        getInput()->add(0,STR_BLOOM_TYPE, "basic"); //neighbor basic cache
-        getInput()->add(0,STR_DEBLOOM_TYPE, "original"); //cascading  pas bien car bcp plus de FP non critique au milieur trou
-        getInput()->add(0,STR_DEBLOOM_IMPL, "basic"); //minimizer => STR_BLOOM_TYPE = neighbor
+        //getInput()->add(0,STR_URI_OUTPUT_TMP, ".");
+        getInput()->add(0,STR_BLOOM_TYPE, "neighbor"); //neighbor basic cache
+        getInput()->add(0,STR_DEBLOOM_TYPE, "cascading"); //DO NOT use cascading : generates too many FP inside  pas bien car bcp plus de FP non critique au milieur trou
+        getInput()->add(0,STR_DEBLOOM_IMPL, "minimizer"); //minimizer => STR_BLOOM_TYPE = neighbor
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
         getInput()->add(0,STR_INTEGER_PRECISION, "0");
-       // getInput()->add(0,STR_MPHF_TYPE, "none");
+      //  getInput()->add(0,STR_MPHF_TYPE, "none");
         getInput()->add(0,STR_BRANCHING_TYPE, "stored");
-        getInput()->add(0,STR_MINIMIZER_SIZE, "8");
+        getInput()->add(0,STR_MINIMIZER_SIZE, "10");
         getInput()->add(0,STR_REPARTITION_TYPE, "0");
         getInput()->add(0,STR_MINIMIZER_TYPE, "0");
         getInput()->add(0,STR_HISTOGRAM_MAX, "10000");

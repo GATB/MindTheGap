@@ -67,13 +67,9 @@ bool FindCleanInsertion<span>::update()
         {
             if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out = 0)
             {
+                cout << " bkpt  nb_out = 0" << endl;
                 return false;
             }
-            else
-            {
-              check=true;
-            }
-
         }
     }
     /*if (check==false)
@@ -157,11 +153,8 @@ bool FindFuzzyInsertion<span>::update()
             {
                 if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out = 0)
                 {
+                    cout << " bkpt  nb_out = 0" << endl;
                     return false;
-                }
-                else
-                {
-                  check=true;
                 }
 
             }
