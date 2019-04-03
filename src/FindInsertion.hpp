@@ -45,7 +45,6 @@ FindCleanInsertion<span>::FindCleanInsertion(FindBreakpoints<span> * find) : IFi
 template<size_t span>
 bool FindCleanInsertion<span>::update()
 {
-    bool check=false;
 
 //cout<<" \n" << i << this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index() +i).kmer)<< endl;
 
@@ -59,15 +58,17 @@ bool FindCleanInsertion<span>::update()
         // obtains the kmer sequence
         string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
         string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
-
+        // Check that kmer_begin has neighbor, if not the breakpoint is not valid
         for(int i = -1; i <= this->_find->max_repeat()+1; i++)
         {
         string kmer_begin_str_1 = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer); //this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 &&
         if (!kmer_begin_str_1.compare(kmer_begin_str))
         {
-            if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out = 0)
+            //cout << kmer_begin_str << "kmer begin str" << kmer_begin_str_1 << "kmer searched in history" << endl;
+            //cout << "branchig out" << this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out << endl;
+            if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 0)
             {
-                cout << " bkpt  nb_out = 0" << endl;
+               // cout << " bkpt  nb_out = 0" << endl;
                 return false;
             }
         }
@@ -128,7 +129,6 @@ FindFuzzyInsertion<span>::FindFuzzyInsertion(FindBreakpoints<span> * find) : IFi
 template<size_t span>
 bool FindFuzzyInsertion<span>::update()
 {
-    bool check=false;
 
     if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
@@ -144,16 +144,18 @@ bool FindFuzzyInsertion<span>::update()
         string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
         string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
 
-
+        // Check that kmer_begin has neighbor, if not the breakpoint is not valid
         for(int i = -1; i <= this->_find->max_repeat()+1; i++)
         {
     //cout<<" \n" << i << this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index() +i).kmer)<< endl;
             string kmer_begin_str_1 = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).kmer); //this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 2 &&
             if (!kmer_begin_str_1.compare(kmer_begin_str))
             {
-                if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out = 0)
+                //cout << kmer_begin_str << "kmer begin str" << kmer_begin_str_1 << "kmer searched in history" << endl;
+                //cout << "branchig out" << this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out << endl;
+                if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).nb_out == 0)
                 {
-                    cout << " bkpt  nb_out = 0" << endl;
+                    //cout << " bkpt  nb_out = 0" << endl;
                     return false;
                 }
 
