@@ -535,16 +535,16 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
     }
 
     /* Add kmer observer*/
-    if(object->_hete_insert)
-    {
-        findBreakpoints.addKmerObserver(new FindHeteroInsertion<span>(&findBreakpoints));
-    }
-
     if(object->_homo_insert)
     {
         findBreakpoints.addGapObserver(new FindCleanInsertion<span>(&findBreakpoints));
         findBreakpoints.addGapObserver(new FindFuzzyInsertion<span>(&findBreakpoints));
     }
+    if(object->_hete_insert)
+    {
+        findBreakpoints.addKmerObserver(new FindHeteroInsertion<span>(&findBreakpoints));
+    }
+
 
     if(object->_backup)
     {
