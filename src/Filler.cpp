@@ -1089,14 +1089,26 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
         string position = ".";
         string chromosome = ".";
         string GT = "./.";
+        string genotype = "";
         if (tokens.size()==7){ //MindTheGap find expected format
             bkpt = tokens[0].c_str();
             int pos = atoi(tokens[3].c_str())-repeatSize;
             position = to_string(pos);
             chromosome = tokens[1].c_str();
-            string genotype = tokens[6].c_str();
+            genotype = tokens[6].c_str();
             GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
         }
+        
+        if (tokens.size()==8){ // Case to handle backup option (tokens.size==8)
+            bkpt = tokens[0].c_str();
+            bkpt+=tokens[2].c_str();
+            int pos = atoi(tokens[4].c_str())-repeatSize;
+            position = to_string(pos);
+            chromosome = tokens[1].c_str();
+            genotype = tokens[7].c_str();
+            GT = genotype.compare("HOM")==0 ?  "1/1" : "0/1" ;
+        }
+
         
         int qual = it->qual;
         int size = insertion.size()-ref.size();
