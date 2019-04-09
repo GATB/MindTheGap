@@ -1036,7 +1036,7 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
         int repeatSize=0;
         int i = left.size() - 1;
         int j = filled.size() - 1;
-        while (i>=0 && j>=0)
+        while (i>0 && j>=0)
         {
             if (left[i] == filled[j])
             {
@@ -1065,11 +1065,16 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
 
         //WARNING : this was not well tested (case j==-1) TODO
         
+        //BEFORE :
         //left normalization: if repeatSize>0 alt field is the concatenation of the char before insertion, the repeated sequence (of size=repeatSize) and the assembled sequence, the ref field is the char before insertion + the repeated sequence (of size=fuzzy)
+        //insertion=sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1)+insertion;
+        //string ref = sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1);
         
+        //CHANGE : REF = one character, = the char before insertion
+        //         ALT = the char before insertion, the repeated sequence (of size=repeatSize) and the assembled sequence end-truncated of repeatSize
         insertion=sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1)+insertion;
-        string ref = sourceSequence.substr(sourceSequence.size()-(repeatSize+1),repeatSize+1);
-        
+        insertion =insertion.substr(0,insertion.size()-repeatSize);
+        string ref = sourceSequence.substr(sourceSequence.size()-(repeatSize+1),1);
         
         string token;
         istringstream iss(breakpointName);
@@ -1086,7 +1091,7 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
         string GT = "./.";
         if (tokens.size()==7){ //MindTheGap find expected format
             bkpt = tokens[0].c_str();
-            int pos = atoi(tokens[3].c_str())-ref.size()+1;
+            int pos = atoi(tokens[3].c_str())-repeatSize;
             position = to_string(pos);
             chromosome = tokens[1].c_str();
             string genotype = tokens[6].c_str();
