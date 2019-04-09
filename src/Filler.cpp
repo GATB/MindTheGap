@@ -63,6 +63,7 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     _nb_used_contigs = 0;
     _breakpointMode = true;
     _contig_trim_size = 0;
+    _filter = false;
 
 
 
@@ -81,13 +82,15 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     generalParser->push_front (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
 
     IOptionsParser* inputParser = new OptionsParser("Input / output");
+    inputParser->push_front (new OptionNoParam (STR_FILTER, "do not output low quality insertions", false));
     inputParser->push_front (new OptionOneParam (STR_CONTIG_OVERLAP, "Overlap between input contigs (default, ie. 0 = kmer size)",  false, "0"));
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_BKPT, "breakpoint file", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_CONTIG, "contig file", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
-
+    
+    
     IOptionsParser* fillerParser = new OptionsParser("Assembly");
     //TODO HERE PUT THE FILL OPTIONS
     fillerParser->push_front (new OptionOneParam (STR_MAX_DEPTH, "maximum length of insertions (nt)", false, "10000"));
@@ -290,6 +293,10 @@ void Filler::execute ()
         cerr << "Warning :  the contig overlap parameter should be greater or equal to kmer size, setting it to " << _kmerSize << endl;
     }
 
+    if(getInput()->get(STR_FILTER) != 0)
+    {
+        _filter = true;
+    }
     
     // Now do the job
     time_t start_time = time(0);
@@ -1115,8 +1122,17 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
         int nsol = it->solution_count;
         int npos = repeatSize+1;
         
+        if (_filter) //user parameter
+        {
+            if ((genotype=="HET" && nsol>1) || (genotype=="HOM" && nsol>2))
+            {
+                break; //do not output these low quality insertions
+            }
+        }
+        
         // write in vcf format
         fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
+        
         
     }
     
