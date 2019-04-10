@@ -632,6 +632,9 @@ bool FindMultiSNPrev<span>::update()
 	if(nb_kmer_correct != this->_find->gap_stretch_size())
 	{
 		this->_find->m_position -=  nb_kmer_correct;
+        this->_find->m_het_kmer_end_index -= nb_kmer_correct;
+        this->_find->m_het_kmer_begin_index -= nb_kmer_correct;
+        
 		//cout << "before gap_stretch_size = " << this->_find->m_gap_stretch_size;
 		this->_find->m_gap_stretch_size -= nb_kmer_correct;
 		//cout << " after gap_stretch_size = " << this->_find->m_gap_stretch_size << endl;

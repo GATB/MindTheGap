@@ -55,6 +55,24 @@ bool FindCleanInsertion<span>::update()
 		// obtains the kmer sequence
 		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 		string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
+        
+        // Check that kmer_begin has at least one out neighbor, if not the breakpoint is not valid
+        
+        string kmer_begin_str_1 = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-1).kmer);
+        if (!kmer_begin_str_1.compare(kmer_begin_str)){
+            cout << "identique !!! " << endl;
+            cout << this->_find->breakpoint_id() << " " << this->_find->chrom_name() << " " << this->_find->position() - 2 << endl;
+        }
+        else{
+            cout << "probleme !!! " << endl;
+            cout << kmer_begin_str << "kmer begin str" << kmer_begin_str_1 << "kmer searched in history" << endl;
+            cout << this->_find->breakpoint_id() << " " << this->_find->chrom_name() << " " << this->_find->position() - 2 << endl;
+        }
+        if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-1).nb_out == 0)
+        {
+            // cout << " bkpt  nb_out = 0" << endl;
+            return false;
+        }
 		
 		//position : this->_find->position() is the beginning of the second found kmer after the gap : -2 ie position of the last 0, ie position just before (at the left of) the insertion site (0-based)
 		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, kmer_begin_str, kmer_end_str, 0,STR_HOM_TYPE,  this->_find->kmer_begin_is_repeated() ,this->_find->kmer_end_is_repeated()  );
