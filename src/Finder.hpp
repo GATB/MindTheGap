@@ -43,6 +43,7 @@ static const char* STR_NO_SNP = "-no-snp";
 static const char* STR_NO_INSERT = "-no-insert";
 static const char* STR_NO_DELETION = "-no-deletion";
 static const char* STR_NO_HETERO = "-no-hetero";
+static const char* STR_BED = "-bed";
 
 static const char* STR_HOM_TYPE = "HOM";
 static const char* STR_HET_TYPE = "HET";
@@ -81,6 +82,7 @@ public:
     string _vcf_file_name;
     FILE * _vcf_file;
 
+    string _bed_file_name;
 
     int _nb_homo_clean;
     int _nb_homo_fuzzy;

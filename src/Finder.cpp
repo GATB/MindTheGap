@@ -82,6 +82,8 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _snp = true;
     _backup = false;
     _deletion = true;
+    
+    _bed_file_name="";
 	
 	setHelp(&HelpFinder);
 	setHelpTarget(this);
@@ -101,7 +103,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
 	inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT_TMP, "prefix for output temporary files", false, "."));
 	
-	
+	inputParser->push_front (new OptionOneParam (STR_BED, "bed file to restrict breakpoint search in specific regions", false,""));
     inputParser->push_front (new OptionOneParam (STR_URI_REF, "reference genome file", true,""));
     inputParser->push_front (new OptionOneParam (STR_URI_GRAPH, "input graph file (likely a hdf5 file)",  false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_INPUT, "input read file(s)",  false, ""));
@@ -270,6 +272,10 @@ void Finder::execute ()
         _kmerSize = _graph.getKmerSize();
     }
 
+    if(getInput()->get(STR_BED) != 0)
+    {
+        _bed_file_name=getInput()->getStr(STR_BED);
+    }
 
     // Preparing the output files
     _breakpoint_file_name = getInput()->getStr(STR_URI_OUTPUT)+".breakpoints";
