@@ -59,7 +59,7 @@ bool FindCleanInsertion<span>::update()
         // Check that kmer_begin has at least one out neighbor, if not the breakpoint is not valid
         
         string kmer_begin_str_1 = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-1).kmer);
-        if ((this->nb_out_branch(this->_find->kmer_begin().forward())==0)|(this->nb_in_branch(this->_find->kmer_end().forward())==0))
+        if ((this->nb_out_branch(this->_find->kmer_begin().forward())==0) || (this->nb_in_branch(this->_find->kmer_end().forward())==0))
         {
                    return false;
         }
@@ -112,7 +112,7 @@ bool FindFuzzyInsertion<span>::update()
         // obtains the kmer sequence
         string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
         string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
-        if ((this->nb_out_branch(this->_find->kmer_begin().forward())==0)|(!this->_find->model().codeSeed(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]),Data::ASCII).isValid()))
+        if ((this->nb_out_branch(this->_find->kmer_begin().forward())==0) || (this->nb_in_branch(this->_find->kmer_end().forward())==0) || (!this->_find->model().codeSeed(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]),Data::ASCII).isValid()))
         {
                    return false;
         }

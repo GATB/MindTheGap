@@ -191,6 +191,8 @@ public :
     bool graph_contains(Node& kmer_node);
     int node_in_branch(Node& kmer_node);
     int node_out_branch(Node& kmer_node);
+    bool ref_bloom_contains(KmerType kmer);
+    
     /*Iterater*/
     /** Incremente the value of breakpoint_id counter
      */
@@ -798,8 +800,15 @@ bool FindBreakpoints<span>::graph_contains(Node& kmer_node)
 	//keep internal nodes only
 	//	 return	( this->finder->_graph.contains(kmer_node) && (this->finder->_graph.indegree(kmer_node)>=1 && this->finder->_graph.outdegree(kmer_node)>=1 ));
 	
-
 }
+
+template<size_t span>
+bool FindBreakpoints<span>::ref_bloom_contains(KmerType kmer)
+{
+    return this->m_ref_bloom->contains(kmer);
+    
+}
+
 
 /*Iterater*/
 template<size_t span>

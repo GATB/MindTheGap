@@ -72,6 +72,7 @@ protected :
     bool contains(KmerType kmer);
     int nb_in_branch(KmerType kmer);
     int nb_out_branch(KmerType kmer);
+    bool suffix_is_repeated(KmerType kmer);
 };
 
 template<size_t span>
@@ -90,16 +91,29 @@ bool IFindObserver<span>::contains(KmerType kmer)
 template<size_t span>
 int IFindObserver<span>::nb_in_branch(KmerType kmer)
 {
-    kmer = std::min(kmer, revcomp(kmer, this->_find->kmer_size()));
-    Node node = Node(Node::Value(kmer));
+    //kmer = std::min(kmer, revcomp(kmer, this->_find->kmer_size()));
+    Node node = Node(Node::Value(kmer), STRAND_FORWARD);
     return this->_find->node_in_branch(node);
 }
 template<size_t span>
 int IFindObserver<span>::nb_out_branch(KmerType kmer)
 {
-    kmer = std::min(kmer, revcomp(kmer, this->_find->kmer_size()));
-    Node node = Node(Node::Value(kmer));
+    //kmer = std::min(kmer, revcomp(kmer, this->_find->kmer_size()));
+    Node node = Node(Node::Value(kmer), STRAND_FORWARD);
     return this->_find->node_out_branch(node);
+}
+
+template<size_t span>
+bool IFindObserver<span>::suffix_is_repeated(KmerType kmer)
+{
+
+    KmerType one; one.setVal(1);
+    KmerType kminus1_mask = (one << ((this->_find->kmer_size()-1)*2)) - one;
+    KmerType suffix = kmer & kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
+    KmerType suffix_rev = revcomp(suffix,this->_find->kmer_size()-1); // we get its reverse complement to compute the canonical value of this k-1-mer
+    
+    return(this->_find->ref_bloom_contains(min(suffix,suffix_rev)));
+    
 }
 #endif /* _TOOL_IFindObserver_HPP_ */
 

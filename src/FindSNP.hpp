@@ -311,6 +311,7 @@ public :
     /** \copydoc IFindObserver::update
      */
     bool update();
+    void correct_history(unsigned char pos, KmerType nuc);
 };
 
 template<size_t span>
@@ -329,12 +330,15 @@ bool FindSoloSNP<span>::update()
 		KmerType ref_nuc; // reference nucleotide
 		KmerType nuc; // alternative nucleotide
 		unsigned char pos = this->_find->het_kmer_begin_index() - 1;
+        unsigned char save_index = pos;
 		if(this->snp_at_end(&pos, this->_find->kmer_size(), &nuc, &ref_nuc))
 		{
 			//string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 			//string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 			//this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, kmer_begin_str, kmer_end_str, 0, STR_SNP_TYPE);
 			
+            this->correct_history(save_index, nuc);
+            
 			char ref_char [2];
 			ref_char[0] = this->nuc_to_char(ref_nuc);
 			ref_char[1] = '\0';
@@ -351,6 +355,33 @@ bool FindSoloSNP<span>::update()
 	
 	return false;
 }
+
+template<size_t span>
+void FindSoloSNP<span>::correct_history(unsigned char pos, KmerType nuc)
+{
+    cout << "history" << endl;
+    for(unsigned int i = 0; i != this->_find->kmer_size(); i++)
+    {
+        unsigned char index = (i + pos) % 256;
+        KmerType mutated_kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, this->_find->kmer_size() - i);
+        
+        //cout << this->_find->model().toString(this->_find->het_kmer_history(index).kmer) << endl;
+        //cout << this->_find->model().toString(mutated_kmer) << endl;
+        this->_find->het_kmer_history(index).kmer = mutated_kmer;
+        
+        if(this->contains(mutated_kmer)){
+            this->_find->het_kmer_history(index).nb_in = this->nb_in_branch(mutated_kmer);
+            this->_find->het_kmer_history(index).nb_out = this->nb_out_branch(mutated_kmer);
+            //cout << "nb_in=" << this->_find->het_kmer_history(index).nb_in << " nb_out=" << this->_find->het_kmer_history(index).nb_out << endl;
+            //is_repeated :
+            //checking if the k-1 suffix is repeated
+            this->_find->het_kmer_history(index).is_repeated = this->suffix_is_repeated(mutated_kmer);
+        }
+        //cout << "--------------------" << endl;
+
+    }
+}
+
 
 template<size_t span>
 class FindFuzzySNP : public FindSNP<span>
@@ -378,28 +409,28 @@ bool FindFuzzySNP<span>::update()
 {
     if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
-	return false;
+        return false;
     }
-
+    
     if(this->_find->gap_stretch_size() >= this->_find->kmer_size() - this->_find->max_repeat())
     {
-	int delta = this->_find->kmer_size() - this->_find->gap_stretch_size();
-	KmerType ref_nuc;
-	KmerType nuc;
-	unsigned char pos = this->_find->het_kmer_begin_index() - 1;
-	if(this->snp_at_end(&pos, this->_find->kmer_size(), &nuc, &ref_nuc))
-	{
-	    string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index() - delta - 1).kmer);
-	    string kmer_end_str = this->_find->model().toString(this->_find->het_kmer_history(pos).kmer);
-
-		
-	    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - delta, kmer_begin_str, kmer_end_str, 0, STR_SNP_TYPE);
-	    this->_find->breakpoint_id_iterate();
-
-	    return true;
-	}
+        int delta = this->_find->kmer_size() - this->_find->gap_stretch_size();
+        KmerType ref_nuc;
+        KmerType nuc;
+        unsigned char pos = this->_find->het_kmer_begin_index() - 1;
+        if(this->snp_at_end(&pos, this->_find->kmer_size(), &nuc, &ref_nuc))
+        {
+            string kmer_begin_str = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index() - delta - 1).kmer);
+            string kmer_end_str = this->_find->model().toString(this->_find->het_kmer_history(pos).kmer);
+            
+            
+            this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - delta, kmer_begin_str, kmer_end_str, 0, STR_SNP_TYPE);
+            this->_find->breakpoint_id_iterate();
+            
+            return true;
+        }
     }
-
+    
     return false;
 }
 
@@ -521,7 +552,16 @@ void FindMultiSNP<span>::correct_history(unsigned char pos, KmerType nuc)
 	for(unsigned int i = 0; i != this->_find->kmer_size(); i++)
 	{
 		unsigned char index = (i + pos) % 256;
-		this->_find->het_kmer_history(index).kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, this->_find->kmer_size() - i);
+        KmerType mutated_kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, this->_find->kmer_size() - i);
+        this->_find->het_kmer_history(index).kmer = mutated_kmer;
+        if(this->contains(mutated_kmer)){
+            this->_find->het_kmer_history(index).nb_in = this->nb_in_branch(mutated_kmer);
+            this->_find->het_kmer_history(index).nb_out = this->nb_out_branch(mutated_kmer);
+            
+            //is_repeated :
+            //checking if the k-1 suffix is repeated
+            this->_find->het_kmer_history(index).is_repeated = this->suffix_is_repeated(mutated_kmer);
+        }
 	}
 }
 
@@ -656,8 +696,17 @@ void FindMultiSNPrev<span>::correct_history(unsigned char pos, KmerType nuc)
 {
     for(unsigned int i = 0; i != this->_find->kmer_size(); i++)
     {
-	unsigned char index = (i + pos) % 256;
-	this->_find->het_kmer_history(index).kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, this->_find->kmer_size() - i);
+        unsigned char index = (i + pos) % 256;
+        KmerType mutated_kmer = this->mutate_kmer(this->_find->het_kmer_history(index).kmer, nuc, this->_find->kmer_size() - i);
+        this->_find->het_kmer_history(index).kmer = mutated_kmer;
+        if(this->contains(mutated_kmer)){
+            this->_find->het_kmer_history(index).nb_in = this->nb_in_branch(mutated_kmer);
+            this->_find->het_kmer_history(index).nb_out = this->nb_out_branch(mutated_kmer);
+            
+            //is_repeated :
+            //checking if the k-1 suffix is repeated
+            this->_find->het_kmer_history(index).is_repeated = this->suffix_is_repeated(mutated_kmer);
+        }
     }
 }
 
