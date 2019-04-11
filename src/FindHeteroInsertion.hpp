@@ -60,7 +60,11 @@ bool FindHeteroInsertion<span>::update()
 					//string kmer_end_str = this->_find->model().toString(this->_find->current_info().kmer);
                     //modif 15/06/2018 to check !!! (before in case of fuzzy>0, the end and right kmers overlapped, => insertion of wrong size (- fuzzy), missing the repeat + loss of recall if insertion of size < repeat)
                     string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() + i]), this->_find->kmer_size());
-					this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
+                    if (!this->_find->model().codeSeed(&(this->_find->chrom_seq()[this->_find->position() +i]),Data::ASCII).isValid())
+                    {
+                               return false;
+                    }
+                    this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position()-1+i, kmer_begin_str, kmer_end_str,i, STR_HET_TYPE,  this->_find->het_kmer_history(this->_find->het_kmer_begin_index()+i).is_repeated,this->_find->kmer_end_is_repeated() );
 					
 					this->_find->breakpoint_id_iterate();
 					

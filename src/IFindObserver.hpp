@@ -70,6 +70,8 @@ protected :
      */
     FindBreakpoints<span>* _find;
     bool contains(KmerType kmer);
+    int nb_in_branch(KmerType kmer);
+    int nb_out_branch(KmerType kmer);
 };
 
 template<size_t span>
@@ -85,6 +87,19 @@ bool IFindObserver<span>::contains(KmerType kmer)
     Node node = Node(Node::Value(kmer));
     return this->_find->graph_contains(node);
 }
-
+template<size_t span>
+int IFindObserver<span>::nb_in_branch(KmerType kmer)
+{
+    kmer = std::min(kmer, revcomp(kmer, this->_find->kmer_size()));
+    Node node = Node(Node::Value(kmer));
+    return this->_find->node_in_branch(node);
+}
+template<size_t span>
+int IFindObserver<span>::nb_out_branch(KmerType kmer)
+{
+    kmer = std::min(kmer, revcomp(kmer, this->_find->kmer_size()));
+    Node node = Node(Node::Value(kmer));
+    return this->_find->node_out_branch(node);
+}
 #endif /* _TOOL_IFindObserver_HPP_ */
 

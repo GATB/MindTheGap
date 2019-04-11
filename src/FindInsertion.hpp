@@ -59,20 +59,12 @@ bool FindCleanInsertion<span>::update()
         // Check that kmer_begin has at least one out neighbor, if not the breakpoint is not valid
         
         string kmer_begin_str_1 = this->_find->model().toString(this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-1).kmer);
-        if (!kmer_begin_str_1.compare(kmer_begin_str)){
-            cout << "identique !!! " << endl;
-            cout << this->_find->breakpoint_id() << " " << this->_find->chrom_name() << " " << this->_find->position() - 2 << endl;
-        }
-        else{
-            cout << "probleme !!! " << endl;
-            cout << kmer_begin_str << "kmer begin str" << kmer_begin_str_1 << "kmer searched in history" << endl;
-            cout << this->_find->breakpoint_id() << " " << this->_find->chrom_name() << " " << this->_find->position() - 2 << endl;
-        }
-        if (this->_find->het_kmer_history(this->_find->het_kmer_begin_index()-1).nb_out == 0)
+        if ((this->nb_out_branch(this->_find->kmer_begin().forward())==0)|(this->nb_in_branch(this->_find->kmer_end().forward())==0))
         {
-            // cout << " bkpt  nb_out = 0" << endl;
-            return false;
+                   return false;
         }
+        else
+        {
 		
 		//position : this->_find->position() is the beginning of the second found kmer after the gap : -2 ie position of the last 0, ie position just before (at the left of) the insertion site (0-based)
 		this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, kmer_begin_str, kmer_end_str, 0,STR_HOM_TYPE,  this->_find->kmer_begin_is_repeated() ,this->_find->kmer_end_is_repeated()  );
@@ -81,6 +73,7 @@ bool FindCleanInsertion<span>::update()
 		this->_find->breakpoint_id_iterate();
 		this->_find->homo_clean_iterate();
 		return true;
+        }
 	}
 	
 	return false;
@@ -119,7 +112,12 @@ bool FindFuzzyInsertion<span>::update()
         // obtains the kmer sequence
         string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
         string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]), this->_find->kmer_size());
-
+        if ((this->nb_out_branch(this->_find->kmer_begin().forward())==0)|(!this->_find->model().codeSeed(&(this->_find->chrom_seq()[this->_find->position() - 1 + repeat_size]),Data::ASCII).isValid()))
+        {
+                   return false;
+        }
+        else
+        {
         //position : this->_find->position() is the beginning of the second found kmer after the gap : -2 ie position of the last 0, ie position just before (at the left of) the insertion site (0-based)
         this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2 + repeat_size, kmer_begin_str, kmer_end_str, repeat_size, STR_HOM_TYPE,   this->_find->kmer_begin_is_repeated() , this->_find->kmer_end_is_repeated());
 
@@ -128,6 +126,7 @@ bool FindFuzzyInsertion<span>::update()
 		this->_find->homo_fuzzy_iterate();
 		
 		return true;
+        }
 	}
 	
 	return false;

@@ -189,7 +189,8 @@ public :
     /**
      */
     bool graph_contains(Node& kmer_node);
-    
+    int node_in_branch(Node& kmer_node);
+    int node_out_branch(Node& kmer_node);
     /*Iterater*/
     /** Incremente the value of breakpoint_id counter
      */
@@ -647,6 +648,18 @@ void FindBreakpoints<span>::writeVcfVariant(int bkt_id, string& chrom_name, uint
 }
 
 /*Getter*/
+template<size_t span>
+int FindBreakpoints<span>::node_in_branch(Node& kmer_node)
+{
+    return this->finder->_graph.indegree(kmer_node);
+
+}
+template<size_t span>
+int FindBreakpoints<span>::node_out_branch(Node& kmer_node)
+{
+    return this->finder->_graph.outdegree(kmer_node);
+
+}
 template<size_t span>
 uint64_t FindBreakpoints<span>::breakpoint_id()
 {
