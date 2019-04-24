@@ -359,7 +359,7 @@ bool FindSoloSNP<span>::update()
 template<size_t span>
 void FindSoloSNP<span>::correct_history(unsigned char pos, KmerType nuc)
 {
-    cout << "history" << endl;
+    //cout << "history" << endl;
     for(unsigned int i = 0; i != this->_find->kmer_size(); i++)
     {
         unsigned char index = (i + pos) % 256;
