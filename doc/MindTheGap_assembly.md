@@ -35,7 +35,7 @@ In contig mode, *MindTheGap* returns 3 files ;
     Columns 5 and 6 are the number of solutions found, before and after comparison of the sequences under a 90% identity threshold.
 
 3. Insertions sequences
-    In addition to the GFA, insertion sequences are reported in the fasta format in the `out.insertions.fa` file.
+    In addition to the GFA file, insertion sequences are reported in the fasta format in the `out.insertions.fa` file.
 
 
 ### Additional parameters :
@@ -44,7 +44,7 @@ In contig mode, *MindTheGap* returns 3 files ;
 
 In many assembly outputs, contigs ends may overlap.
 In particular, contigs from *De Bruijn* based assemblies may overlap from `k`.
-In case the overlap between your contigs exceed the 'k' value chosen for *MindTheGap*, we recommand specifying the overlap using the `-overlap` option.
+In case the overlap between your contigs exceeds the 'k' value chosen for *MindTheGap*, we recommand specifying the overlap using the `-overlap` option.
 
 #### Graph complexity
 
