@@ -835,30 +835,33 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
     set< info_node_t > terminal_nodes_with_endpos = find_nodes_containing_multiple_R(targetDictionary, contig_file_name, nb_mis_allowed, _nb_gap_allowed);
     // printf("nb contig with target %zu \n",terminal_nodes_with_endpos.size());
 
+    //cout << "terminal nodes = "<< endl;
     //also convert it to list of node id for traditional use
     set<int> terminal_nodes;
     for (set< info_node_t >::iterator it = terminal_nodes_with_endpos.begin(); it != terminal_nodes_with_endpos.end(); it++)
     {
         terminal_nodes.insert((*it).node_id);
+        //cout << (*it).node_id << " pos=" << (*it).pos << (*it).targetId.first << endl;
     }
 
+    
+    infostring +=   Stringify::format ("\t%d", terminal_nodes.size()) ;
+    if(terminal_nodes.size()>0)
+     {
+    
     // analyze the graph to find a satisfying gap sequence between L and R
-
     GraphAnalysis graph = GraphAnalysis(graph_output.get_dot_file_name(),_kmerSize);
     graph.debug = true;
 
-    infostring +=   Stringify::format ("\t%d", terminal_nodes.size()) ;
-    /*if(terminal_nodes.size()==0)
-    {
-        //if(verb)
-            //printf("Right anchor not found.. gapfillling failed... \n");
-        return ;
-    }*/
 
     //if(verb)    fprintf(stderr," analysis..");
-    bool success;
-    set<pair<unlabeled_path,bkpt_t>> paths = graph.find_all_paths(terminal_nodes_with_endpos, success);
-    
+    //Old DFS starting from L towards R
+    //bool success;
+    //set<pair<unlabeled_path,bkpt_t>> paths = graph.find_all_paths(terminal_nodes_with_endpos, success);
+         
+    //Find all paths between L and R, but starting from R towards L  (much more faster and efficient)
+    set<pair<unlabeled_path,bkpt_t>> paths = graph.find_all_paths_rev(terminal_nodes_with_endpos);
+
 
     // We build a map to sort paths leading to the same target
     unordered_map<string,set<unlabeled_path>> paths_to_compare;
@@ -882,6 +885,7 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
         int nb_filled_insertions = tmpSequences.size();
         nbTotal_filled_insertions += nb_filled_insertions;
         
+        //cout << "nb tmpSequences=" << tmpSequences.size() << endl;
         // remove almost identical sequences
         if (tmpSequences.size() > 1)
         {
@@ -953,7 +957,7 @@ void Filler::gapFillFromSource(std::string & infostring, int tid, string sourceS
         infostring +=   Stringify::format ("\t%d", nbTotal_filled_insertions) ;
         infostring +=   Stringify::format ("\t%d", filledSequences.size()) ;
     }
-    
+     }
     
     remove(contig_file_name.c_str());
     remove((contig_graph_file_prefix+".graph").c_str());

@@ -107,6 +107,7 @@ GraphAnalysis::GraphAnalysis(string graph_file_name,size_t kmerSize)
             if (out_edges[node_a].find(node_b) == out_edges[node_a].end())
             {
                 out_edges[node_a].insert(node_b);
+                in_edges[node_b].insert(node_a);
                 nb_edges++;
             }
         }
@@ -199,6 +200,134 @@ set<pair<unlabeled_path,bkpt_t>> GraphAnalysis::find_all_paths(int start_node, s
     return paths;
 }
 
+//Find all paths between L and R, but starting from R towards L  (much more faster and efficient)
+// wrapper
+set<pair<unlabeled_path,bkpt_t>> GraphAnalysis::find_all_paths_rev(set< info_node_t > terminal_nodes_with_endpos)
+{
+    //storing all the paths in a set
+	set<pair<unlabeled_path,bkpt_t>> all_paths;
+    
+    // Loop over all terminal nodes, will start a DFS for each terminal node : from terminal node towards node 0
+	for (set< info_node_t >::iterator it_targets = terminal_nodes_with_endpos.begin() ; it_targets != terminal_nodes_with_endpos.end() ; it_targets++)
+    {
+    	int terminal_node = it_targets->node_id;
+        bkpt_t target_id = it_targets->targetId;
+        
+    	bool success = true;
+    	unlabeled_path start_path;
+		start_path.push_back(terminal_node);
+    	int nb_calls = 0;
+        
+        //speed-up : if one of the terminal node is 0, return one path (0), hopefully terminal nodes are sorted, if 0 is a terminal node, it is the first of the list.
+        if (terminal_node == 0){
+            set<pair<unlabeled_path,bkpt_t>> the_path;
+            the_path.insert(make_pair(start_path, target_id));
+            return the_path;
+        }
+
+        //cout << "For terminal node=" << terminal_node << endl;
+		set<pair<unlabeled_path,bkpt_t>> paths = find_all_paths_rev(terminal_node, terminal_nodes_with_endpos, start_path, nb_calls, success, terminal_node, target_id);
+        
+		all_paths.insert(paths.begin(), paths.end());
+    //std::cout << "PATHS0 \n"  << endl;
+	}
+    //cout << "find_all_path_rev finished with = " << all_paths.size() << " paths" <<  endl;
+    
+    return all_paths;
+}
+
+
+// DFS from start_node, build path from right to left, looking at in-neighbors
+// Note : if we encounter a terminal node different from the one starting the DFS, we exit
+//Any path that contains a terminal node in another positon than the last node of the path, is not output
+// Note2 : the strategy consisting in replacing the current path by the current node in such a case does not work because it prevents the detection of certain cycles...
+set<pair<unlabeled_path,bkpt_t>> GraphAnalysis::find_all_paths_rev(int start_node, set< info_node_t > terminal_nodes_with_endpos, unlabeled_path current_path, int &nb_calls, bool &success, int &terminal_node, bkpt_t &target_id)
+{
+    //cout << nb_calls << endl;
+
+    set<pair<unlabeled_path,bkpt_t>> paths;
+    // don't explore for too long
+    if (nb_calls++ > 10000000)
+    {
+       cout <<"fail, max nb_calls reached" << endl;
+
+        success = false;
+
+        return paths;
+    }
+
+    // is on another terminal_node, modify the current path to begin with this node
+    //note : must be before the condition "found_path" if node 0 is a terminal node
+    if (start_node != terminal_node){
+        for (set< info_node_t >::iterator it_targets = terminal_nodes_with_endpos.begin() ; it_targets != terminal_nodes_with_endpos.end() ; it_targets++)
+        {
+            if (it_targets->node_id == start_node )
+            {
+//            target_id = it_targets->targetId;
+//            current_path.clear();
+//            current_path.push_back(start_node);
+//            break;
+                return paths;
+            }
+        }
+    }
+
+	//found a path
+	if (start_node ==0)
+        {
+            pair<unlabeled_path,bkpt_t> found_path = make_pair(current_path,target_id);
+            paths.insert(found_path);
+            
+           /*cout << "path=";
+           for(vector<int>::iterator it_path = current_path.begin(); it_path != current_path.end(); it_path++)
+            {        cout << *it_path << " ";
+            }
+            cout << endl;*/
+            
+            return paths;
+        }
+
+    // visit all neighbors
+    for(set<int>::iterator it_edge = in_edges[start_node].begin(); it_edge != in_edges[start_node].end(); it_edge++)
+    {
+        int next_node = *it_edge;
+
+        // each node of the graph is used in a path at most once (as a consequence, we won't gapfill some tandem repeats)
+        if (find(current_path.begin(), current_path.end(), next_node) == current_path.end())
+        {
+            unlabeled_path extended_path(current_path);
+            extended_path.insert(extended_path.begin(),next_node);
+
+            // some debug
+            /*printf("calling with %d, curent path is:",next_node);
+            for(vector<int>::iterator it_path = current_path.begin(); it_path != current_path.end(); it_path++)
+                 printf(" %d",*it_path);
+            printf("\n");*/
+
+
+            // recursive call
+            set<pair<unlabeled_path,bkpt_t>> new_paths = find_all_paths_rev(next_node, terminal_nodes_with_endpos, extended_path, nb_calls, success, terminal_node, target_id);
+            paths.insert(new_paths.begin(), new_paths.end());
+
+
+            // mark to stop we end up with too large breadth
+            if (paths.size() >= max_breadth)
+            {
+                //printf("fail, max breadth reached \n");
+                success = false;
+            }
+        }
+
+        // propagate the stop if too many consensuses reached
+        if (success == false)
+            return paths;
+    }
+    return paths;
+}
+
+
+
+
 std::vector<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_path> paths , set< info_node_t > terminal_nodes_with_endpos )
 {
     //debug =2;
@@ -213,6 +342,12 @@ std::vector<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_
 //            printf("processing path: \n");
 
         unlabeled_path p = *it;
+        
+        /*for(vector<int>::iterator it_path = p.begin(); it_path != p.end(); it_path++)
+        {        cout << *it_path << " ";
+        }
+        cout << endl;*/
+        
         string sequence;
         //cout << "new path, length: " << p.size() << endl;
         for (unlabeled_path::iterator it_path = p.begin(); it_path != p.end(); it_path++)
@@ -311,7 +446,6 @@ std::vector<filled_insertion_t> GraphAnalysis::paths_to_sequences(set<unlabeled_
         }
         if (debug > 1)
             printf(" sequence: %s\n",sequence.c_str());
-
         if(sequence.length()>0) // test filtrage ici ?
            {
 

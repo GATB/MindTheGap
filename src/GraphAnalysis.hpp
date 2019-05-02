@@ -52,6 +52,7 @@ public:
 
     NS_TR1_PREFIX::unordered_map<int,string > node_sequences;
     NS_TR1_PREFIX::unordered_map<int,set<int> > out_edges;
+    NS_TR1_PREFIX::unordered_map<int,set<int> > in_edges;
 
 	size_t _sizeKmer;
 
@@ -62,6 +63,10 @@ public:
 
     set<pair<unlabeled_path,bkpt_t>> find_all_paths(set<info_node_t> terminal_nodes_with_endpos, bool &success);
     set<pair<unlabeled_path,bkpt_t>> find_all_paths(int start_node, set<info_node_t> terminal_nodes_with_endpos, unlabeled_path current_path, int &nb_calls, bool &success);
+    
+    set<pair<unlabeled_path,bkpt_t>> find_all_paths_rev(set< info_node_t > terminal_nodes_with_endpos);
+	set<pair<unlabeled_path,bkpt_t>> find_all_paths_rev(int start_node, set< info_node_t > terminal_nodes_with_endpos, unlabeled_path current_path, int &nb_calls, bool &success, int &terminal_node, bkpt_t &target_id);
+
     
     static int debug; // 0: no debug, 1: node id debug, 2: ful sequence debug; useful to see the sequences of the traversed paths
     std::vector<filled_insertion_t> paths_to_sequences(set<unlabeled_path> paths, set< info_node_t > terminal_nodes_with_endpos); 
