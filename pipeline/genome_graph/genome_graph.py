@@ -12,7 +12,7 @@ g.edges : adjacency list of the nodes.
 
 import re
 from utils import reverse_complement,compare_strings
-from SequenceAlignment import NeedlemanWunsch
+from alignment import PairAlign
 from paths import Path,setExtend
 
 class GenomeNode:
@@ -205,8 +205,7 @@ class GenomeGraph:
                                    remove.add(node)
                                    foundmatch = True
                             else:
-                                   nw = NeedlemanWunsch(refSeq, nodeSeq, 10, -5, -5)
-                                   id = nw.getIdentity()
+                                   id = PairAlign(refSeq, nodeSeq, 10, -5, -5)
                                    if id > 0.95:
                                           remove.add(node)
                                           foundmatch = True

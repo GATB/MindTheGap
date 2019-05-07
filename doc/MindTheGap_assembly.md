@@ -67,6 +67,7 @@ This pipeline is available in `pipeline/mtg_pipeline.py`.
 - MindTheGap
 - [BWA](http://bio-bwa.sourceforge.net/) (read mapping)
 - [Minia](https://github.com/GATB/minia) (contig assembly)
+- Biopython (graph simplification)
 - [Bandage](https://github.com/rrwick/Bandage) (Optionnal, for assembly graph visualization) 
 
 ### Usage
