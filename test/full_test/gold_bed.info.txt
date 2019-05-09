@@ -1,0 +1,3 @@
+bkpt2_Seq0_pos_123_fuzzy_0_HET		5	1776	2	1	1
+bkpt3_Seq1_pos_342_fuzzy_0_HET		4	1318	2	1	1
+bkpt4_Seq2_pos_535_fuzzy_0_HOM		1	823	1	1	1

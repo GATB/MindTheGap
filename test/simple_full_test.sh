@@ -74,6 +74,49 @@ echo "full-test find breakpoints : FAILED"
 RETVAL=1
 fi
 
+################################################################################
+# we launch the find module with bed option
+################################################################################
+${bindir}/MindTheGap find -in ../data/reads_r1.fastq,../data/reads_r2.fastq -ref ../data/reference.fasta -bed ${goldPrefix}.bed -out ${outputPrefix}_bed >${outputPrefix}_bed.out -nb-cores 1 2> /dev/null
+
+################################################################################
+# we check the results 
+################################################################################
+
+# Checking the .othervariants.vcf :
+sh compare_vcf.sh ${outputPrefix}_bed.othervariants.vcf ${goldPrefix}_bed.othervariants.vcf 1> /dev/null 2>&1
+var=$?
+
+if [ $var -eq 0 ]
+then
+echo "full-test find with bed option vcf         : PASS"
+else
+echo "full-test find with bed option vcf         : FAILED"
+RETVAL=1
+fi
+
+# Checking the .breakpoints :
+#diff --ignore-matching-lines=">" $outputPrefix.breakpoints $goldPrefix.breakpoints 1> /dev/null 2>&1
+#var=$?
+
+tmp1=${outputPrefix}_bed.breakpoints.tmp
+tmp2=$testDir/tmp2
+
+grep -v "^>" ${outputPrefix}_bed.breakpoints > $tmp1
+grep -v "^>" ${goldPrefix}_bed.breakpoints > $tmp2
+
+
+diff $tmp1 $tmp2 1> /dev/null 2>&1
+var=$?
+
+
+if [ $var -eq 0 ]
+then
+echo "full-test find breakpoints with bed otpion : PASS"
+else
+echo "full-test find breakpoints with bed otpion : FAILED"
+RETVAL=1
+fi
 
 ################################################################################
 # we launch the fill module
@@ -157,7 +200,7 @@ fi
 ################################################################################
 # clean up
 ################################################################################
-rm -rf  $testDir
+#rm -rf  $testDir
 
 # for Jenkins CI platform, we need an exit code: PASS (0) vs. FAILED (1)
 exit $RETVAL

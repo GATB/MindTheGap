@@ -1,6 +1,6 @@
 Seq0 100 SNP T -> C
-Seq0 122 HET clean after SNP # not detected for the moment
-Seq0 296 DEL end=410 clean
+Seq0 122 HET clean after SNP
+Seq0 296 DEL end=410 clean # not detected cause 2 consecutive k-mer are present within the deletion
 Seq0 815 SNP C -> A
 Seq1 205 MSNP G -> C # 2 close snps 
 Seq1 218 MSNP T -> A # 2 close snps 

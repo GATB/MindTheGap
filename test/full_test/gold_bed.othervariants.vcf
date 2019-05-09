@@ -1,0 +1,11 @@
+##fileformat=VCFv4.1
+##filedate=Thu May  9 11:40:18 2019
+##source=MindTheGap find version 2.2.0
+##SAMPLE=file:../../data/reads_r1.fastq,../../data/reads_r2.fastq
+##REF=file:../../data/reference.fasta
+##INFO=<ID=TYPE,Number=1,Type=String,Description="SNP, INS, DEL or .">
+##INFO=<ID=LEN,Number=1,Type=Integer,Description="variant size">
+##INFO=<ID=FUZZY,Number=1,Type=Integer,Description="repeat size at the breakpoint, only for INS and DEL">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	G1
+Seq0	101	bkpt1	T	C	.	PASS	TYPE=SNP;LEN=1;FUZZY=0	GT	1/1

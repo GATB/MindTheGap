@@ -1,0 +1,7 @@
+Seq2	500	600	HOM clean
+Seq0	60	140 SNP T -> C
+Seq0	90	150 HET clean after SNP
+Seq0	200	450 DEL end=410 clean
+Seq1	300	400 HET clean
+Seq1	700	847 DEL end=847 fuzzy=2 #not found cause bed don't scan all the deletion sequence
+

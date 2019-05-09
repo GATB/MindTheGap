@@ -1,0 +1,17 @@
+##fileformat=VCFv4.1
+##filedate=Thu May  9 11:40:23 2019
+##source=MindTheGap fill version 2.2.0
+##SAMPLE=file:gold_bed.h5
+##REF=file:gold_bed
+##INFO=<ID=TYPE,Number=1,Type=String,Description="INS">
+##INFO=<ID=LEN,Number=1,Type=Integer,Description="variant size">
+##INFO=<=QUAL,Number=.,Type=Integer,Description="Quality of the insertion">
+##INFO=<=AVK,Number=.,Type=Float,Description="Average k-mer coverage along the insertion">
+##INFO=<=MDK,Number=.,Type=Float,Description="Median k-mer coverage along the insertion">
+##INFO=<=NSOL,Number=1,Type=String,Description="number of alternative insertion sequences for the breakpoint">
+##INFO=<ID=NPOS,Number=1,Type=Integer,Description="number of alternative positions for the insertion site (= size of repeat (fuzzy) +1)">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	G1
+Seq0	123	bkpt2	G	GATCTAAGCTGTGACCTTGTGGCCGAGGCGCTTTTCACGCCTACATTAACTCCTGGGAAGCTCTCTGCTCTAGTTTCAGTGCACATCTCCAGGTGAGCAACCCTGGCAAGCAGCCCCTTCCTGTAGAAATTACTTAGC	.	PASS	TYPE=INS;LEN=137;QUAL=50;NSOL=1;NPOS=1;AVK=8.38;MDK=8.00	GT	0/1
+Seq1	342	bkpt3	T	TATGGTTTATAGAACCCGGGCGTTCATGTCCGTCAGAACGATCTTGGCACGGTAGCCCCTGGTCCAGAGAGCCAAGGTGACTCAGCCCCACGATGGTGGTCTAGAGCGAAATAACCCTCGCCGAGA	.	PASS	TYPE=INS;LEN=125;QUAL=50;NSOL=1;NPOS=1;AVK=9.91;MDK=9.00	GT	0/1
+Seq2	535	bkpt4	G	GTAACGTTCGCTGAACATCGACTCCGGTGACGACATACGATTCAAGAAGAGAGTGACTCTGTAGGATAACATCCCGCAACGCCTAATCCATCCAGCCTGGCACCATGTATAAAGGGCGTCAGGTATGTTAACGAGACTATT	.	PASS	TYPE=INS;LEN=140;QUAL=50;NSOL=1;NPOS=1;AVK=21.63;MDK=22.00	GT	1/1
