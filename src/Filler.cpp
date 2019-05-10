@@ -1125,17 +1125,25 @@ void Filler::writeVcf(std::vector<filled_insertion_t>& filledSequences, string b
         int size = insertion.size()-ref.size();
         int nsol = it->solution_count;
         int npos = repeatSize+1;
-        
-        if (_filter) //user parameter
+        string filter="PASS";
+
+        if ((genotype=="HET" && nsol>1) || (genotype=="HOM" && nsol>1))
         {
-            if ((genotype=="HET" && nsol>1) || (genotype=="HOM" && nsol>2))
+            if (_filter)
             {
-                break; //do not output these low quality insertions
+            break; //do not output these low quality insertions
+            }
+            else
+            {
+                filter="LOW_QUAL";
             }
         }
+
+
+
         
         // write in vcf format
-        fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
+        fprintf(_vcf_file,"%s\t%s\t%s\t%s\t%s\t.\t%s\tTYPE=INS;LEN=%i;QUAL=%i;NSOL=%i;NPOS=%i;AVK=%.2f;MDK=%.2f\tGT\t%s\n",chromosome.c_str(),position.c_str(),bkpt.c_str(),ref.c_str(),insertion.c_str(),filter,size,qual,nsol,npos,it->avg_coverage,it->median_coverage,GT.c_str());
         
         
     }
