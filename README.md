@@ -152,6 +152,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     * `-max-nodes`: maximum number of nodes in contig graph  [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
     * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
 	* `-overlap`: size of maximal expected sequence overlap between input contigs in `-contig` mode [default '0' means equal to kmer size]. In other words, it is the kmer size that was used for building the input contigs. To be specified only if it is larger than the kmer size used for gap-filling (expert usage).
+	* `-filter`: if set, insertions with multiple solutions are not output in the final vcf file (default : not activated).
 
 6. **MindTheGap Output**
     
@@ -200,16 +201,13 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 
     For both `.othervariants.vcf` and `insertions.vcf` files, the format follows the VCF specifications version 4.1 (see https://samtools.github.io/hts-specs/VCFv4.1.pdf). Positions are 1-based.
 	
-	For insertion variants (`insertions.vcf` file only), positions are **left-normalized**. This happens when there is a small (typically <5bp)) repeated sequence between the breakpoint site and one extremity of the inserted sequence. In this case, multiple positions are possible. Here, the leftmost position is reported and the number of possible positions is indicated in the INFO field (NPOS id). This latter value is at least the size of the repeated sequence + 1 (>= fuzzy +1). Note that in this case the REF field not only contains the nucleotide before the insertion but also the repeated sequence (the REF field size is therefore equal to NPOS) and the ALT field contains the two copies of the repeated sequence (at both extremities). The length of the insertion can be obtained as the size difference between the ALT and REF fields. Example:
+	For insertion variants (`insertions.vcf` file only), positions are **left-normalized**. This happens when there is a small (typically <5bp)) repeated sequence between the breakpoint site and one extremity of the inserted sequence. In this case, multiple positions are possible. Here, the leftmost position is reported and the number of possible positions is indicated in the INFO field (NPOS id). This latter value is at least the size of the repeated sequence + 1 (>= fuzzy +1). 
 	
-		chr4    618791     bkpt20  TAGG    TAGGTGTATTTAGCTCCGAGG   .       PASS    TYPE=INS;LEN=17;QUAL=50;NSOL=1;NPOS=4;AVK=22.71;MDK=23.00      GT      1/1
-	 	#AGG is a repeat of size 3, there are 4 (NPOS) possible positions for an insertion of 17 nt from positions 618791 to 618794 on chr4
+		chr4    618791     bkpt20  T    TAGGTGTATTTAGCTCCG   .       PASS    TYPE=INS;LEN=17;QUAL=50;NSOL=1;NPOS=4;AVK=22.71;MDK=23.00      GT      1/1
+	 	#there are 4 (NPOS) possible positions for an insertion of 17 nt from positions 618791 to 618794 on chr4, therefore the repeat is of size 3 and is AGG.
 	
-	Here is an example where the NPOS value is larger than the repeat size + 1
-		
-		chr5    1218353     bkpt51  TCCCC    TCCCCC   .       PASS    TYPE=INS;LEN=1;QUAL=50;NSOL=1;NPOS=5;AVK=22.71;MDK=23.00      GT      1/1
-		#The nucleotid C can be inserted in 5 alternative consecutive positions.
-		
+	FILTER field: can be `PASS`or `LOWQUAL` (for insertions with multiple solutions)
+	
 	INFO fields:  
 	* `TYPE`: variant type, INS for insertion
 	* `LEN`: insertion size in bp
