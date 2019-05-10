@@ -134,13 +134,10 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     
     In addition to the read or graph files, the find module has one mandatory option `-ref` and several optional options:
     * `-ref`: the path to the reference genome file (in fasta format).
+    * `-homo-only`: only homozygous insertions are reported (default: not activated).
     * `-max-rep`: maximal repeat size allowed for fuzzy sites  [default '5']. 
-    * `-snp-min-val`: minimal number of kmers to validate a SNP [default '5']. A SNP is validated if it is validated by at least this number of consecutive overlapping kmers. This corresponds also to the minimal distance between two consecutive SNPs to be able to detect both of them.
     * `-het-max-occ`: maximal number of occurrences of a (k-1)mer in the reference genome allowed for heterozyguous insertion breakpoints  [default '1']. In order to detect an heterozyguous insertion breakpoints, both flanking k-1-mers, at each side of the insertion site, must have strictly less than this number of occurrences in the reference genome. This prevents false positive predictions inside repeated regions. Warning : increasing this parameter may lead to numerous false positives (genomic approximate repeats).
-    * `-no-[type]`: to disable the detection of certain types of variants.
-    * `-[type]-only`: to detect only certain types of variants.
     
-    NOTE: MindTheGap can find mainly homozygous variants, except for insertion variants for which it can also find heterozygous variants. Therefore -homo-only and -hete-only only apply to insertion variants.
 
 5. **Fill module specific options**
     
@@ -149,7 +146,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 	* `-contig`: the contig file path in fasta format. Note that only contigs larger than 3*kmerSize will be used.
 	
 	The fill module has several optional options:
-    * `-max-nodes`: maximum number of nodes in contig graph  [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
+    * `-max-nodes`: maximum number of nodes in contig graph for each insertion assembly [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
     * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
 	* `-overlap`: size of maximal expected sequence overlap between input contigs in `-contig` mode [default '0' means equal to kmer size]. In other words, it is the kmer size that was used for building the input contigs. To be specified only if it is larger than the kmer size used for gap-filling (expert usage).
 	* `-filter`: if set, insertions with multiple solutions are not output in the final vcf file (default : not activated).
