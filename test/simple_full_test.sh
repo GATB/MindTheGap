@@ -200,7 +200,7 @@ fi
 ################################################################################
 # clean up
 ################################################################################
-#rm -rf  $testDir
+rm -rf  $testDir
 
 # for Jenkins CI platform, we need an exit code: PASS (0) vs. FAILED (1)
 exit $RETVAL
