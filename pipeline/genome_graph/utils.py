@@ -1,3 +1,7 @@
+import subprocess
+import os
+import sys
+
 alt_map = {'ins':'0'}
 complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'} 
 
@@ -19,5 +23,23 @@ def compare_strings(str1,str2):
                 return(i)
         else:
             return(i)
+
+def locate_nw_binary():
+    scriptDir = os.path.abspath(os.path.dirname(sys.argv[0]))
+    nwCommand = os.path.join(scriptDir,"../../build/bin/nwalign")
+    if os.path.isfile(nwCommand)==False:
+        print("No nwAlign binary found in " + nwCommand)
+    return(nwCommand)
+
+def nw_align(seq1,seq2,nwCommand):
+    seq = seq1+"\n"+seq2
+    p = subprocess.Popen(nwCommand,stdin=subprocess.PIPE,stdout=subprocess.PIPE)# ,stdout=out,stderr=out)
+    
+    try:
+        out = p.communicate(input=str.encode(seq))[0].decode()
+        id = float(out.strip())
+        return(id)
+    except:
+        print("Error during nwAlign")
 
             

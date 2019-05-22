@@ -153,7 +153,7 @@ RETVAL=1
 fi
 
 ################################################################################
-# we launch the graph implifications script
+# we launch the graph simplifications script
 ################################################################################
 ../pipeline/genome_graph/graph_simplification.py ../pipeline/genome_graph/data/simple4.gfa $outputPrefix.simplified.gfa 1> /dev/null 2>&1
 

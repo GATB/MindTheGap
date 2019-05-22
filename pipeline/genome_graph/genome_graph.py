@@ -11,9 +11,13 @@ g.edges : adjacency list of the nodes.
 '''
 
 import re
-from utils import reverse_complement,compare_strings
-from alignment import PairAlign
+import os
+import sys
+from utils import reverse_complement,compare_strings, nw_align, locate_nw_binary
+#from alignment import PairAlign
 from paths import Path,setExtend
+
+nwCommand = locate_nw_binary()
 
 class GenomeNode:
 
@@ -205,7 +209,8 @@ class GenomeGraph:
                                    remove.add(node)
                                    foundmatch = True
                             else:
-                                   id = PairAlign(refSeq, nodeSeq, 10, -5, -5)
+                                   #id = PairAlign(refSeq, nodeSeq, 10, -5, -5)
+                                   id = nw_align(refSeq,nodeSeq,nwCommand)
                                    if id > 0.95:
                                           remove.add(node)
                                           foundmatch = True
