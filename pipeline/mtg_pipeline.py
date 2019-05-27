@@ -4,7 +4,10 @@
 # 1) Map reads on a remote reference genome using BWA MEM
 # 2) Assemble reads using minia
 # 3) Use MindTheGap to fill the gaps between contigs
-# 4) (not included in the wrapper) Clean the GFA graph
+# 4) Clean the GFA graph
+
+# Sample test command to launch from ./test :
+# python ../pipeline/mtg_pipeline.py -contigs ../data/contigs.fasta -in ../data/contig-reads.fasta.gz -mtg-dir ../build/ 
 
 import os, math
 from os import listdir
@@ -41,12 +44,12 @@ parserMain.add_argument('-out', action="store", dest="out", default="./mtg_resul
 
 parserMapping.add_argument('-ref', action="store", dest="ref_genome", help="bwa index", required=False)
 
-parserAssembly.add_argument('-minia-bin', action="store", dest="minia_bin", help="path to Minia binary")
+parserAssembly.add_argument('-minia-bin', action="store", dest="minia_bin", help="path to Minia binary (if not in $PATH")
 parserAssembly.add_argument('-assembly-kmer-size', action="store", dest="minia_kmer_size", help="kmer size used for Minia assembly (should be given even if bypassing minia assembly step, usefull knowledge for gap-filling)", default="31")
 parserAssembly.add_argument('-assembly-abundance-min', action="store", dest="minia_abundance", help="Minimal abundance of kmers used for assembly", default="auto")
 parserAssembly.add_argument('-min-contig-size', action="store", dest="min_contig_size", default="0", help="minimal size for a contig to be used in gapfilling")
 
-parserGapfilling.add_argument('-mtg-dir', action="store", dest="mtg_dir", help="path to MindTheGap build directory", required=False)
+parserGapfilling.add_argument('-mtg-dir', action="store", dest="mtg_dir", help="path to MindTheGap build directory (if not in $PATH)", required=False)
 parserGapfilling.add_argument('-gapfilling-kmer-size', action="store", dest="mtg_kmer_size", help="kmer size used for gapfilling", default="31")
 parserGapfilling.add_argument('-gapfilling-abundance-min', action="store", dest="mtg_abundance", help="Minimal abundance of kmers used for gapfilling", default="auto")
 parserGapfilling.add_argument('-max-nodes', action="store", dest="max_nodes", help="Maximum number of nodes in contig graph", default="100")
@@ -268,7 +271,6 @@ if args.continue_h5 is None:
         h5Command = ["dbgh5"]
     else:
         h5Command = [os.path.join(args.mtg_dir,"ext/gatb-core/bin/dbgh5")]
-    h5Command = ["/home/genouest/genscale/cguyomar/git/MindTheGap/build/ext/gatb-core/bin/dbgh5"]
     if args.input_file1 is not None:
         h5Command.extend(["-in",args.input_file1+","+args.input_file2])
     if args.input_file is not None:
@@ -336,8 +338,40 @@ for line in logFile:
     if switch:
         logger.info(line.rstrip())
 
+
+#-------------------------------------------------------------------------------------------------------------
+# Graph simplification
+#-------------------------------------------------------------------------------------------------------------
+
+
+pipelineDir = os.path.abspath(os.path.dirname(sys.argv[0]))
+simplificationCommand = [os.path.join(pipelineDir,"genome_graph/graph_simplification.py")]
+if os.path.isfile(simplificationCommand[0])==False:
+    logger.error("Script not found : "+simplificationCommand)
+
+inFile = gapfillingPrefix + ".gfa"
+outFile = gapfillingPrefix + ".simplified.gfa"
+
+simplLog = os.path.join(logsDir,"simplification.log")
+
+simplificationCommand.append(inFile)
+simplificationCommand.append(outFile)
+
+logger.info("Graph simplification")
+logger.info("\tCall : "+ " ".join(simplificationCommand))
+
+with open(simplLog,"wb") as out:
+    p = subprocess.Popen(simplificationCommand,stdout=out,stderr=out)
+p.wait()
+
+simplificationTime = time.time()
+simplificationDuration = round(gapfillingTime - mappingTime,1)
+
+
 logger.info("Runtime :")
 logger.info("\tMapping : " + str(mappingDuration))
 logger.info("\tAssembly : " + str(assemblyDuration))
 logger.info("\tGraph creation : " + str(graphDuration))
 logger.info("\tGapfilling : " + str(gapfillingDuration))
+logger.info("\tGraph simplification : " + str(simplificationDuration))
+
