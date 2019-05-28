@@ -270,10 +270,13 @@ class GenomeGraph:
                      #print("## Merging nb " + str(nbSeq))
                      ref = ""
                      breakPos = {}
-                     
+                     toMerge = set()
+
                      for neighbor in neighbors:
                             nseq = self.get_node_seq(neighbor)
+                            
                             if nseq[0:100] == seqStart:
+                                   toMerge.add(neighbor)
                                    if len(ref)==0:
                                           ref = nseq
                                           refNode = neighbor
@@ -305,13 +308,13 @@ class GenomeGraph:
                      self.add_edge(nodeId,newId)
                      
                      # Create edges to new node
-                     for n in neighbors:
+                     for n in toMerge:
                             self.add_edge(newId,n)
                             # print(str(nodeId) + " : " + str(n))
                             self.rem_edge(nodeId,n)
 
                      # Shorten neighbor nodes and cut edges
-                     for n in neighbors:
+                     for n in toMerge:
                             if n > 0:
                                    self.nodes[n].nodeSeq = self.nodes[n].nodeSeq[mergePos-self.overlap-1:] 
                             else:
