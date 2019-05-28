@@ -57,7 +57,7 @@ class GenomeGraph:
               try:
                      assert newNode not in self.nodes.values()
               except AssertionError:
-                     print("Node already in graph")
+                     print("Node " + nodeName + "is already in graph")
                      
               if len(self.nodes)>0:
                      self.maxId = self.maxId+1
@@ -258,13 +258,16 @@ class GenomeGraph:
 
               neighbors_sequences = [self.get_node_seq(node) for node in neighbors]
 
+              # First we look at the first 100bp of each seq
               seqStarts = set()
               for seq in neighbors_sequences:
-                     if seq[0:100] not in seqStarts:  # What if length <100?
-                            seqStarts.add(seq[0:100])
+                     if len(seq)>100: # We require at least 100 common bp to merge
+                            if seq[0:100] not in seqStarts:
+                                   seqStarts.add(seq[0:100])
 
               nbSeq = 0 # Number of different merges
               for seqStart in seqStarts:
+                     #print("## Merging nb " + str(nbSeq))
                      ref = ""
                      breakPos = {}
                      
@@ -280,6 +283,9 @@ class GenomeGraph:
                      
                      if len(breakPos)==0:
                             continue
+
+                     # We found a set of redundant sequences
+                     nbSeq += 1
                      mergePos = min(breakPos.values())
                      
                      consensus = ref[0:mergePos-1]
@@ -290,7 +296,7 @@ class GenomeGraph:
                      else :
                             dir = "R"
                      
-                     newName = self.nodes[abs(nodeId)].nodeName + "_extended_" + dir
+                     newName = self.nodes[abs(nodeId)].nodeName + "_extended(" + str(nbSeq) + ")_" + dir
                      
                      # print(newName)
                      # Get properties
@@ -301,6 +307,7 @@ class GenomeGraph:
                      # Create edges to new node
                      for n in neighbors:
                             self.add_edge(newId,n)
+                            # print(str(nodeId) + " : " + str(n))
                             self.rem_edge(nodeId,n)
 
                      # Shorten neighbor nodes and cut edges
@@ -315,7 +322,9 @@ class GenomeGraph:
               node = 1
               while node < self.maxId:
                      if node in self.nodes.keys() and node not in visited_nodes:
+                            #print("#### Merging from node : " + str(node))
                             self.merge_redundant_gapfillings(node)
+                            #print("#### Merging from node : " + str(-node))
                             self.merge_redundant_gapfillings(-node)
 
                             visited_nodes.add(node)
@@ -327,12 +336,13 @@ class GenomeGraph:
               paths = {p}
               extended = setExtend(paths,self)
               nbExtension = 1
-              while extended != paths and nbExtension < 100:
+              while extended != paths:# and nbExtension < 100:
                      #print(nbExtension)
                      nbExtension += 1
-                     if max([len(p.nodeIds) for p in {p}]) > 120:
-                            return(extended)
+                     #if max([len(p.nodeIds) for p in {p}]) > 120:
+                     #       return(extended)
                      # There are smarter things to do
                      paths = extended.copy()
                      extended = setExtend(paths,self)
               return(extended)
+
