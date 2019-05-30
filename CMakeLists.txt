@@ -104,13 +104,17 @@ include_directories (${PROGRAM_SOURCE_DIR} ${gatb-core-includes})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # we define the files to be compiled
-file (GLOB_RECURSE  ProjectFiles  src/*)
+file (GLOB  ProjectFiles  src/*)
+
 
 # we define the artifact to be built: the project binary
 add_executable        (${PROJECT_NAME}  src/main.cpp ${ProjectFiles})
+add_executable(nwalign src/nwAlign/nwalign.cpp)
 
 # we define which libraries to be linked with project binary
 target_link_libraries (${PROJECT_NAME}  ${gatb-core-libraries})
+target_link_libraries (nwalign  ${gatb-core-libraries})
+
 
 
 ################################################################################
