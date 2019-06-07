@@ -249,7 +249,7 @@ set<pair<unlabeled_path,bkpt_t>> GraphAnalysis::find_all_paths_rev(int start_nod
     // don't explore for too long
     if (nb_calls++ > 10000000)
     {
-       cout <<"fail, max nb_calls reached" << endl;
+       //cout <<"fail, max nb_calls reached" << endl;
 
         success = false;
 
