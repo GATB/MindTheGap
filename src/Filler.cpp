@@ -509,6 +509,25 @@ public:
     std::vector<filled_insertion_t> filledSequences;
      _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, conc_targetSequence,filledSequences, targetDictionary, is_anchor_repeated, reverse );
 
+    // We filter out loops (ie target = seed_Rc)
+    for (auto it=filledSequences.begin() ; it != filledSequences.end();)
+    {
+        string revTargetName;
+        bkpt_t target = it->targetId_anchor;
+        if (target.second)
+        {
+            revTargetName = target.first;
+        } else {
+            revTargetName = target.first + "_Rc";
+        }
+
+        if (revTargetName == seedName)
+        {
+            filledSequences.erase(it);
+        } else {
+            ++it;
+        }
+    }
 
      // Write insertions to file
      _object->writeFilledBreakpoint(filledSequences,seedName,infostring);
