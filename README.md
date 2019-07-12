@@ -173,7 +173,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     Additional options are related to computational runtime and memory:
     * `-nb-cores`: number of cores to be used for computation [default '0', ie. all available cores will be used].
     * `-max-memory`: max RAM memory for the graph creation (in MBytes)  [default '2000']. Increasing the memory will speed up the graph creation phase.
-    * `-max-disk`: max usable disk space for the graph creation (in MBytes)  [default '0', ie. automatically set]. Kmers are counted by writting temporary files on the disk, to speed up the counting you can increase the usable disk space.
+    * `-max-disk`: max usable disk space for the graph creation (in MBytes)  [default '0', ie. automatically set]. Kmers are counted by writing temporary files on the disk, to speed up the counting you can increase the usable disk space.
 
 
 

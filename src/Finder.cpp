@@ -281,16 +281,16 @@ void Finder::execute ()
     _breakpoint_file_name = getInput()->getStr(STR_URI_OUTPUT)+".breakpoints";
     _breakpoint_file = fopen(_breakpoint_file_name.c_str(), "w");
     if(_breakpoint_file == NULL){
-        //cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
-        string message = "Cannot open file "+ _breakpoint_file_name + " for writting";
+        //cerr <<" Cannot open file "<< _output_file <<" for writing" << endl;
+        string message = "Cannot open file "+ _breakpoint_file_name + " for writing";
         throw Exception(message.c_str());
     }
 
     _vcf_file_name = getInput()->getStr(STR_URI_OUTPUT)+".othervariants.vcf";
     _vcf_file = fopen(_vcf_file_name.c_str(), "w");
     if(_vcf_file == NULL){
-    	//cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
-    	string message = "Cannot open file "+ _vcf_file_name + " for writting";
+    	//cerr <<" Cannot open file "<< _output_file <<" for writing" << endl;
+    	string message = "Cannot open file "+ _vcf_file_name + " for writing";
     	throw Exception(message.c_str());
     }
     writeVcfHeader();

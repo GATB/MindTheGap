@@ -227,14 +227,14 @@ void Filler::execute ()
     _insert_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.fasta";
     _insert_file = fopen(_insert_file_name.c_str(), "w");
     if(_insert_file == NULL){
-        string message = "Cannot open file "+ _insert_file_name + " for writting";
+        string message = "Cannot open file "+ _insert_file_name + " for writing";
         throw Exception(message.c_str());
     }
 
     _insert_info_file_name = getInput()->getStr(STR_URI_OUTPUT)+".info.txt";
     _insert_info_file = fopen(_insert_info_file_name.c_str(), "w");
     if(_insert_info_file == NULL){
-        string message = "Cannot open file "+ _insert_info_file_name + " for writting";
+        string message = "Cannot open file "+ _insert_info_file_name + " for writing";
         throw Exception(message.c_str());
     }
 
@@ -245,8 +245,8 @@ void Filler::execute ()
         _vcf_file_name = getInput()->getStr(STR_URI_OUTPUT)+".insertions.vcf";
         _vcf_file = fopen(_vcf_file_name.c_str(), "w");
         if(_vcf_file == NULL){
-            //cerr <<" Cannot open file "<< _output_file <<" for writting" << endl;
-            string message = "Cannot open file "+ _vcf_file_name + " for writting";
+            //cerr <<" Cannot open file "<< _output_file <<" for writing" << endl;
+            string message = "Cannot open file "+ _vcf_file_name + " for writing";
             throw Exception(message.c_str());
         }
         writeVcfHeader();
@@ -259,7 +259,7 @@ void Filler::execute ()
         _gfa_file_name = getInput()->getStr(STR_URI_OUTPUT)+".gfa";
         _gfa_file = fopen(_gfa_file_name.c_str(),"w");
         if(_gfa_file == NULL){
-            string message = "Cannot open file "+ _gfa_file_name + " for writting";
+            string message = "Cannot open file "+ _gfa_file_name + " for writing";
             throw Exception(message.c_str());
         }
     }
@@ -1004,7 +1004,7 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
         osolu_i <<   "solution " <<    it->solution_rank << "/" << it->solution_count ;
         string solu_i = it->solution_count >1 ?  osolu_i.str() : "" ;
         
-        //Writting sequence header
+        //Writing sequence header
         if(_breakpointMode) //-bkpt mode, to keep the same header name as before
         {
             fprintf(_insert_file,">%s_len_%d_qual_%i_avg_cov_%.2f_median_cov_%.2f   %s\n",
@@ -1022,7 +1022,7 @@ void Filler::writeFilledBreakpoint(std::vector<filled_insertion_t>& filledSequen
             fprintf(_insert_file,"%s",insertionName.c_str());
         }
         
-        //Writting DNA sequence
+        //Writing DNA sequence
         fprintf(_insert_file,"%.*s\n",(int)llen,insertion.c_str() );
         
 //        if(it->solution_count >1)
