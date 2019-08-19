@@ -76,6 +76,8 @@ public:
     bool _snp;
     bool _backup;
     bool _deletion;
+    bool _small_homo;
+    bool _small_hetero;
     IBank* _refBank;
     string _breakpoint_file_name;
     FILE * _breakpoint_file;
@@ -93,7 +95,9 @@ public:
     int _nb_solo_snp;
     int _nb_multi_snp;
     int _nb_backup;
-
+    int _nb_homo_clean_indel;
+    int _nb_homo_fuzzy_indel;
+    int _nb_hetero_indel;
     // Actual job done by the tool is here
     void execute ();
 
