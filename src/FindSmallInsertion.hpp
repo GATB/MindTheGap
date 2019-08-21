@@ -133,7 +133,6 @@ FindSmallFuzzyInsertion<span>::FindSmallFuzzyInsertion(FindBreakpoints<span> * f
 template<size_t span>
 bool FindSmallFuzzyInsertion<span>::update()
 {
-    cout << "fuzzy suspected"<< this->_find->gap_stretch_size()<< endl;
     if((this->_find->kmer_begin().isValid() && this->_find->kmer_end().isValid()) == false)
     {
         return false;
@@ -152,7 +151,6 @@ bool FindSmallFuzzyInsertion<span>::update()
         else
         {
             string ref = kmer_begin_str.substr(kmer_begin_str.size()-1-repeat_size,1);
-            cout << "Fuzzy found" 	<<endl;
             char nucleo[20][6] = {"A","C","G","T","AA","AC","AG","AT","CA","CC","CG","CT","GA","GC","GG","GT","TA","TC","TG","TT"};
             KmerModel local_m(this->_find->kmer_size());
             KmerIterator local_it(local_m);

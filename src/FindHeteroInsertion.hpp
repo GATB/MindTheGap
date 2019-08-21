@@ -84,7 +84,6 @@ bool FindHeteroInsertion<span>::update()
                     for (int a=0; a<20; a++)
                     {
                         seq = kmer_begin_str+ nucleo[a] + kmer_end_str;
-                        std::cout << seq << endl;
                         Data local_d(const_cast<char*>(seq.c_str()));
                         int sum_valid=0;
                 //        // Init this variable
@@ -103,7 +102,6 @@ bool FindHeteroInsertion<span>::update()
                             if (sum_valid==this->_find->kmer_size())
                             {
                                 inser_base_one=ref+nucleo[a];
-                                cout<< inser_base_one << endl;
                                 found_base_one=true;
                             }
                        }
