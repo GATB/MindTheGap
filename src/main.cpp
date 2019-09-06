@@ -70,12 +70,12 @@ int main (int argc, char* argv[])
 
     if(strcmp(argv[1],STR_VERSION)==0  ||  strcmp(argv[1],"-v")==0 ){
         displayVersion(cout);
-        return EXIT_FAILURE;
+        return EXIT_SUCCESS;
     }
 
-    if(strcmp(argv[1],STR_HELP)==0){
+    if(strcmp(argv[1],STR_HELP)==0 ||  strcmp(argv[1],"-h")==0 ){
         displayHelp(cout);
-        return EXIT_FAILURE;
+        return EXIT_SUCCESS;
     }
 
     if ((strcmp(argv[1],STR_FIND) != 0 && strcmp(argv[1],STR_FILL) != 0 ) || (strcmp(argv[1],STR_FIND) == 0 && strcmp(argv[1],STR_FILL) == 0 ))
