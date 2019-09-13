@@ -51,7 +51,7 @@ static const char* STR_SNP_TYPE = "SNP";
 static const char* STR_MSNP_TYPE = "MSNP";
 static const char* STR_DEL_TYPE = "DEL";
 static const char* STR_BKP_TYPE = "BACKUP";
-
+static const char* STR_ENV = "-env";
 class Finder : public Tool
 {
 public:
@@ -78,6 +78,7 @@ public:
     bool _deletion;
     bool _small_homo;
     bool _small_hetero;
+    bool _env;
     IBank* _refBank;
     string _breakpoint_file_name;
     FILE * _breakpoint_file;

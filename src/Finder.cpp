@@ -87,6 +87,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _deletion = true;
     _small_homo=true;
     _bed_file_name="";
+    _env=false;
 	
 	setHelp(&HelpFinder);
 	setHelpTarget(this);
@@ -141,6 +142,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     finderParser->getParser(STR_NO_HETERO)->setVisible(false);
     finderParser->push_front (new OptionNoParam (STR_WITH_BACKUP, "report also unusual breakpoints (gap size is larger than kmer-size/2 and does not validate a common variant)", false));
     finderParser->getParser(STR_WITH_BACKUP)->setVisible(false);
+    finderParser->push_front (new OptionNoParam (STR_ENV, "filter breakpoints based on branching node of the 50 last k-mer", false));
 
 
     IOptionsParser* graphParser = new OptionsParser("Graph building");
@@ -322,6 +324,7 @@ void Finder::execute ()
 	_snp = true;
 	_backup = false;
 	_deletion = true;
+	_env=false;
     }
     
     if(getInput()->get(STR_INSERT_ONLY) != 0)
@@ -333,6 +336,7 @@ void Finder::execute ()
 	_snp = false;
 	_backup = false;
 	_deletion = false;
+	_env=false;
     }
 
     if(getInput()->get(STR_SNP_ONLY) != 0)
@@ -344,6 +348,7 @@ void Finder::execute ()
 	_snp = true;
 	_backup = false;
 	_deletion = false;
+	_env=false;
     }
 
     if(getInput()->get(STR_DELETION_ONLY) != 0)
@@ -355,6 +360,7 @@ void Finder::execute ()
 	_snp = false;
 	_backup = false;
 	_deletion = true;
+	_env=false;
     }
 
     if(getInput()->get(STR_HETERO_ONLY) != 0)
@@ -366,8 +372,13 @@ void Finder::execute ()
 	_snp = false;
 	_backup = false;
 	_deletion = false;
+	_env=false;
     }
 
+    if(getInput()->get(STR_ENV) != 0)
+    {
+    _env = true;
+    }
     if(getInput()->get(STR_WITH_BACKUP) != 0)
     {
 	_backup = true;

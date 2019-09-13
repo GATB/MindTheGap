@@ -319,6 +319,27 @@ private :
 	
 };
 
+int countOccurrences(int arr[], int n, int x)
+{
+    int res = 0;
+    for (int i=0; i<n; i++)
+        if (x == arr[i])
+          res++;
+    return res;
+}
+
+float check_env(int array_in[], int array_out[])
+{
+    int sum_branching;
+    float percentage;
+    sum_branching+=countOccurrences(array_in, 49, 3);
+    sum_branching+=countOccurrences(array_in, 49, 4);
+    sum_branching+=countOccurrences(array_out, 49, 3);
+    sum_branching+=countOccurrences(array_out, 49, 4);
+    percentage=1-float(sum_branching)/50;
+    return percentage;
+}
+
 template<size_t span>
 FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find->_kmerSize), m_it_kmer(m_model), _progress (0)
 {
@@ -417,6 +438,13 @@ void FindBreakpoints<span>::operator()()
 		this->m_chrom_name = (*it_seq)->getCommentShort();
 		this->m_position = 0;
 		
+		int array_in[50];
+		int array_out[50];
+		if (this->finder->_env)
+		{
+		    std::fill( array_in, array_in + 50, 0 );
+		    std::fill( array_out, array_out + 50, 0 );
+		}
         if (this->finder->_bed_file_name=="")
         {
             // We iterate the kmers.
@@ -436,21 +464,52 @@ void FindBreakpoints<span>::operator()()
                 {
                     
                     //we need to convert the kmer in a node to query the graph.
+                    
                     Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
-                    
-                    uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
-                    
-                    //we notify all observer
-                    this->notify(node, (*m_it_kmer).isValid());
-                    
-                    m_position = save_position;
-                    
-                    //save actual kmer for potential False Positive
-                    m_previous_kmer = *m_it_kmer;
-                    
-                    //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
-                    nbkmersdone++;
+                    if (this->finder->_env!=0)
+                    {
+                        for (int i =0; i<49;i++)
+                        {
+                            array_in[i]=array_in[i+1];
+                            array_out[i]=array_out[i+1];
+                        }
+                        array_in[49]=this->current_info().nb_in;
+                        array_out[49]=this->current_info().nb_out;
+                        //for (int i = 0; i < 49; i++)
+                        //{cout << array_in[i];}
+
+                        //cout<< "  " << sum_branching<< "     " << percentage << endl;
+                        uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
+                        if (check_env(array_in, array_out)>= 0.80)
+                        {
+                            //we notify all observer
+                            this->notify(node, (*m_it_kmer).isValid());
+                        }
+                        m_position = save_position;
+
+                        //save actual kmer for potential False Positive
+                        m_previous_kmer = *m_it_kmer;
+
+                        //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
+                        nbkmersdone++;
+                        if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
+                    }
+                    else
+                    {
+		            uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
+		            
+		            //we notify all observer
+		            this->notify(node, (*m_it_kmer).isValid());
+		            
+		            m_position = save_position;
+		            
+		            //save actual kmer for potential False Positive
+		            m_previous_kmer = *m_it_kmer;
+		            
+		            //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
+		            nbkmersdone++;
                     if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
+                    }
                 }
             }
             //DEBUG
@@ -521,19 +580,48 @@ void FindBreakpoints<span>::operator()()
                         //we need to convert the kmer in a node to query the graph.
                         Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
                         
-                        uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
-                        
-                        //we notify all observer
-                        this->notify(node, (*m_it_kmer).isValid());
-                        
-                        m_position = save_position;
-                        
-                        //save actual kmer for potential False Positive
-                        m_previous_kmer = *m_it_kmer;
-                        
-                        //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
-                        nbkmersdone++;
-                        if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
+                        if (this->finder->_env!=0)
+                        {
+                            for (int i =0; i<49;i++)
+                            {
+                                array_in[i]=array_in[i+1];
+                                array_out[i]=array_out[i+1];
+                            }
+                            array_in[49]=this->current_info().nb_in;
+                            array_out[49]=this->current_info().nb_out;
+                            //for (int i = 0; i < 49; i++)
+                            //{cout << array_in[i];}
+                            uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
+                            if (check_env(array_in, array_out)>= 0.80)
+                            {
+                                //we notify all observer
+                                this->notify(node, (*m_it_kmer).isValid());
+                            }
+                            m_position = save_position;
+
+                            //save actual kmer for potential False Positive
+                            m_previous_kmer = *m_it_kmer;
+
+                            //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
+                            nbkmersdone++;
+                            if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
+                        }
+                        else
+                        {
+		                uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
+
+		                //we notify all observer
+		                this->notify(node, (*m_it_kmer).isValid());
+
+		                m_position = save_position;
+
+		                //save actual kmer for potential False Positive
+		                m_previous_kmer = *m_it_kmer;
+
+		                //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
+		                nbkmersdone++;
+		                if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
+                        }
                     }
                 }
             }
