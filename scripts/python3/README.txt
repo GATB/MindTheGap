@@ -1,6 +1,6 @@
 Two scripts are available to improve performance of MindTheGap for human genome analysis :
 
-Inser_snp_in_ref.py :
+Inser_snp_in_ref_definitive.py :
 It allows user to integrate SNP called from GATK HaplotypeCaller in a reference genome.
 Three paramaters are required : -s GATK.vcf, -g reference_genome.fa, -o altered_genome.fa
 
