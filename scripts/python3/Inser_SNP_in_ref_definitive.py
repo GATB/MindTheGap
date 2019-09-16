@@ -18,7 +18,7 @@ def main():
 	
 	genome_parser=""
 	vcf_reader=""
-	out_m=csv.writer(open(sys.argv[3],"w"),delimiter="\n")
+	out_m=""
 	dic_snp={}
 	
 	for opt, arg in opts:
