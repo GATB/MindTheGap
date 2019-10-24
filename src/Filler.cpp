@@ -348,10 +348,10 @@ void Filler::writeVcfHeader(){
 ##REF=file:%s\n\
 ##INFO=<ID=TYPE,Number=1,Type=String,Description=\"INS\">\n\
 ##INFO=<ID=LEN,Number=1,Type=Integer,Description=\"variant size\">\n\
-##INFO=<=QUAL,Number=.,Type=Integer,Description=\"Quality of the insertion\">\n\
-##INFO=<=AVK,Number=.,Type=Float,Description=\"Average k-mer coverage along the insertion\">\n\
-##INFO=<=MDK,Number=.,Type=Float,Description=\"Median k-mer coverage along the insertion\">\n\
-##INFO=<=NSOL,Number=1,Type=String,Description=\"number of alternative insertion sequences for the breakpoint\">\n\
+##INFO=<ID=QUAL,Number=.,Type=Integer,Description=\"Quality of the insertion\">\n\
+##INFO=<ID=AVK,Number=.,Type=Float,Description=\"Average k-mer coverage along the insertion\">\n\
+##INFO=<ID=MDK,Number=.,Type=Float,Description=\"Median k-mer coverage along the insertion\">\n\
+##INFO=<ID=NSOL,Number=1,Type=String,Description=\"number of alternative insertion sequences for the breakpoint\">\n\
 ##INFO=<ID=NPOS,Number=1,Type=Integer,Description=\"number of alternative positions for the insertion site (= size of repeat (fuzzy) +1)\">\n\
 ##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n\
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tG1\n",

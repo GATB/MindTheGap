@@ -40,7 +40,7 @@ class IFindObserver;
 /**
  * \brief An observable functor for find gaps in reference genome
  *
- * This class associated with IFindObserver inherit, to find gaps in reference genome 
+ * This class associated with IFindObserver inherit, to find gaps in reference genome
  */
 template<size_t span>
 class FindBreakpoints
@@ -60,10 +60,10 @@ public :
     // structure to store information about a kmer : kmer that will be treated as kmer_begin of a breakpoint
     typedef struct info_type
     {
-	KmerType kmer;
-	int nb_in;
-	int nb_out;
-	bool is_repeated; // is the k-1 suffix of this kmer is repeated in the reference genome
+    KmerType kmer;
+    int nb_in;
+    int nb_out;
+    bool is_repeated; // is the k-1 suffix of this kmer is repeated in the reference genome
     } info_type;
 
 public :
@@ -75,7 +75,7 @@ public :
 
     /** Destructor. */
     virtual ~FindBreakpoints();
-    
+
     //Functor
     /** overloading operator ()
      * Read reference genome, and find gaps
@@ -86,7 +86,7 @@ public :
     /** Notify gap observer
      * \param[in] If kmer is in graph in_graph is true else is false
      */
-    void notify(Node node, bool is_valid);
+    void notify(Node node, bool is_valid, bool env);
 
     /** Add observer call after a gap detection
      */
@@ -95,7 +95,7 @@ public :
     /** Add observer call after a gap detection
      */
     void addKmerObserver(IFindObserver<span>* new_obs);
-    
+
     /** writes a given breakpoint in the output file
      */
     void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type,bool repeat_in_genome_kmer_begin =false, bool repeat_in_genome_kmer_end = false);
@@ -126,11 +126,11 @@ public :
      */
     KmerModel& model();
 
-    /** Return the size of kmer used for gap search 
+    /** Return the size of kmer used for gap search
      */
     size_t kmer_size();
 
-    /** Return the numbre of max repeat 
+    /** Return the numbre of max repeat
      */
     int max_repeat();
 
@@ -138,7 +138,7 @@ public :
      */
     int snp_min_val();
 
-    
+
     /** The last solid kmer before gap
      */
     KmerCanonical& kmer_begin();
@@ -150,12 +150,12 @@ public :
     /** Size of current solid stretch
      */
     uint64_t solid_stretch_size();
-    
+
     /** Size of current gap stretch
      */
     uint64_t gap_stretch_size();
 
-    /** MindTheGap run with homo-only flag 
+    /** MindTheGap run with homo-only flag
      */
     bool homo_only();
 
@@ -174,8 +174,8 @@ public :
     /**
      */
     bool kmer_end_is_repeated();
-	
-	bool kmer_begin_is_repeated();
+
+    bool kmer_begin_is_repeated();
 
     /** Get info_type at the index in circular buffer, rq : limits the kmerSize <256
      */
@@ -184,7 +184,7 @@ public :
     /**
      */
     unsigned char het_kmer_begin_index();
-	unsigned char het_kmer_end_index();
+    unsigned char het_kmer_end_index();
 
     /**
      */
@@ -192,7 +192,7 @@ public :
     int node_in_branch(Node& kmer_node);
     int node_out_branch(Node& kmer_node);
     bool ref_bloom_contains(KmerType kmer);
-    
+
     /*Iterater*/
     /** Incremente the value of breakpoint_id counter
      */
@@ -252,12 +252,12 @@ public :
     /** Set value of recent_hetero
      */
     void recent_hetero(int value);
-    
+
 private :
 
     IBloom<KmerType>* fillRefBloom();
     void store_kmer_info(Node node);
-
+    void store_unvalid_kmer_info();
 private :
 
     /*Observable membre*/
@@ -283,168 +283,143 @@ private :
     /*Gap type detection*/
     uint64_t m_solid_stretch_size;
     uint64_t m_gap_stretch_size;
-    
+
     /*Finder access*/
     Finder* finder;
 
     /*Hetero mode*/
-    info_type m_het_kmer_history[256]; 
+    info_type m_het_kmer_history[256];
     unsigned char m_het_kmer_end_index; // index in history, must remain an unsigned char = same limit as the history array
     unsigned char m_het_kmer_begin_index;
     info_type m_current_info;
     int m_recent_hetero;
     bool m_kmer_end_is_repeated;
-	bool m_kmer_begin_is_repeated;
+    bool m_kmer_begin_is_repeated;
 
-	
+
 //	CircularBuffer<info_type> m_het_kmer_history_CB;
 //	typedef typename CircularBuffer<info_type>::itCB  iterCB;
 //	iterCB* m_het_kmer_end_index_CB;
 //	iterCB* m_het_kmer_begin_index_CB;
-	
-	
-    /** Bloom of the repeated kmers of the reference genome 
+
+
+    /** Bloom of the repeated kmers of the reference genome
      */
     IBloom<KmerType>* m_ref_bloom;
 
     //Please didn't add other friends please
     friend bool FindMultiSNP<span>::update();
-	
-	friend bool FindMultiSNPrev<span>::update();
 
-	
-	/** Handle on the progress information. */
-	gatb::core::tools::dp::IteratorListener* _progress;
-	void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
-	
+    friend bool FindMultiSNPrev<span>::update();
+
+
+    /** Handle on the progress information. */
+    gatb::core::tools::dp::IteratorListener* _progress;
+    void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
+
 };
 
-int countOccurrences(int arr[], int n, int x)
-{
-    int res = 0;
-    for (int i=0; i<n; i++)
-        if (x == arr[i])
-          res++;
-    return res;
-}
 
-float check_env(int array_in[], int array_out[])
-{
-    int sum_branching;
-    float percentage;
-    sum_branching+=countOccurrences(array_in, 49, 3);
-    sum_branching+=countOccurrences(array_in, 49, 4);
-    sum_branching+=countOccurrences(array_out, 49, 3);
-    sum_branching+=countOccurrences(array_out, 49, 4);
-    percentage=1-float(sum_branching)/50;
-    return percentage;
-}
+
 
 template<size_t span>
 FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find->_kmerSize), m_it_kmer(m_model), _progress (0)
 {
-	this->m_breakpoint_id = 1;
-	this->m_position = 0;
-	this->m_chrom_sequence = NULL;
-	this->m_chrom_name = "";
-	this->m_kmer_begin = KmerCanonical(); // init kmerbegin and kmerend otherwise not init when checking this->_find->kmer_begin().isValid() in update
-	this->m_kmer_end = KmerCanonical();
-	
-	//m_het_kmer_end_index_CB = new iterCB (&m_het_kmer_history_CB);
-	//m_het_kmer_begin_index_CB = new iterCB (&m_het_kmer_history_CB);
-	
-	/*Homozygote usage*/
-	this->m_solid_stretch_size = 0;
-	this->m_gap_stretch_size = 0;
-	
-	this->finder = find;
-	
-	/*Heterozygote usage*/ //always fill repeat ref bloom
-	//if(this->finder->_hete_insert)
-	{
-		this->m_ref_bloom = this->fillRefBloom();
-		this->m_ref_bloom->use();
-	}
+    this->m_breakpoint_id = 1;
+    this->m_position = 0;
+    this->m_chrom_sequence = NULL;
+    this->m_chrom_name = "";
+    this->m_kmer_begin = KmerCanonical(); // init kmerbegin and kmerend otherwise not init when checking this->_find->kmer_begin().isValid() in update
+    this->m_kmer_end = KmerCanonical();
+
+    //m_het_kmer_end_index_CB = new iterCB (&m_het_kmer_history_CB);
+    //m_het_kmer_begin_index_CB = new iterCB (&m_het_kmer_history_CB);
+
+    /*Homozygote usage*/
+    this->m_solid_stretch_size = 0;
+    this->m_gap_stretch_size = 0;
+
+    this->finder = find;
+
+    /*Heterozygote usage*/ //always fill repeat ref bloom
+    //if(this->finder->_hete_insert)
+    {
+        this->m_ref_bloom = this->fillRefBloom();
+        this->m_ref_bloom->use();
+    }
 }
 
 template<size_t span>
 FindBreakpoints<span>::~FindBreakpoints()
 {
-	for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
-	{
-		(*it)->forget();
-	}
-	
-	for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
-	{
-		(*it)->forget();
-	}
-	
-	//if(this->finder->_hete_insert)  //always fill repeat ref bloom
-		this->m_ref_bloom->forget();
-	
-	setProgress             (0);
-	
+    for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
+    {
+        (*it)->forget();
+    }
+
+    for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
+    {
+        (*it)->forget();
+    }
+
+    //if(this->finder->_hete_insert)  //always fill repeat ref bloom
+        this->m_ref_bloom->forget();
+
+    setProgress             (0);
+
 }
 
 template<size_t span>
 void FindBreakpoints<span>::operator()()
 {
-	// We create an iterator over this bank
-	Iterator<Sequence>* it_seq = this->finder->_refBank->iterator();
-	LOCAL(it_seq);
-	
-	
-	u_int64_t  totalsize = this->finder->_refBank->estimateSequencesSize();
-	u_int64_t nbkmersdone = 0;
-	
-	//printf("bank size %lli \n",totalsize);
-	setProgress (new ProgressSynchro (
-									  finder->createIteratorListener (totalsize, "Finding breakpoints"), //bon sang le createIteratorListener est dans le tool finder
-									  System::thread().newSynchronizer())
-				 );
-	_progress->init ();
-	
-	
-	
-	// We loop over sequences
-	for (it_seq->first(); !it_seq->isDone(); it_seq->next())
-	{
+    // We create an iterator over this bank
+    Iterator<Sequence>* it_seq = this->finder->_refBank->iterator();
+    LOCAL(it_seq);
 
-		this->m_kmer_begin = KmerCanonical();
-		this->m_kmer_end = KmerCanonical();
-		//DEBUG
-		//cout<<"sequence "<< (*it_seq)->getCommentShort() << endl;
 
-		//Reintialize stretch_size for each sequence
-		this->m_solid_stretch_size = 0;
-		this->m_gap_stretch_size = 0;
-		
-		// for hetero mode:
-		memset(this->m_het_kmer_history, 0, sizeof(info_type)*256);
-		//m_het_kmer_history_CB.clear();
-		
-		this->m_het_kmer_end_index = this->finder->_kmerSize +1;
-		this->m_het_kmer_begin_index = 1;
-		
-		//m_het_kmer_end_index_CB->set(this->finder->_kmerSize +1);
-		//m_het_kmer_end_index_CB->set(1);
-		
-		this->m_recent_hetero = 0;
-		
-		// We set the data from which we want to extract kmers.
-		m_it_kmer.setData ((*it_seq)->getData());
-		this->m_chrom_sequence = (*it_seq)->getDataBuffer();
-		this->m_chrom_name = (*it_seq)->getCommentShort();
-		this->m_position = 0;
-		
-		int array_in[50];
-		int array_out[50];
-		if (this->finder->_env)
-		{
-		    std::fill( array_in, array_in + 50, 0 );
-		    std::fill( array_out, array_out + 50, 0 );
-		}
+    u_int64_t  totalsize = this->finder->_refBank->estimateSequencesSize();
+    u_int64_t nbkmersdone = 0;
+
+    //printf("bank size %lli \n",totalsize);
+    setProgress (new ProgressSynchro (
+                                      finder->createIteratorListener (totalsize, "Finding breakpoints"), //bon sang le createIteratorListener est dans le tool finder
+                                      System::thread().newSynchronizer())
+                 );
+    _progress->init ();
+
+
+
+    // We loop over sequences
+    for (it_seq->first(); !it_seq->isDone(); it_seq->next())
+    {
+
+        this->m_kmer_begin = KmerCanonical();
+        this->m_kmer_end = KmerCanonical();
+        //DEBUG
+        //cout<<"sequence "<< (*it_seq)->getCommentShort() << endl;
+
+        //Reintialize stretch_size for each sequence
+        this->m_solid_stretch_size = 0;
+        this->m_gap_stretch_size = 0;
+
+        // for hetero mode:
+        memset(this->m_het_kmer_history, 0, sizeof(info_type)*256);
+        //m_het_kmer_history_CB.clear();
+
+        this->m_het_kmer_end_index = this->finder->_kmerSize +1;
+        this->m_het_kmer_begin_index = 1;
+
+        //m_het_kmer_end_index_CB->set(this->finder->_kmerSize +1);
+        //m_het_kmer_end_index_CB->set(1);
+
+        this->m_recent_hetero = 0;
+
+        // We set the data from which we want to extract kmers.
+        m_it_kmer.setData ((*it_seq)->getData());
+        this->m_chrom_sequence = (*it_seq)->getDataBuffer();
+        this->m_chrom_name = (*it_seq)->getCommentShort();
+        this->m_position = 0;
+
         if (this->finder->_bed_file_name=="")
         {
             // We iterate the kmers.
@@ -457,76 +432,46 @@ void FindBreakpoints<span>::operator()()
                     this->m_gap_stretch_size = 0;
                     this->m_kmer_begin = KmerCanonical();
                     this->m_kmer_end = KmerCanonical();
+                    this->store_unvalid_kmer_info();
                     //DEBUG
                     //cout<<"n";
                 }
                 else
                 {
-                    
+
                     //we need to convert the kmer in a node to query the graph.
-                    
                     Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
-                    if (this->finder->_env!=0)
-                    {
-                        for (int i =0; i<49;i++)
-                        {
-                            array_in[i]=array_in[i+1];
-                            array_out[i]=array_out[i+1];
-                        }
-                        array_in[49]=this->current_info().nb_in;
-                        array_out[49]=this->current_info().nb_out;
-                        //for (int i = 0; i < 49; i++)
-                        //{cout << array_in[i];}
 
-                        //cout<< "  " << sum_branching<< "     " << percentage << endl;
-                        uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
-                        if (check_env(array_in, array_out)>= 0.80)
-                        {
-                            //we notify all observer
-                            this->notify(node, (*m_it_kmer).isValid());
-                        }
-                        m_position = save_position;
+                    uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
 
-                        //save actual kmer for potential False Positive
-                        m_previous_kmer = *m_it_kmer;
+                    //we notify all observer
+                    this->notify(node, (*m_it_kmer).isValid(), this->finder->_env);
 
-                        //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
-                        nbkmersdone++;
-                        if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
-                    }
-                    else
-                    {
-		            uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
-		            
-		            //we notify all observer
-		            this->notify(node, (*m_it_kmer).isValid());
-		            
-		            m_position = save_position;
-		            
-		            //save actual kmer for potential False Positive
-		            m_previous_kmer = *m_it_kmer;
-		            
-		            //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
-		            nbkmersdone++;
+                    m_position = save_position;
+
+                    //save actual kmer for potential False Positive
+                    m_previous_kmer = *m_it_kmer;
+
+                    //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
+                    nbkmersdone++;
                     if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
-                    }
                 }
             }
             //DEBUG
             //cout<<endl;
         }
         else{ // restrict to some specific regions of the reference, given in a bed file
-            
+
             // read the bed file to construct the set of allowed intervals for this chromosome
             string line;
             ifstream reader(this->finder->_bed_file_name);
-            
+
             std::vector<tuple<uint64_t ,uint64_t >> interval_vector;
             //std::vector<tuple<uint64_t ,uint64_t >>::iterator interval_it;
             while(getline(reader,line))
             {
                 if ((line.length()==0) ||(line.at(0)=='#') ||(line.at(0)=='@')  ) continue;
-                
+
                 string token;
                 stringstream iss;
                 vector < string > v;
@@ -537,21 +482,21 @@ void FindBreakpoints<span>::operator()()
                 {
                     v.push_back(token);
                 }
-                if(v[0]==m_chrom_name){ // we are on the current chromosome
+                if(v[0]==m_chrom_name){ // we are on the current chromosome TODO : NEED to check line is correct !!!
                     interval=std::make_pair(std::stoi(v[1]),std::stoi(v[2]));
                     interval_vector.push_back( tuple<uint64_t ,uint64_t>(interval));
                 }
                 iss.clear();
             }
-            
+
             if (!interval_vector.empty()){
                 uint64_t  start_pos=get<0>(interval_vector.front());
                 uint64_t  end_pos=get<1>(interval_vector.front());
-             
+                //cout << "\n " << "start : " << start_pos << " end : " << end_pos << endl;
                 //iterate over the kmers of the chromosome
                 for (m_it_kmer.first(); !m_it_kmer.isDone(); m_it_kmer.next(), m_position++, m_het_kmer_begin_index++, m_het_kmer_end_index++) //,m_het_kmer_begin_index_CB++, m_het_kmer_end_index++
                 {
-                    if (m_position >= end_pos)
+                    if (m_position > end_pos)
                     {
                         //move to the next interval
                         interval_vector.erase(interval_vector.begin());
@@ -561,142 +506,151 @@ void FindBreakpoints<span>::operator()()
                         start_pos=get<0>(interval_vector.front());
                         end_pos=get<1>(interval_vector.front());
                     }
-                    
+
                     if(!(*m_it_kmer).isValid() || (m_position<start_pos))
                     {
                         //Reintialize stretch_size for each bed region
-                        
+
                         this->m_solid_stretch_size = 0;
                         this->m_gap_stretch_size = 0;
                         this->m_kmer_begin = KmerCanonical();
                         this->m_kmer_end = KmerCanonical();
+                        this->store_unvalid_kmer_info();
+
                         //DEBUG
                         //cout<<"n";
+
+
                     }
-                    
-                    
-                    if(((*m_it_kmer).isValid()) && (m_position>=start_pos)) //inside the current bed interval
+
+
+                    if(((*m_it_kmer).isValid()) && (m_position>=start_pos) && (m_position<=end_pos)) //inside the current bed interval
                     {
                         //we need to convert the kmer in a node to query the graph.
                         Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
-                        
-                        if (this->finder->_env!=0)
-                        {
-                            for (int i =0; i<49;i++)
-                            {
-                                array_in[i]=array_in[i+1];
-                                array_out[i]=array_out[i+1];
-                            }
-                            array_in[49]=this->current_info().nb_in;
-                            array_out[49]=this->current_info().nb_out;
-                            //for (int i = 0; i < 49; i++)
-                            //{cout << array_in[i];}
-                            uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
-                            if (check_env(array_in, array_out)>= 0.80)
-                            {
-                                //we notify all observer
-                                this->notify(node, (*m_it_kmer).isValid());
-                            }
-                            m_position = save_position;
+                        uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
 
-                            //save actual kmer for potential False Positive
-                            m_previous_kmer = *m_it_kmer;
+                        //we notify all observer
+                        this->notify(node, (*m_it_kmer).isValid(), this->finder->_env);
 
-                            //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
-                            nbkmersdone++;
-                            if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
-                        }
-                        else
-                        {
-		                uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
+                        m_position = save_position;
 
-		                //we notify all observer
-		                this->notify(node, (*m_it_kmer).isValid());
+                        //save actual kmer for potential False Positive
+                        m_previous_kmer = *m_it_kmer;
 
-		                m_position = save_position;
-
-		                //save actual kmer for potential False Positive
-		                m_previous_kmer = *m_it_kmer;
-
-		                //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
-		                nbkmersdone++;
-		                if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
-                        }
+                        //if(!graph_contains(node) & (*m_it_kmer).isValid()) {cout << m_position << endl;}
+                        nbkmersdone++;
+                        if (nbkmersdone > 1000)   {  _progress->inc (nbkmersdone);  nbkmersdone = 0;  }
                     }
                 }
             }
         }
     }
-    
+
     _progress->finish ();
 }
 
 template<size_t span>
-void FindBreakpoints<span>::notify(Node node, bool is_valid)
+void FindBreakpoints<span>::notify(Node node, bool is_valid, bool env)
 {
-	bool in_graph = this->graph_contains(node);
-	this->store_kmer_info(node);
-    //if(this->current_info().nb_in == 2) cout << "\n nb_in 2 : " << this->model().toString(this->current_info().kmer);
-        //if(this->current_info().nb_in == 0) cout << "\n nb_in 0 : " << this->model().toString(this->current_info().kmer);
-        //if(this->current_info().nb_out == 0) cout << "\n nb_out 0 : " << this->model().toString(this->current_info().kmer);
-     //if(this->current_info().nb_out == 2) cout << "\n nb_out 2 : "<< this->model().toString(this->current_info().kmer);
-        //if(this->current_info().is_repeated) cout << this->model().toString(this->current_info().kmer) << " is repeated" << endl;
-	for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
-	{
-		(*it)->update();
-	}
-	
-	// Kmer is in graph incremente scretch size
-	if(in_graph && is_valid)
-	{
-		//DEBUG
+    bool in_graph = this->graph_contains(node);
+    this->store_kmer_info(node);
+    float percentage=0;
+    unsigned int cov = this->finder->_graph.queryAbundance(node);
+    //cout << " gap " << this->m_gap_stretch_size << endl;
+    if (env)
+    {
+    for (int i = 0; i < 50; i++)
+    {
+        if (this->het_kmer_history(this->het_kmer_begin_index()+i).nb_in>=2 ||this->het_kmer_history(this->het_kmer_begin_index()+i).nb_out >=2 )
+        {
+            //cout << this->het_kmer_history(this->het_kmer_begin_index()+i).nb_in;
+            percentage+=1;
+        }
+    }
+    }
+    percentage/=100;
+    //cout << "\n percentage" << percentage << endl;
+    if (!env|| percentage<0.10)
+    {
+    for(typename std::vector<IFindObserver<span>* >::iterator it = this->kmer_obs.begin(); it != this->kmer_obs.end(); it++)
+    {
+        (*it)->update();
+    }
+    }
+    // Kmer is in graph incremente scretch size
+    if(in_graph && is_valid && this->current_info().nb_in!=0 && this->current_info().nb_out!=0)
+    {
+        //DEBUG
         //cout<<"1 " << " Position : " << this->position() << " seq :" << this->model().toString(this->current_info().kmer) << endl;
+        /*
+        if (this->current_info().nb_in == 2)
+            cout << "\n nb_in 2 : " << this->model().toString(this->current_info().kmer);
+        if (this->current_info().nb_in == 0)
+            cout << "\n nb_in 0 : " << this->model().toString(this->current_info().kmer);
+        if (this->current_info().nb_out == 0)
+            cout << "\n nb_out 0 : " << this->model().toString(this->current_info().kmer);
+        if (this->current_info().nb_out == 2)
+            cout << "\n nb_out 2 : " << this->model().toString(this->current_info().kmer);
+        if (this->current_info().nb_in == 3)
+            cout << "\n nb_in 3 : " << this->model().toString(this->current_info().kmer);
+        if (this->current_info().nb_out == 3)
+            cout << "\n nb_out 3 : " << this->model().toString(this->current_info().kmer);
+        if (this->current_info().nb_in == 4)
+            cout << "\n nb_in 4 : " << this->model().toString(this->current_info().kmer);
+        if (this->current_info().nb_out == 4)
+            cout << "\n nb_out 4: " << this->model().toString(this->current_info().kmer);
+        if(this->current_info().is_repeated) cout << this->model().toString(this->current_info().kmer) << " is repeated" << endl;
+        */
+       // cout << " abundance : "<< cov << "\n" ;
+        m_solid_stretch_size++;
 
-		m_solid_stretch_size++;
-		
-		if(m_solid_stretch_size > 1 && m_gap_stretch_size > 0)
-		{
-			// Call each readonly observer
-			for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
-			{
-				//DEBUG
+        if(m_solid_stretch_size > 1 && m_gap_stretch_size > 0)
+        {
+            // Call each readonly observer
+            if (!env|| percentage<0.10)
+            {
+            for(typename std::vector<IFindObserver<span>* >::iterator it = this->gap_obs.begin(); it != this->gap_obs.end(); it++)
+                {
+                //DEBUG
                 //cout << m_gap_stretch_size << endl;
-				if((*it)->update())
-				{
-					break;
-				}
-			}
-			
-			// gap stretch size is re-set to 0 only when we are sure that the end of the gap is not due to an isolated solid kmer (likely FP)
-			this->m_gap_stretch_size = 0;
-		}
-		
-		if (this->m_solid_stretch_size==1)
-		{
-			// kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when m_solid_stretch_size=1)
-			this->m_kmer_end = *this->m_it_kmer;
-		}
-	}
-		
-	// Kmer isn't in graph incremente gap size and reset solid size
-	if(!in_graph && is_valid)
-	{
-		//DEBUG
+                if((*it)->update())
+                {
+                    break;
+                }
+                }
+            }
+
+            // gap stretch size is re-set to 0 only when we are sure that the end of the gap is not due to an isolated solid kmer (likely FP)
+            this->m_gap_stretch_size = 0;
+        }
+
+        if (this->m_solid_stretch_size==1)
+        {
+            // kmer_end should be the first kmer indexed after a gap (the first kmer of a solid_stretch is when m_solid_stretch_size=1)
+            this->m_kmer_end = *this->m_it_kmer;
+        }
+    }
+
+    // Kmer isn't in graph incremente gap size and reset solid size
+    if((!in_graph && is_valid) || (in_graph && is_valid && this->current_info().nb_in==0) || (in_graph && is_valid  && this->current_info().nb_out==0))
+    {
+        //DEBUG
        //cout<<"0 " << " Position : " << this->position() << " seq :" << this->model().toString(this->current_info().kmer) << endl;
 
-		if(this->m_solid_stretch_size==1)
-		{
-			this->m_gap_stretch_size = this->m_gap_stretch_size + this->m_solid_stretch_size; //if previous position was an isolated solid kmer, we need to add 1 to the m_gap_stretch_size (as if replacing the FP by a non indexed kmer)
-		}
-		if(this->m_solid_stretch_size > 1 && this->m_previous_kmer.isValid()) // begin of not indexed zone
-		{
-			this->m_kmer_begin = this->m_previous_kmer;
-			this->m_kmer_begin_is_repeated =  this->m_current_info.is_repeated ;
-		}
-		
-		m_gap_stretch_size++;
-		m_solid_stretch_size = 0;
-	}
+        if(this->m_solid_stretch_size==1)
+        {
+            this->m_gap_stretch_size = this->m_gap_stretch_size + this->m_solid_stretch_size; //if previous position was an isolated solid kmer, we need to add 1 to the m_gap_stretch_size (as if replacing the FP by a non indexed kmer)
+        }
+        if(this->m_solid_stretch_size > 1 && this->m_previous_kmer.isValid()) // begin of not indexed zone
+        {
+            this->m_kmer_begin = this->m_previous_kmer;
+            this->m_kmer_begin_is_repeated =  this->m_current_info.is_repeated ;
+        }
+
+        m_gap_stretch_size++;
+        m_solid_stretch_size = 0;
+    }
 }
 
 template<size_t span>
@@ -718,41 +672,41 @@ void FindBreakpoints<span>::addKmerObserver(IFindObserver<span>* new_obs)
 template<size_t span>
 void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type, bool repeat_in_genome_kmer_begin, bool repeat_in_genome_kmer_end  ){
     fprintf(this->finder->_breakpoint_file,">bkpt%i_%s_pos_%lli_fuzzy_%i_%s %s left_kmer\n%s\n>bkpt%i_%s_pos_%lli_fuzzy_%i_%s %s right_kmer\n%s\n",
-	    bkt_id,
-	    chrom_name.c_str(),
-	    position+1, //switch to 1-based
-	    repeat_size,
-	    type.c_str(),
-		repeat_in_genome_kmer_begin ? "REPEATED" : "",
-	    kmer_begin.c_str(),
-	    bkt_id,
-	    chrom_name.c_str(),
-	    position+1, //switch to 1-based
-	    repeat_size,
-	    type.c_str(),
-		repeat_in_genome_kmer_end ? "REPEATED" : "",
-	    kmer_end.c_str()
-	);
+        bkt_id,
+        chrom_name.c_str(),
+        position+1, //switch to 1-based
+        repeat_size,
+        type.c_str(),
+        repeat_in_genome_kmer_begin ? "REPEATED" : "",
+        kmer_begin.c_str(),
+        bkt_id,
+        chrom_name.c_str(),
+        position+1, //switch to 1-based
+        repeat_size,
+        type.c_str(),
+        repeat_in_genome_kmer_end ? "REPEATED" : "",
+        kmer_end.c_str()
+    );
 }
 
 template<size_t span>
 void FindBreakpoints<span>::writeVcfVariant(int bkt_id, string& chrom_name, uint64_t position, char* ref_char, char* alt_char, int repeat_size, string type){
-	//cout << ref_char << alt_char << endl;
-	// NOTE : currently all positions coming from FindObservers are 0-based, VCF is supposed to be 1-based, so we add +1
+    //cout << ref_char << alt_char << endl;
+    // NOTE : currently all positions coming from FindObservers are 0-based, VCF is supposed to be 1-based, so we add +1
     int variant_size=1;
-	if (strcmp(type.c_str(),STR_DEL_TYPE)==0){
-		variant_size = strlen(ref_char) - 1;
+    if (strcmp(type.c_str(),STR_DEL_TYPE)==0){
+        variant_size = strlen(ref_char) - 1;
     }
-	fprintf(this->finder->_vcf_file,"%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\tTYPE=%s;LEN=%i;FUZZY=%i\tGT\t1/1\n",
-			chrom_name.c_str(),
-			position+1,  //switch to 1-based
-			bkt_id,
+    fprintf(this->finder->_vcf_file,"%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\tTYPE=%s;LEN=%i;FUZZY=%i\tGT\t1/1\n",
+            chrom_name.c_str(),
+            position+1,  //switch to 1-based
+            bkt_id,
             ref_char,
             alt_char,
-			type.c_str(),
+            type.c_str(),
             variant_size,
             repeat_size
-	);
+    );
 }
 template<size_t span>
 void FindBreakpoints<span>::writeIndel(int bkt_id, string& chrom_name, uint64_t position, string ref_string, string alt_string, int repeat_size, string type){
@@ -893,14 +847,14 @@ bool FindBreakpoints<span>::kmer_end_is_repeated()
 template<size_t span>
 bool FindBreakpoints<span>::kmer_begin_is_repeated()
 {
-	return this->m_kmer_begin_is_repeated;
+    return this->m_kmer_begin_is_repeated;
 }
 
 template<size_t span>
 typename FindBreakpoints<span>::info_type& FindBreakpoints<span>::het_kmer_history(unsigned char index)
 {
     return this->m_het_kmer_history[index];
-	
+
 //	return  index(); //with index of type iterCB
 
 }
@@ -915,7 +869,7 @@ unsigned char FindBreakpoints<span>::het_kmer_begin_index()
 template<size_t span>
 unsigned char FindBreakpoints<span>::het_kmer_end_index()
 {
-	return this->m_het_kmer_end_index;
+    return this->m_het_kmer_end_index;
 }
 
 
@@ -925,19 +879,19 @@ template<size_t span>
 bool FindBreakpoints<span>::graph_contains(Node& kmer_node)
 {
     return this->finder->_graph.contains(kmer_node);
-	//keep tips and internal node sonly
-	//return	( this->finder->_graph.contains(kmer_node) && (this->finder->_graph.indegree(kmer_node)>=1 || this->finder->_graph.outdegree(kmer_node)>=1 ));
-	
-	//keep internal nodes only
-	//	 return	( this->finder->_graph.contains(kmer_node) && (this->finder->_graph.indegree(kmer_node)>=1 && this->finder->_graph.outdegree(kmer_node)>=1 ));
-	
+    //keep tips and internal node sonly
+    //return	( this->finder->_graph.contains(kmer_node) && (this->finder->_graph.indegree(kmer_node)>=1 || this->finder->_graph.outdegree(kmer_node)>=1 ));
+
+    //keep internal nodes only
+    //	 return	( this->finder->_graph.contains(kmer_node) && (this->finder->_graph.indegree(kmer_node)>=1 && this->finder->_graph.outdegree(kmer_node)>=1 ));
+
 }
 
 template<size_t span>
 bool FindBreakpoints<span>::ref_bloom_contains(KmerType kmer)
 {
     return this->m_ref_bloom->contains(kmer);
-    
+
 }
 
 
@@ -1028,96 +982,103 @@ void FindBreakpoints<span>::recent_hetero(int value)
 //todo later replace this by mphf+ abundance per kmer
 template<size_t span>
 IBloom<typename FindBreakpoints<span>::KmerType>* FindBreakpoints<span>::fillRefBloom(){
-	
-	//Bloom of the repeated (k-1)mers of the reference genome
-	IBloom<KmerType>* ref_bloom = 0;
-	
-	//solid kmers must be stored in a file
-	string tempFileName = this->finder->getInput()->getStr(STR_URI_OUTPUT)+"_trashme.h5";
-	
-	// Parameters for SortingCountAlgorithm // all defaults
-	IProperties* props = SortingCountAlgorithm<>::getDefaultProperties();
-	props->setInt (STR_KMER_ABUNDANCE_MIN, this->finder->_het_max_occ+1);
-	props->setInt (STR_KMER_SIZE,          this->finder->_kmerSize-1);
-	props->setStr (STR_URI_OUTPUT,         tempFileName);
-	//Remark : could re-use MAX_DISK or others from Finder options ? not necessary here, small counting in theory
-	//props->setStr (STR_MAX_DISK, this->finder->getInput()->getStr(STR_MAX_DISK));
-	
-	/** We create a DSK (kmer counting) instance and execute it. */
-	SortingCountAlgorithm<span> sortingCount (this->finder->_refBank,props);
-	
-	sortingCount.getInput()->add (0, STR_VERBOSE, 0);//do not show progress bar
-	sortingCount.execute();
-	
-	// OLD WAY : Partition<KmerCount> & solidCollection = storage->root().getGroup("dsk").getPartition<KmerCount> ("solid");
-	Partition<KmerCount> & solidCollection = * sortingCount.getSolidCounts();
-	
-	/** We get the number of solid kmers. */
-	u_int64_t nb_solid = solidCollection.getNbItems();
-	
-	/** parameters of the Bloom filter */
-	float NBITS_PER_KMER = 12;
-	u_int64_t estimatedBloomSize = (u_int64_t) ((double)nb_solid * NBITS_PER_KMER * 2); //TODO *3 ?
-	if (estimatedBloomSize ==0 )
-	{
-		estimatedBloomSize = 1000;
-	}
-	
-	size_t nbHash = (int)floorf (0.7*NBITS_PER_KMER);
-	
-	//iterator of KmerCount
-	Iterator<KmerCount>* itKmers = this->finder->createIterator(
-																solidCollection.iterator(),
-																nb_solid
-																);
-	LOCAL (itKmers);
-	
-	// building the bloom
-	BloomBuilder<span> builder (estimatedBloomSize, nbHash, this->finder->_kmerSize-1, BLOOM_CACHE, this->finder->getDispatcher()->getExecutionUnitsNumber(), this->finder->_het_max_occ+1);
-	ref_bloom = builder.build (itKmers);
-	//cout << typeid(*ref_bloom).name() << endl;  // to verify the type of bloom
-	
-	System::file().remove(tempFileName);
-	
-	return ref_bloom;
+
+    //Bloom of the repeated (k-1)mers of the reference genome
+    IBloom<KmerType>* ref_bloom = 0;
+
+    //solid kmers must be stored in a file
+    string tempFileName = this->finder->getInput()->getStr(STR_URI_OUTPUT)+"_trashme.h5";
+
+    // Parameters for SortingCountAlgorithm // all defaults
+    IProperties* props = SortingCountAlgorithm<>::getDefaultProperties();
+    props->setInt (STR_KMER_ABUNDANCE_MIN, this->finder->_het_max_occ+1);
+    props->setInt (STR_KMER_SIZE,          this->finder->_kmerSize-1);
+    props->setStr (STR_URI_OUTPUT,         tempFileName);
+    //Remark : could re-use MAX_DISK or others from Finder options ? not necessary here, small counting in theory
+    //props->setStr (STR_MAX_DISK, this->finder->getInput()->getStr(STR_MAX_DISK));
+
+    /** We create a DSK (kmer counting) instance and execute it. */
+    SortingCountAlgorithm<span> sortingCount (this->finder->_refBank,props);
+
+    sortingCount.getInput()->add (0, STR_VERBOSE, 0);//do not show progress bar
+    sortingCount.execute();
+
+    // OLD WAY : Partition<KmerCount> & solidCollection = storage->root().getGroup("dsk").getPartition<KmerCount> ("solid");
+    Partition<KmerCount> & solidCollection = * sortingCount.getSolidCounts();
+
+    /** We get the number of solid kmers. */
+    u_int64_t nb_solid = solidCollection.getNbItems();
+
+    /** parameters of the Bloom filter */
+    float NBITS_PER_KMER = 12;
+    u_int64_t estimatedBloomSize = (u_int64_t) ((double)nb_solid * NBITS_PER_KMER * 2); //TODO *3 ?
+    if (estimatedBloomSize ==0 )
+    {
+        estimatedBloomSize = 1000;
+    }
+
+    size_t nbHash = (int)floorf (0.7*NBITS_PER_KMER);
+
+    //iterator of KmerCount
+    Iterator<KmerCount>* itKmers = this->finder->createIterator(
+                                                                solidCollection.iterator(),
+                                                                nb_solid
+                                                                );
+    LOCAL (itKmers);
+
+    // building the bloom
+    BloomBuilder<span> builder (estimatedBloomSize, nbHash, this->finder->_kmerSize-1, BLOOM_CACHE, this->finder->getDispatcher()->getExecutionUnitsNumber(), this->finder->_het_max_occ+1);
+    ref_bloom = builder.build (itKmers);
+    //cout << typeid(*ref_bloom).name() << endl;  // to verify the type of bloom
+
+    System::file().remove(tempFileName);
+
+    return ref_bloom;
 }
 
 template<size_t span>
 void FindBreakpoints<span>::store_kmer_info(Node node)
 {
-	KmerType one; one.setVal(1);
-	KmerType kminus1_mask = (one << ((this->finder->_kmerSize-1)*2)) - one;
-	
-	this->m_current_info.kmer = this->m_it_kmer->forward();
-	if (this->finder->_graph.contains(node))
-	{
-		this->m_current_info.nb_in = this->finder->_graph.indegree (node);
-		this->m_current_info.nb_out = this->finder->_graph.outdegree (node);
-	}
-	else
-	{
-		this->m_current_info.nb_in = 0;
-		this->m_current_info.nb_out = 0;
-	}
-	
-	//checking if the k-1 suffix is repeated
-	KmerType suffix = this->m_it_kmer->forward() & kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
-	KmerType suffix_rev = revcomp(suffix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
-	
-	//if(this->finder->_hete_insert) //alwayss fill repeat info
-		this->m_current_info.is_repeated = this->m_ref_bloom->contains(min(suffix,suffix_rev));
-	
-	//filling the history array with the current kmer information
-	this->m_het_kmer_history[m_het_kmer_end_index] = m_current_info;
-	//m_het_kmer_end_index_CB->item() = m_current_info ;
-	
-	//checking if the k-1 prefix is repeated
-	KmerType prefix = (this->m_it_kmer->forward() >> 2) & kminus1_mask; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
-	KmerType prefix_rev = revcomp(prefix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
-	
+    KmerType one; one.setVal(1);
+    KmerType kminus1_mask = (one << ((this->finder->_kmerSize-1)*2)) - one;
+
+    this->m_current_info.kmer = this->m_it_kmer->forward();
+    if (this->finder->_graph.contains(node))
+    {
+        this->m_current_info.nb_in = this->finder->_graph.indegree (node);
+        this->m_current_info.nb_out = this->finder->_graph.outdegree (node);
+    }
+    else
+    {
+        this->m_current_info.nb_in = 0;
+        this->m_current_info.nb_out = 0;
+    }
+
+    //checking if the k-1 suffix is repeated
+    KmerType suffix = this->m_it_kmer->forward() & kminus1_mask ; // getting the k-1 suffix (because putative kmer_begin)
+    KmerType suffix_rev = revcomp(suffix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
+
+    //if(this->finder->_hete_insert) //alwayss fill repeat info
+        this->m_current_info.is_repeated = this->m_ref_bloom->contains(min(suffix,suffix_rev));
+
+    //filling the history array with the current kmer information
+    this->m_het_kmer_history[m_het_kmer_end_index] = m_current_info;
+    //m_het_kmer_end_index_CB->item() = m_current_info ;
+
+    //checking if the k-1 prefix is repeated
+    KmerType prefix = (this->m_it_kmer->forward() >> 2) & kminus1_mask; // getting the k-1 prefix (applying kminus1_mask after shifting of 2 bits to get the prefix)
+    KmerType prefix_rev = revcomp(prefix,this->finder->_kmerSize-1); // we get its reverse complement to compute the canonical value of this k-1-mer
+
 //	if(this->finder->_hete_insert) //alwayss fill repeat info
-		this->m_kmer_end_is_repeated = this->m_ref_bloom->contains(min(prefix,prefix_rev));
+        this->m_kmer_end_is_repeated = this->m_ref_bloom->contains(min(prefix,prefix_rev));
 }
 
+template<size_t span>
+void FindBreakpoints<span>::store_unvalid_kmer_info()
+{
+    this->m_current_info.nb_in = 0;
+    this->m_current_info.nb_out = 0;
+    this->m_het_kmer_history[m_het_kmer_end_index] = m_current_info;
+}
 #endif /* _TOOL_FindBreakpoints_HPP_ */
 

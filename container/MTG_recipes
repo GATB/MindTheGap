@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: ubuntu:16.04
+From: ubuntu:18.04
 
 
 %environment
@@ -16,12 +16,13 @@ From: ubuntu:16.04
      zlib1g-dev \
      libboost-dev \
      bzip2 \
-     python2.7 \
      default-jre \
      libbz2-dev \
      liblzma-dev \
      default-jdk \
-     python3 \
+     python3-numpy \
+     python3-pandas \
+     python3-biopython \
      python3-pip \
      cython \
      unzip \
@@ -30,19 +31,16 @@ From: ubuntu:16.04
      cd /opt;\
      git clone --recursive https://github.com/GATB/MindTheGap.git;\
      cd MindTheGap;\
+     git checkout human_project;\
      git submodule init;\
      git submodule update;\
      mkdir build;\
      cd build;\
      cmake ..;\
      make;\
-     cd ..;\
-     git config --global http.sslVerify false;\
-     pip3 install pyGATB;\
-     pip3 install biopython;\
-     pip3 install pandas;\
-     pip3 install numpy;\
-
+     cd ;\
+     pip3 install --user pyGATB;\
+     
 
      
      
