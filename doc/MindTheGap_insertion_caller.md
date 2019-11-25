@@ -1,111 +1,15 @@
-# MindTheGap 
+# MindTheGap  for genomic insertion variant calling
 
-| **Linux** | **Mac OSX** |
-|-----------|-------------|
-[![Build Status](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-debian7-64bits-gcc-4.7/) | [![Build Status](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-macos-10.9.5-gcc-4.2.1/)
-
-Travis CI : [![Build Status](https://travis-ci.org/GATB/MindTheGap.svg?branch=master)](https://travis-ci.org/GATB/MindTheGap)
-
-[![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)
-
-# What is MindTheGap ?
-
-MindTheGap  performs detection and assembly of **DNA insertion variants** in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint.
-
-**New !** MindTheGap can also be used as a **genome assembly finishing tool**: it can fill the gaps between a set of input contigs without any a priori on their relative order and orientation. It outputs the results in a gfa file. 
-
-MindTheGap is a [Genscale](http://team.inria.fr/genscale/) tool, built upon the [GATB](http://gatb.inria.fr/) C++ library, and developed by:
-* Claire Lemaitre
-* Cervin Guyomar
-* Wesley Delage
-* Guillaume Rizk
-* Former developers: Rayan Chikhi, Pierre Marijon. 
-
-# Installation instructions
-
-## Requirements
-
-CMake 3.1+; see http://www.cmake.org/cmake/resources/software.html
-
-C++/11 capable compiler (e.g. gcc 4.7+, clang 3.5+, Apple/clang 6.0+)
-
-## Getting the latest source code with git
-
-    # get a local copy of MindTheGap source code
-    git clone --recursive https://github.com/GATB/MindTheGap.git
-    
-    # compile the code
-    cd MindTheGap
-    sh INSTALL
-    # the binary file is located in directory build/bin/
-    ./build/bin/MindTheGap -help
-
-Note: when updating your local repository with `git pull`, if you see that thirdparty/gatb-core has changed, you have to run also : `git submodule update`. 
-
-## Installing a stable release
-
-Retrieve a binary archive file from one of the official MindTheGap releases (see "Releases" tab on the Github web page); file name is `MindTheGap-vX.Y.Z-bin-Linux.tar.gz` (for Linux) or `MindTheGap-vX.Y.Z-bin-Darwin.tar.gz` (for MacOs).
-
-    tar -zxf MindTheGap-vX.Y.Z-bin-Darwin.tar.gz
-    cd MindTheGap-vX.Y.Z-bin-Darwin
-    chmod u+x bin/MindTheGap
-    
-    # run a simple example
-    ./bin/MindTheGap find -in data/reads_r1.fastq,data/reads_r2.fastq -ref data/reference.fasta -out example
-    ./bin/MindTheGap fill -graph example.h5 -bkpt example.breakpoints -out example
-
-In case the software does not run appropriately on your system, you should consider to install it from its source code. Retrieve the source archive file `MindTheGap-vX.Y.Z-Source.tar.gz`.
-
-    tar -zxf MindTheGap-vX.Y.Z-Source.tar.gz
-    cd MindTheGap-vX.Y.Z-Source
-    sh INSTALL
-    # the binary file is located in directory build/bin/
-    ./build/bin/MindTheGap -help
-
-## Using docker or conda
-
-Pull the docker image of the latest release of MindTheGap:
-
-    docker pull clemaitr/mindthegap
-
-MindTheGap is also distributed as a [Bioconda package](https://anaconda.org/bioconda/mindthegap):
-
-``` 
-conda install -c bioconda mindthegap
-```
-
-
-
-# USER MANUAL	 
-
-## Description
-
-MindTheGap is a software that performs integrated detection and assembly of **genomic insertion variants** in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. 
-
-Alternatively and since release 2.1.0, MindTheGap can also be used as a **genome assembly finishing tool**. It is integrated as an essential step in the targeted assembly tool [MinYS](https://github.com/cguyomar/MinYS) (MineYourSymbiont in metagenomics datasets).
-
-### Insertion variant detection
+MindTheGap  performs detection and assembly of **DNA insertion variants** in short read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome.
 
 It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint. For each breakpoint, MindTheGap either returns a single insertion sequence (when there is no assembly ambiguity), or a set of candidate insertion sequences (due to ambiguities) or nothing at all (when the insertion is too complex to be assembled).
 
-For a detailed manual specific to insertion variants see [doc/MindTheGap_insertion_caller.md](doc/MindTheGap_insertion_caller.md).
-
-### Genome assembly gap-filling
-
-New feature !
-
-When given a set of reads and a set of contigs as input, MindTheGap tries to fill the gaps between all pairs of contigs by de novo local assembly without any a priori on their relative order and orientation. It outputs the results in gfa file. 
-
-For a detailed manual specific to insertion variants see [doc/MindTheGap_assembly.md](doc/MindTheGap_assembly.md).
-
-### Performances
-
-MindTheGap performs de novo assembly using the [GATB](http://gatb.inria.fr) C++ library and inspired from algorithms from Minia. Hence, the computational resources required to run MindTheGap are significantly lower than that of other assemblers (for instance it uses less than 6GB of main memory for analyzing a full human NGS dataset).
+Since version 2.0.0, MindTheGap can detect other types of variants, not only insertion events. These are homozygous SNPs and homozygous deletions of any size. They are detected by the find module of MindTheGap and are output separately in a VCF file. Importantly, even if the user is not interested in these types of variants, it is worth to detect them  since it can improve the recall of the insertion event detection algorithm : it is now possible to find insertion events that are located at less than k nucleotides from an other such variant.
 
 
 For more details on the method and some recent results, see the [web page](http://gatb.inria.fr/software/mind-the-gap/).
 	
-## Basic Usage and examples
+## Usage
 
 MindTheGap is composed of two main modules : breakpoint detection (`find` module) and the local assembly of insertions or gaps (`fill` module). Both steps are implemented in a single executable, MindTheGap, and can be run independently by specifying the module name as follows :
 
@@ -147,19 +51,18 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     * `-homo-only`: only homozygous insertions are reported (default: not activated).
     * `-max-rep`: maximal repeat size allowed for fuzzy sites  [default '5']. 
     * `-het-max-occ`: maximal number of occurrences of a (k-1)mer in the reference genome allowed for heterozyguous insertion breakpoints  [default '1']. In order to detect an heterozyguous insertion breakpoints, both flanking k-1-mers, at each side of the insertion site, must have strictly less than this number of occurrences in the reference genome. This prevents false positive predictions inside repeated regions. Warning : increasing this parameter may lead to numerous false positives (genomic approximate repeats).
+    * `-bed`: to limit the find algorithm to particular regions of the genome. Can be usefull for exome data.
     
 5. **Fill module specific options**
   
-    In addition to the read or graph files, the fill module has one other mandatory option, either `-bkpt` or `-contig` depending on the type of gap-filling : assembling insertion variants or gap-filling between contigs respectively: 	
+    In addition to the read or graph files, the fill module has one other mandatory option, `-bkpt` 	
     * `-bkpt`: the breakpoint file path. This is one of the output of the Find module and contains for each detected insertion site its left and right kmers from and to which the local assembly will be performed (see section E for details about the format).
-	* `-contig`: the contig file path in fasta format. Note that only contigs larger than 3*kmerSize will be used.
 	
 	The fill module has several optional options:
-    * `-max-nodes`: maximum number of nodes in contig graph for each insertion assembly [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
+	* `-max-nodes`: maximum number of nodes in contig graph for each insertion assembly [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
     * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
-	* `-overlap`: size of maximal expected sequence overlap between input contigs in `-contig` mode [default '0' means equal to kmer size]. In other words, it is the kmer size that was used for building the input contigs. To be specified only if it is larger than the kmer size used for gap-filling (expert usage).
-	* `-filter`: if set, insertions with multiple solutions are not output in the final vcf file (default : not activated).
-
+    * `-filter`: if set, insertions with multiple solutions are not output in the final vcf file (default : not activated).
+	
 6. **MindTheGap Output**
   
     All the output files are prefixed either by a default name: "MindTheGap_Expe-[date:YY:MM:DD-HH:mm]" or by a user defined prefix (option `-out` of MindTheGap)
@@ -238,15 +141,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
         >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57_qual_15_avg_cov_21.69_median_cov_17.00 solution 2/3
         #this is the second sequence out of 3
 
-	**Contig gap-fill header specificies**:
 	
-	When used with option `-contig`, the fasta header is a little bit different: it contains notably two contig identifiers (their fasta headers in the original contig file) with optionnally a suffix "_Rc" if it is reversed.
-	
-	 	>contig3_len_3652;contig18_len_19822_Rc;len_117_qual_50_median_cov_1350
-		#contig3_len_3652: header of the source contig, contig3 in the original input file contigs.fa
-		#contig18_len_19822: header of the target contig, contig18 in the original input file contigs.fa
-		#_Rc: absent for the source contig and present for the target contig, this means that the end of contig3 is gap-filled with the end of contig18 (that is with the beginning of the reverse complement of contig18).
-		#len_117_qual_50_median_cov_1350: information about the assembled gap-fill sequence
 	
 4. Assembled insertion quality scores:
 <a name="quality"></a>
