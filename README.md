@@ -88,7 +88,7 @@ Alternatively and since release 2.1.0, MindTheGap can also be used as a **genome
 
 It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint. For each breakpoint, MindTheGap either returns a single insertion sequence (when there is no assembly ambiguity), or a set of candidate insertion sequences (due to ambiguities) or nothing at all (when the insertion is too complex to be assembled).
 
-For a detailed manual specific to insertion variants see [doc/MindTheGap_insertion_caller.md](doc/MindTheGap_insertion_caller.md).
+For a detailed user manual specific to insertion variants see [doc/MindTheGap_insertion_caller.md](doc/MindTheGap_insertion_caller.md).
 
 ### Genome assembly gap-filling
 
@@ -96,7 +96,7 @@ New feature !
 
 When given a set of reads and a set of contigs as input, MindTheGap tries to fill the gaps between all pairs of contigs by de novo local assembly without any a priori on their relative order and orientation. It outputs the results in gfa file. 
 
-For a detailed manual specific to insertion variants see [doc/MindTheGap_assembly.md](doc/MindTheGap_assembly.md).
+For a detailed user manual specific to contig gap-filling see [doc/MindTheGap_assembly.md](doc/MindTheGap_assembly.md).
 
 ### Performances
 
@@ -105,7 +105,7 @@ MindTheGap performs de novo assembly using the [GATB](http://gatb.inria.fr) C++ 
 
 For more details on the method and some recent results, see the [web page](http://gatb.inria.fr/software/mind-the-gap/).
 	
-## Basic Usage and examples
+## Usage
 
 MindTheGap is composed of two main modules : breakpoint detection (`find` module) and the local assembly of insertions or gaps (`fill` module). Both steps are implemented in a single executable, MindTheGap, and can be run independently by specifying the module name as follows :
 
@@ -123,7 +123,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
         #To get help:
         MindTheGap fill -help
 
-2. **Input read data**
+2. **Input sequencing read data**
 
    For both modules, read dataset(s) are first indexed in a De Bruijn graph. The input format of read dataset(s) is either the read files themselves, or the already computed de bruijn graph in hdf5 format (.h5). In the first case, the option is `-in` and the user can provide the de Bruijn graph building options, in the second case the option is -graph and only options for the detection or assembly are to be given.  
    NOTE: options `-in` and `-graph` are mutually exclusive, and one of these is mandatory.
@@ -142,24 +142,14 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 	
 4. **Find module specific options**
   
-    In addition to the read or graph files, the find module has one mandatory option `-ref` and several optional options:
-    * `-ref`: the path to the reference genome file (in fasta format).
-    * `-homo-only`: only homozygous insertions are reported (default: not activated).
-    * `-max-rep`: maximal repeat size allowed for fuzzy sites  [default '5']. 
-    * `-het-max-occ`: maximal number of occurrences of a (k-1)mer in the reference genome allowed for heterozyguous insertion breakpoints  [default '1']. In order to detect an heterozyguous insertion breakpoints, both flanking k-1-mers, at each side of the insertion site, must have strictly less than this number of occurrences in the reference genome. This prevents false positive predictions inside repeated regions. Warning : increasing this parameter may lead to numerous false positives (genomic approximate repeats).
+    In addition to the read or graph files, the `find` module has one mandatory option `-ref` which is the path to the reference genome file (in fasta format).
     
 5. **Fill module specific options**
   
-    In addition to the read or graph files, the fill module has one other mandatory option, either `-bkpt` or `-contig` depending on the type of gap-filling : assembling insertion variants or gap-filling between contigs respectively: 	
+    In addition to the read or graph files, the `fill` module has one other mandatory option, either `-bkpt` or `-contig` depending on the type of gap-filling : assembling insertion variants or gap-filling between contigs respectively: 	
     * `-bkpt`: the breakpoint file path. This is one of the output of the Find module and contains for each detected insertion site its left and right kmers from and to which the local assembly will be performed (see section E for details about the format).
 	* `-contig`: the contig file path in fasta format. Note that only contigs larger than 3*kmerSize will be used.
 	
-	The fill module has several optional options:
-    * `-max-nodes`: maximum number of nodes in contig graph for each insertion assembly [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
-    * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
-	* `-overlap`: size of maximal expected sequence overlap between input contigs in `-contig` mode [default '0' means equal to kmer size]. In other words, it is the kmer size that was used for building the input contigs. To be specified only if it is larger than the kmer size used for gap-filling (expert usage).
-	* `-filter`: if set, insertions with multiple solutions are not output in the final vcf file (default : not activated).
-
 6. **MindTheGap Output**
   
     All the output files are prefixed either by a default name: "MindTheGap_Expe-[date:YY:MM:DD-HH:mm]" or by a user defined prefix (option `-out` of MindTheGap)
@@ -167,12 +157,12 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     * a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program dbginfo located in your bin directory or in ext/gatb-core/bin/.
     
     `MindTheGap find` generates the following output files:
-    * a breakpoint file (`.breakpoints`) in fasta format. It contains the breakpoint sequences of each detected insertion site. Each insertion site corresponds to 2 consecutive entries in the fasta file : sequences are the left and right side flanking kmers.
+    * a breakpoint file (`.breakpoints`) in fasta format. 
     * a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
     
     `MindTheGap fill` generates the following output files:
-    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. In the case of insertion variants, the location of each insertion on the reference genome can be found in its fasta header. In the case of contig gap-fills, the fasta header contains the source and target contigs with their relative orientation ("_Rc" for reversed). In both cases, the fasta header includes also information about each gap-fill such as its length, quality score and median kmer abundance.
-    * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection. This file contains all information of assembled insertion variants as in the `.insertions.fasta` file but in a different format. Here, insertion site positions are 1-based and left-normalized according to the VCF format specifications (contrary to positions indicated in the `.breakpoints` and `insertions.fasta` files which are right-normalized). Normalization occurs when multiple positions are possible for a single variation due to a small repeat. 
+    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. 
+    * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection. 
 	* an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
     * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
 
@@ -185,86 +175,9 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 
 
 
-## Details on output formats
+Other optional parameters and details on input and output file formats are given in [doc/MindTheGap_insertion_caller.md](doc/MindTheGap_insertion_caller.md) and [doc/MindTheGap_assembly.md](doc/MindTheGap_assembly.md), depending on the usage.
 
-1. Breakpoint format
-  
-    A breakpoint file is output by MindTheGap find and is required by MindTheGap fill. This is a plain text file in fasta format, where each insertion site (or gap to fill) corresponds to two consecutive fasta entries: left kmer and right kmer. Sequences are kmer (with k being the same value used in the de bruijn graph). MindTheGap fill will try to find a path in the de bruijn graph from the left kmer to the right one. 
-    In the breakpoint file output by MindTheGap find, one can find useful information in the fasta headers, such as the genomic position of the insertion site and its genotype (detected by the homozygous or heterozygous algorithm). A typical header is as follows: 
-        
-        >bkpt5_chr1_pos_39114_fuzzy_0_HOM left_kmer
-        #bkpt5 : this is the id of the insertion event. 
-        #chr1_pos_39114 : the position of the insertion site is on chr1 at position 39114 (position just before the insertion, 1-based). 
-        #fuzzy_0 : is the size of the repeated sequence at the breakpoint (here 0 means it is a clean insertion site).
-        #HOM : it was detected by the homozygous algorithm.
 
-    Note: in the case of a small repeat at the breakpoint site (fuzzy>0), the exact position can not be known inside the repeat, the reported position is always the right-most.
-
-    Note #2: sometimes the header can contain the word `REPEATED` next to `left kmer` or `right kmer`. This concerns also repeated sequences but must not be confused with the `fuzzy` field. Fuzzy indicates if a small repeat (typically <5 bp) is exactly repeated at the breakpoint site and at an extremity of the inserted sequence (this can happen very often by chance and may have no biological meaning). Whereas "REPEATED" indicates that this insertion site is probably located in a repeated region of the reference genome, with the repeat size being >=(k-1). These breakpoints have more probability to be false positives.   
-	
-2. VCF variant format
-
-    For both `.othervariants.vcf` and `insertions.vcf` files, the format follows the VCF specifications version 4.1 (see https://samtools.github.io/hts-specs/VCFv4.1.pdf). Positions are 1-based.
-	
-	For insertion variants (`insertions.vcf` file only), positions are **left-normalized**. This happens when there is a small (typically <5bp)) repeated sequence between the breakpoint site and one extremity of the inserted sequence. In this case, multiple positions are possible. Here, the leftmost position is reported and the number of possible positions is indicated in the INFO field (NPOS id). This latter value is at least the size of the repeated sequence + 1 (>= fuzzy +1). 
-	
-		chr4    618791     bkpt20  T    TAGGTGTATTTAGCTCCG   .       PASS    TYPE=INS;LEN=17;QUAL=50;NSOL=1;NPOS=4;AVK=22.71;MDK=23.00      GT      1/1
-	 	#there are 4 (NPOS) possible positions for an insertion of 17 nt from positions 618791 to 618794 on chr4, therefore the repeat is of size 3 and is AGG.
-	
-	FILTER field: can be `PASS`or `LOWQUAL` (for insertions with multiple solutions)
-	
-	INFO fields:  
-	* `TYPE`: variant type, INS for insertion
-	* `LEN`: insertion size in bp
-	* `QUAL`: quality of the insertion (quality scores range from 0 to 50, 50 being the best quality, see the different quality scores [below](#quality))
-	* `NSOL`: number of alternative sequences that were assembled at this position (note that to output multiple sequences, they must differ from each other significantly, ie. <90% identity)
-	* `NPOS`: number of possible positions where the insertion event can occur giving the same ALT sequence (see the left-normalization paragraph).
-	* `AVK`: average abundance of the inserted sequence (average value of the abundances of all its overlapping kmers)
-	* `MDK`: median abundance of the inserted sequence (median value of the abundances of all its overlapping kmers)
-	
-3. Assembled insertion format
-  
-    MindTheGap fill outputs a file in fasta format containing the obtained inserted sequences. Breakpoint kmers are not included in the output sequences. For each insertion breakpoint for which the filling succeeded, one can find in this file either one or several sequences with the following header:
-    
-        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_59_qual_50_avg_cov_21.69_median_cov_17.00
-        #same info as in the breakpoint file
-        #len_59: the length in bp of the inserted sequence, here 59 bp
-        #qual_50: quality of 50 (quality scores range from 0 to 50, 50 being the best quality) 
-        #avg_cov_21.69: average abundance of the filled sequence (average of all its kmer abundances)
-        #median_cov_17.00: median abundance of the filled sequence (median of all its kmer abundances)
-
-    If more than one sequence are assembled for a given breakpoint, the header is as follows:
-    
-        >bkpt5_chr1_pos_39114_fuzzy_0_HOM_len_57_qual_15_avg_cov_21.69_median_cov_17.00 solution 2/3
-        #this is the second sequence out of 3
-
-	**Contig gap-fill header specificies**:
-	
-	When used with option `-contig`, the fasta header is a little bit different: it contains notably two contig identifiers (their fasta headers in the original contig file) with optionnally a suffix "_Rc" if it is reversed.
-	
-	 	>contig3_len_3652;contig18_len_19822_Rc;len_117_qual_50_median_cov_1350
-		#contig3_len_3652: header of the source contig, contig3 in the original input file contigs.fa
-		#contig18_len_19822: header of the target contig, contig18 in the original input file contigs.fa
-		#_Rc: absent for the source contig and present for the target contig, this means that the end of contig3 is gap-filled with the end of contig18 (that is with the beginning of the reverse complement of contig18).
-		#len_117_qual_50_median_cov_1350: information about the assembled gap-fill sequence
-	
-4. Assembled insertion quality scores:
-<a name="quality"></a>
-  
-    Each insertion is assigned a quality score ranging from 0 (low quality) to 50 (highest quality). This quality score reflects mainly repeat-associated criteria:
-    * `qual=5`: if one of the breakpoint kmer could not be found exactly but with 2 errors (mismatches)
-    * `qual=10`: if one of the breakpoint kmer could not be found exactly but with 1 error (mismatch)
-    * `qual=15`: if multiple sequences can be assembled for a given breakpoint (note that to output multiple sequences, they must differ from each other significantly, ie. <90% identity)
-    * `qual=25`: if one of the breakpoint kmer is repeated in the reference genome (REPEATED field in the breakpoint file)
-    * `qual=50`: otherwise.
-
-5. Gap-filling information file:
-
-    For each gap-fill, some informations about the filling process are given in the file `.info.txt`, whether it has been successfully filled or not. This can help understand why some breakpoints could not be filled. Here are the description of the columns:
-    * column 1 : breakpoint name       
-    * column 2-4 : number of nodes in the contig graph, total nt assembled, number of nodes containing the right breakpoint kmer
-    * (optionnally) column 5-7 : same informations as in column 2-4 but for the filling process in the reverse direction from right to left kmer, activated only if the filling failed in the forward direction
-    * last 2 columns : number of alternative filled sequences before comparison, number of output filled sequences (can be reduced if some pairs of alternative sequences are more than 90% identical).
 
 
 ## Full example
