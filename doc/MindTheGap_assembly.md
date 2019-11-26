@@ -2,7 +2,7 @@
 
 ## *MindTheGap* contig mode
 
-In addition to the assembly of structural variations, the fill module of MindTheGap can be used as a genome assembly finishing tool.
+In addition to the assembly of insertion variants, the `fill` module of MindTheGap can be used as a genome assembly finishing tool, to fill the gaps between a given set of contigs, wihtout any apriori on their relative order and orientation.
 
 The basic usage of this mode is :
 
@@ -10,9 +10,26 @@ The basic usage of this mode is :
 MindTheGap fill (-in <reads.fq> | -graph <graph.h5>) -contig <contigs.fa> [options]
 ```
 
-Options are similar to those of the standard mode of MindTheGap.
-`-contig` is a fasta file containing the contigs to use.
-Although MindTheGap has been tested with contigs obtained with the assembler [Minia](https://github.com/GATB/minia), which uses similar assembly heuristics, contigs from any assembler may be used.
+It takes as input 2 mandatory files : the sequencing reads or their de bruijn graph if already computed (options `-in` and `-graph` respectively) and the set of contigs in fasta format (option `-contig`). 
+
+### Specific input parameters
+
+Most options are similar to those of the standard mode of MindTheGap, notably for the de Bruijn graph construction or for computational resource settings (see [../README.md](../README.md)). Specific options of the `contig`mode:
+
+- `-contig`: the contig file path in fasta format. Note that only contigs larger than 3*kmerSize will be used. 
+  Although MindTheGap has been tested with contigs obtained with the assembler [Minia](https://github.com/GATB/minia), which uses similar assembly heuristics, contigs from any assembler may be used.
+
+- `-overlap`: 
+
+  In many assembly outputs, contigs ends may overlap.
+  In particular, contigs from *De Bruijn* based assemblies may overlap from `k`.
+  In case the overlap between your contigs exceeds the 'k' value chosen for *MindTheGap*, we recommend specifying the overlap using the `-overlap` option.
+
+- Graph complexity
+
+  Local assembly may be tuned by allowing larger and more complex assemblies between the contigs.
+  Option `-max-length` specifies the maximum length a gapfilling may reach, while option `-max-nodes` is the number of nodes that can be built in the assembly graph.
+  Increasing these two parameters may improve the results for gapfilling of assemblies much shorter than their expected size.
 
 ### Output
 
@@ -41,17 +58,7 @@ In contig mode, *MindTheGap* returns 3 files ;
 
 ### Additional input parameters :
 
-#### Contig overlap
 
-In many assembly outputs, contigs ends may overlap.
-In particular, contigs from *De Bruijn* based assemblies may overlap from `k`.
-In case the overlap between your contigs exceeds the 'k' value chosen for *MindTheGap*, we recommend specifying the overlap using the `-overlap` option.
-
-#### Graph complexity
-
-Local assembly may be tuned by allowing larger and more complex assemblies between the contigs.
-Option `-max-length` specifies the maximum length a gapfilling may reach, while option `-max-nodes` is the number of nodes that can be built in the assembly graph.
-Increasing these two parameters may improve the results for gapfilling of assemblies much shorter than their expected size.
 
 ### Output formats
 
