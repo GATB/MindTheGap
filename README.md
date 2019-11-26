@@ -163,20 +163,20 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 	
 	If the input is composed of several read files, they can be provided as a list of file paths separated by a comma or as a "file of file" (fof), that is a text file containing on each line the path to each read file. All read files will be treated as if concatenated in a single sample. The read file format can be fasta, fastq or gzipped. 
 	
-3. **de Bruijn graph creation options**
+2. **de Bruijn graph creation options**
 
    In addition to input read set(s), the de Bruijn graph creation uses two main parameters, `-kmer-size` and `-abundance-min`: 
 
    * `-kmer-size`: the k-mer size [default '31']. By default, the largest kmer-size allowed is 128. To use k>128, you will need to re-compile MindTheGap with the two commands in the build directory: `cmake -DKSIZE_LIST="32 64 96 256" ..` and then `make`. To go back to default, replace 256 by 128. Note that increasing the range between two consecutive kmer-sizes in the list can have an impact on the size of the output h5 files (but none on the results).
-* `-abundance-min`: the minimal abundance threshold, k-mers having less than this number of occurrences are discarded from the graph [default 'auto', ie. automatically inferred from the dataset]. 
+   * `-abundance-min`: the minimal abundance threshold, k-mers having less than this number of occurrences are discarded from the graph [default 'auto', ie. automatically inferred from the dataset]. 
    * `-abundance-max`: the maximal abundance threshold, k-mers having more than this number of occurrences are discarded from the graph [default '2147483647' ie. no limit].
 
-6. **Computational resources options**
+3. **Computational resources options**
 
     Additional options are related to computational runtime and memory:
     
     * `-nb-cores`: number of cores to be used for computation [default '0', ie. all available cores will be used].
-* `-max-memory`: max RAM memory for the graph creation (in MBytes)  [default '2000']. Increasing the memory will speed up the graph creation phase.
+    * `-max-memory`: max RAM memory for the graph creation (in MBytes)  [default '2000']. Increasing the memory will speed up the graph creation phase.
     * `-max-disk`: max usable disk space for the graph creation (in MBytes)  [default '0', ie. automatically set]. Kmers are counted by writting temporary files on the disk, to speed up the counting you can increase the usable disk space.
     
 4. **MindTheGap Output**
