@@ -2,7 +2,7 @@
 
 MindTheGap  performs detection and assembly of **DNA insertion variants** in short read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome.
 
-It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint. For each breakpoint, MindTheGap either returns a single insertion sequence (when there is no assembly ambiguity), or a set of candidate insertion sequences (due to ambiguities) or nothing at all (when the insertion is too complex to be assembled).
+It takes as input a set of reads and a reference genome. It produces two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint. For each breakpoint, MindTheGap either returns a single insertion sequence (when there is no assembly ambiguity), or a set of candidate insertion sequences (due to ambiguities) or nothing at all (when the insertion is too complex to be assembled).  Its final output is a VCF file, giving for each insertion variant, its insertion site location on the reference genome, one or several candidate insertion sequences, and its genotype in the sample.
 
 Since version 2.0.0, MindTheGap can detect other types of variants, not only insertion events. These are homozygous SNPs and homozygous deletions of any size. They are detected by the find module of MindTheGap and are output separately in a VCF file. Importantly, even if the user is not interested in these types of variants, it is worth to detect them  since it can improve the recall of the insertion event detection algorithm : it is now possible to find insertion events that are located at less than k nucleotides from an other such variant.
 
@@ -27,23 +27,10 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
         #To get help:
         MindTheGap fill -help
 
-2. **Input read data**
+2. **Common options**
 
-   For both modules, read dataset(s) are first indexed in a De Bruijn graph. The input format of read dataset(s) is either the read files themselves, or the already computed de bruijn graph in hdf5 format (.h5). In the first case, the option is `-in` and the user can provide the de Bruijn graph building options, in the second case the option is -graph and only options for the detection or assembly are to be given.  
-   NOTE: options `-in` and `-graph` are mutually exclusive, and one of these is mandatory.
-	
-   If the input is composed of several read files, they can be provided as a list of file paths separated by a comma or as a "file of file" (fof), that is a text file containing on each line the path to each read file. All read files will treated as if concatenated in a single sample. The read file format can be fasta, fastq or gzipped. 
-	
-3. **de Bruijn graph creation options**
-
-   In addition to input read set(s), the de Bruijn graph creation uses two main parameters, `-kmer-size` and `-abundance-min`: 
-
-   * `-kmer-size`: the k-mer size [default '31']. By default, the largest kmer-size allowed is 128. To use k>128, you will need to re-compile MindTheGap with the two commands in the build directory: `cmake -DKSIZE_LIST="32 64 96 256" ..` and then `make`. To go back to default, replace 256 by 128. Note that increasing the range between two consecutive kmer-sizes in the list can have an impact on the size of the output h5 files (but none on the results).
-
-   * `-abundance-min`: the minimal abundance threshold, k-mers having less than this number of occurrences are discarded from the graph [default 'auto', ie. automatically inferred from the dataset]. 
-
-   * `-abundance-max`: the maximal abundance threshold, k-mers having more than this number of occurrences are discarded from the graph [default '2147483647' ie. no limit].
-	
+   Common options for input read files,  de Bruijn graph construction and computational resource settings are detailed in the main [README.md](../README.md).
+   
 4. **Find module specific options**
   
     In addition to the read or graph files, the find module has one mandatory option `-ref` and several optional options:
@@ -51,7 +38,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     * `-homo-only`: only homozygous insertions are reported (default: not activated).
     * `-max-rep`: maximal repeat size allowed for fuzzy sites  [default '5']. 
     * `-het-max-occ`: maximal number of occurrences of a (k-1)mer in the reference genome allowed for heterozyguous insertion breakpoints  [default '1']. In order to detect an heterozyguous insertion breakpoints, both flanking k-1-mers, at each side of the insertion site, must have strictly less than this number of occurrences in the reference genome. This prevents false positive predictions inside repeated regions. Warning : increasing this parameter may lead to numerous false positives (genomic approximate repeats).
-    * `-bed`: to limit the find algorithm to particular regions of the genome. Can be usefull for exome data.
+    * `-bed`: to limit the find algorithm to particular regions of the genome. This can be usefull for exome data.
     
 5. **Fill module specific options**
   
@@ -74,17 +61,10 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     * a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
     
     `MindTheGap fill` generates the following output files:
-    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. In the case of insertion variants, the location of each insertion on the reference genome can be found in its fasta header. In the case of contig gap-fills, the fasta header contains the source and target contigs with their relative orientation ("_Rc" for reversed). In both cases, the fasta header includes also information about each gap-fill such as its length, quality score and median kmer abundance.
+    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. In the case of insertion variants, the location of each insertion on the reference genome can be found in its fasta header. The fasta header includes also information about each gap-fill such as its length, quality score and median kmer abundance.
     * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection. This file contains all information of assembled insertion variants as in the `.insertions.fasta` file but in a different format. Here, insertion site positions are 1-based and left-normalized according to the VCF format specifications (contrary to positions indicated in the `.breakpoints` and `insertions.fasta` files which are right-normalized). Normalization occurs when multiple positions are possible for a single variation due to a small repeat. 
-	* an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
-    * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
-
-7. **Computational resources options**
-  
-    Additional options are related to computational runtime and memory:
-    * `-nb-cores`: number of cores to be used for computation [default '0', ie. all available cores will be used].
-    * `-max-memory`: max RAM memory for the graph creation (in MBytes)  [default '2000']. Increasing the memory will speed up the graph creation phase.
-    * `-max-disk`: max usable disk space for the graph creation (in MBytes)  [default '0', ie. automatically set]. Kmers are counted by writting temporary files on the disk, to speed up the counting you can increase the usable disk space.
+	* a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
+    
 
 
 
@@ -179,25 +159,3 @@ This example can be run with the small dataset in directory `data/`, for instanc
     #   example.insertions.fasta
     #   example.insertions.vcf
     #   example.info.txt
-
-## Utility programs
-
-Either in your bin/ directory or in ext/gatb-core/bin/, you can find additional utility programs :
-* dbginfo : to get information about a graph stored in a .h5 file
-* dbgh5 : to build a graph from read set(s) and obtain a .h5 file
-* h5dump : to extract data stored in a .h5 file
-	
-## Reference
-
-MindTheGap: integrated detection and assembly of short and long insertions. Guillaume Rizk, Anaïs Gouin, Rayan Chikhi and Claire Lemaitre. Bioinformatics 2014 30(24):3451-3457. http://bioinformatics.oxfordjournals.org/content/30/24/3451
-
-[Web page](https://gatb.inria.fr/software/mind-the-gap/) with some updated results.
-
-
-# Contact
-
-To contact a developer, request help, or for any feedback on MindTheGap, please use the issue form of github: https://github.com/GATB/MindTheGap/issues
-
-You can see all issues concerning MindTheGap [here](https://github.com/GATB/MindTheGap/issues) and GATB [here](https://www.biostars.org/t/GATB/).
-
-If you do not have any github account, you can also send an email to claire dot lemaitre at inria dot fr

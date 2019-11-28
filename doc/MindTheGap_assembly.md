@@ -14,9 +14,9 @@ It takes as input 2 mandatory files : the sequencing reads or their de bruijn gr
 
 ### Specific input parameters
 
-Most options are similar to those of the standard mode of MindTheGap, notably for the de Bruijn graph construction or for computational resource settings (see [../README.md](../README.md)). Specific options of the `contig`mode:
+Most options are similar to those of the standard mode of MindTheGap, notably for the de Bruijn graph construction or for computational resource settings (see [../README.md](../README.md)). Specific options of the `contig`mode are:
 
-- `-contig`: the contig file path in fasta format. Note that only contigs larger than 3*kmerSize will be used. 
+- `-contig`: the contig file path in fasta format. Note that only contigs larger than $3*kmerSize$ will be used. 
   Although MindTheGap has been tested with contigs obtained with the assembler [Minia](https://github.com/GATB/minia), which uses similar assembly heuristics, contigs from any assembler may be used.
 
 - `-overlap`: 
@@ -25,10 +25,11 @@ Most options are similar to those of the standard mode of MindTheGap, notably fo
   In particular, contigs from *De Bruijn* based assemblies may overlap from `k`.
   In case the overlap between your contigs exceeds the 'k' value chosen for *MindTheGap*, we recommend specifying the overlap using the `-overlap` option.
 
-- Graph complexity
+- Local assembly limitations: local assembly may be tuned to allow larger and more complex assemblies between the contigs (than for insertion variants), with the following options:
 
-  Local assembly may be tuned by allowing larger and more complex assemblies between the contigs.
-  Option `-max-length` specifies the maximum length a gapfilling may reach, while option `-max-nodes` is the number of nodes that can be built in the assembly graph.
+  - `-max-nodes`: maximum number of nodes in the contig graph for each gap-filling assembly [default '100']. This arguments limits the computational time, but it can be safely set to $300$ or $1000$ in contig mode.
+  - `-max-length`: maximum number of assembled nucleotides in the contig graph (nt)  [default '10000']. This arguments limits the computational time, but if gaps are large, it must be increased.
+
   Increasing these two parameters may improve the results for gapfilling of assemblies much shorter than their expected size.
 
 ### Output
@@ -36,27 +37,29 @@ Most options are similar to those of the standard mode of MindTheGap, notably fo
 In contig mode, *MindTheGap* returns 3 files ; 
 1. GFA file
     The assembly is returned in a [GFA format graph](https://github.com/GFA-spec/GFA-spec).
-    Both initial contigs and gapfilling sequences are represented by segments. Links indicate an overlap between segments.
+    Both initial contigs and gapfilling sequences are represented by segments. Links indicate sequence overlaps between segments.
     
-    GFA Graphs supplied by MindTheGap may contain redundant sequences.
-    Before further analyses, it should be simplified using the script available in `pipeline/genome/graph/graph_simplification.py`
-    Its usage is `graph_simplification.py MindTheGap_output.gfa simplified_graph.gfa`
-
-    Afterwards, the graph can be further analyzed using [Bandage](https://github.com/rrwick/Bandage) 
-
-2. Info file
+    Note that GFA Graphs supplied by MindTheGap may contain redundant sequence information (for instance this is likely that two contigs are linked in the graph by two gapfillings with reverse-complement sequences). Before further analyses, the graph can be simplified using the scripts available in (MinYS github repository)[https://github.com/cguyomar/MinYS] :
+    
+    ```
+git clone https://github.com/cguyomar/MinYS.git
+    python3 graph_simplification/graph_simplification.py MindTheGap_output.gfa simplified_graph.gfa
+```
+    
+    The graph can be easily visualized using [Bandage](https://github.com/rrwick/Bandage). 
+    
+    Other usefull scripts are available in the (MinYS github repository)[https://github.com/cguyomar/MinYS]  to deal with this graph data structure : to enumerate paths, to convert the segments to a fasta file, to filter connected components according to their size...
+    
+2. Insertion sequences
+    In addition to the GFA file, gap-filling sequences are reported in the fasta format in the `out.insertions.fa` file.
+    
+3. Info file
     This file is supplied as `out.info.txt`
     It is a tab delimited file, with one by seed kmer used during the gapfilling process (and therefore two by input contigs)
     Column 1 is the seed identifier, made of the contig name and an eventual "_Rc" suffix if it is the reverse complemented seed.
     Column 2 and 3 are the number of nodes and total length of the graph built during the local assembly process
     Column 4 is the number of nodes containing a target kmer.
     Columns 5 and 6 are the number of solutions found, before and after comparison of the sequences under a 90% identity threshold.
-
-3. Insertion sequences
-    In addition to the GFA file, gap-filling sequences are reported in the fasta format in the `out.insertions.fa` file.
-
-
-### Additional input parameters :
 
 
 

@@ -12,7 +12,7 @@ Travis CI : [![Build Status](https://travis-ci.org/GATB/MindTheGap.svg?branch=ma
 
 MindTheGap  performs detection and assembly of **DNA insertion variants** in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint.
 
-**New !** MindTheGap can also be used as a **genome assembly finishing tool**: it can fill the gaps between a set of input contigs without any a priori on their relative order and orientation. It outputs the results in a gfa file. 
+**New !** MindTheGap can also be used as a **genome assembly finishing tool**: it can fill the gaps between a set of input contigs without any a priori on their relative order and orientation. It outputs the results in a gfa file. It is notably integrated as an essential step in the targeted assembly tool **MinYS** (MineYourSymbiont in metagenomics datasets, see [https://github.com/cguyomar/MinYS](https://github.com/cguyomar/MinYS)).
 
 MindTheGap is a [Genscale](http://team.inria.fr/genscale/) tool, built upon the [GATB](http://gatb.inria.fr/) C++ library, and developed by:
 * Claire Lemaitre
@@ -82,11 +82,11 @@ conda install -c bioconda mindthegap
 
 MindTheGap is a software that performs integrated detection and assembly of **genomic insertion variants** in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. 
 
-Alternatively and since release 2.1.0, MindTheGap can also be used as a **genome assembly finishing tool**. It is integrated as an essential step in the targeted assembly tool [MinYS](https://github.com/cguyomar/MinYS) (MineYourSymbiont in metagenomics datasets).
+Alternatively and since release 2.1.0, MindTheGap can also be used as a **genome assembly finishing tool**. It is integrated as an essential step in the **targeted assembly** tool [MinYS (MineYourSymbiont in metagenomics datasets)](https://github.com/cguyomar/MinYS).
 
 **Insertion variant detection**
 
-It takes as input a set of reads and a reference genome. It outputs two sets of FASTA sequences: one is the set of breakpoints of detected insertion sites, the other is the set of assembled insertions for each breakpoint. For each breakpoint, MindTheGap either returns a single insertion sequence (when there is no assembly ambiguity), or a set of candidate insertion sequences (due to ambiguities) or nothing at all (when the insertion is too complex to be assembled).
+It takes as input a set of reads and a reference genome. Its main output is a VCF file, giving for each insertion variant, its insertion site location on the reference genome, a single insertion sequence or a set of candidate insertion sequences (when there are assembly ambiguities), and its genotype in the sample. 
 
 For a detailed user manual specific to insertion variants see [doc/MindTheGap_insertion_caller.md](doc/MindTheGap_insertion_caller.md).
 
@@ -128,14 +128,14 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 	**Example for insertion variant calling:**
    
 	    #find
-	    bin/MindTheGap find -in data/reads_r1.fastq,data/reads_r2.fastq -ref data/reference.fasta -out example
+	    build/bin/MindTheGap find -in data/reads_r1.fastq,data/reads_r2.fastq -ref data/reference.fasta -out example
 	    # 3 files are generated: 
 	    #   example.h5 (de bruijn graph), 
 	    #   example.othervariants.vcf (SNPs and deletion variants), 
 	    #   example.breakpoints (breakpoints of insertion variants).
 	    
 	    #fill
-	    bin/MindTheGap fill -graph example.h5 -bkpt example.breakpoints -out example
+	    build/bin/MindTheGap fill -graph example.h5 -bkpt example.breakpoints -out example
 	    # 3 files are generated:
 	    #   example.insertions.fasta (insertion sequences)
 	    #   example.insertions.vcf (insertion variants)
@@ -167,8 +167,18 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 
    In addition to input read set(s), the de Bruijn graph creation uses two main parameters, `-kmer-size` and `-abundance-min`: 
 
-   * `-kmer-size`: the k-mer size [default '31']. By default, the largest kmer-size allowed is 128. To use k>128, you will need to re-compile MindTheGap with the two commands in the build directory: `cmake -DKSIZE_LIST="32 64 96 256" ..` and then `make`. To go back to default, replace 256 by 128. Note that increasing the range between two consecutive kmer-sizes in the list can have an impact on the size of the output h5 files (but none on the results).
+   * `-kmer-size`: the k-mer size [default '31']. By default, the largest kmer-size allowed is 128. To use k>128, you will need to re-compile MindTheGap as follows: 
+
+   * ```
+     cd build/
+     cmake -DKSIZE_LIST="32 64 96 256" ..
+     make
+     ```
+
+     To go back to default, replace 256 by 128. Note that increasing the range between two consecutive kmer-sizes in the list can have an impact on the size of the output h5 files (but none on the results).
+
    * `-abundance-min`: the minimal abundance threshold, k-mers having less than this number of occurrences are discarded from the graph [default 'auto', ie. automatically inferred from the dataset]. 
+
    * `-abundance-max`: the maximal abundance threshold, k-mers having more than this number of occurrences are discarded from the graph [default '2147483647' ie. no limit].
 
 3. **Computational resources options**
@@ -183,7 +193,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 
     All the output files are prefixed either by a default name: "MindTheGap_Expe-[date:YY:MM:DD-HH:mm]" or by a user defined prefix (option `-out` of MindTheGap)
     Both MindTheGap modules generate the graph file if reads were given as input: 
-    * a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program dbginfo located in your bin directory or in ext/gatb-core/bin/.
+    * a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program `dbginfo` located in your bin directory or in ext/gatb-core/bin/.
 
     `MindTheGap find` generates the following output files:
     * a breakpoint file (`.breakpoints`) in fasta format. 
