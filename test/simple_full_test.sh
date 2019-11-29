@@ -196,24 +196,24 @@ RETVAL=1
 fi
 
 ################################################################################
-# we launch the graph simplifications script
+# we launch the graph simplifications script   --> no longer in this repo (see MinYS)
 ################################################################################
-../pipeline/genome_graph/graph_simplification.py ../pipeline/genome_graph/data/simple4.gfa $outputPrefix.simplified.gfa 1> /dev/null 2>&1
+#../pipeline/genome_graph/graph_simplification.py ../pipeline/genome_graph/data/simple4.gfa $outputPrefix.simplified.gfa 1> /dev/null 2>&1
 
 ################################################################################
 # we check the results 
 ################################################################################
 
-nblink=$(grep "^[^L]" $outputPrefix.simplified.gfa  | wc -l)
-nbsegment=$(grep "^[^S]" $outputPrefix.simplified.gfa  | wc -l)
+#nblink=$(grep "^[^L]" $outputPrefix.simplified.gfa  | wc -l)
+#nbsegment=$(grep "^[^S]" $outputPrefix.simplified.gfa  | wc -l)
 
-if [ $nblink -eq 4 ] && [ $nbsegment -eq 4 ]
-then
-echo "graph simplification         : PASS"
-else
-echo "graph simplification         : FAILED"
-RETVAL=1
-fi
+#if [ $nblink -eq 4 ] && [ $nbsegment -eq 4 ]
+#then
+#echo "graph simplification         : PASS"
+#else
+#echo "graph simplification         : FAILED"
+#RETVAL=1
+#fi
 
 
 
