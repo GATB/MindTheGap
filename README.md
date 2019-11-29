@@ -187,27 +187,28 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     
     * `-nb-cores`: number of cores to be used for computation [default '0', ie. all available cores will be used].
     * `-max-memory`: max RAM memory for the graph creation (in MBytes)  [default '2000']. Increasing the memory will speed up the graph creation phase.
-    * `-max-disk`: max usable disk space for the graph creation (in MBytes)  [default '0', ie. automatically set]. Kmers are counted by writting temporary files on the disk, to speed up the counting you can increase the usable disk space.
+    * `-max-disk`: max usable disk space for the graph creation (in MBytes)  [default '0', ie. automatically set]. Kmers are counted by writing temporary files on the disk, to speed up the counting you can increase the usable disk space.
     
 4. **MindTheGap Output**
 
     All the output files are prefixed either by a default name: "MindTheGap_Expe-[date:YY:MM:DD-HH:mm]" or by a user defined prefix (option `-out` of MindTheGap).
     Both MindTheGap modules generate the graph file if reads were given as input: 
-    * a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program `dbginfo` located in your bin directory or in ext/gatb-core/bin/.
-
+    
+* a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program `dbginfo` located in your bin directory or in ext/gatb-core/bin/.
+    
     `MindTheGap find` generates the following output files:
     * a breakpoint file (`.breakpoints`) in fasta format. 
-    * a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
-
+* a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
+    
     `MindTheGap fill` generates the following output files:
-    * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. 
-
-    * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection. 
-
-    * an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
-
-    * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
-
+* a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. 
+    
+* an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection. 
+    
+* an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
+    
+* a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
+    
       
 
 Other optional parameters and details on input and output file formats are given in [doc/MindTheGap_insertion_caller.md](doc/MindTheGap_insertion_caller.md) and [doc/MindTheGap_assembly.md](doc/MindTheGap_assembly.md), depending on the usage.
