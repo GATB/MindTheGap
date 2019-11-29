@@ -4,6 +4,21 @@
 ## [Unreleased]
 
 --------------------------------------------------------------------------------
+## [2.2.1] - 2019-11-29
+
+* Some bug fixes:
+     * updating gatb-core version, notably this fixes a potentially important bug, where the de bruijn graph was erroneous for large datasets (such as human re-sequencing ones)
+     * bug fix in the fill module, node marking in contig graph construction was not working properly leading to obtain too many solutions, in the case of multiple solutions
+* Some improvements:
+    * optimization of the algorithm to find paths in the  fill module (should be faster);
+    * new options for insertion variant detection:
+        * -bed (find module): to limit the search of insertion breakpoint in specific regions.
+        * -filter (fill module): to remove insertions with multiple sequence solutions from the final vcf file (since they most often are a sign of false positive)
+
+Note that the targeted assembly pipeline, including gfa graph simplification scripts, is no longer included in this repository. This is now a proper tool, called MinYS (for MineYousSymbiont), which is distributed independently of MindTheGap and has now its own github repository : [https://github.com/cguyomar/MinYS](https://github.com/cguyomar/MinYS)
+    
+
+--------------------------------------------------------------------------------
 ## [2.2.0] - 2018-07-06
 
 * A nice novel feature: insertion variants are now output in vcf format! and with left-normalization (ie. if several equivalent positions are possible for a given insertion event, the left-most is output and the size of the ambiguity is indicated).
