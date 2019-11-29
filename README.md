@@ -169,7 +169,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 
    * `-kmer-size`: the k-mer size [default '31']. By default, the largest kmer-size allowed is 128. To use k>128, you will need to re-compile MindTheGap as follows: 
 
-   * ```
+        ```
      cd build/
      cmake -DKSIZE_LIST="32 64 96 256" ..
      make
@@ -191,7 +191,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     
 4. **MindTheGap Output**
 
-    All the output files are prefixed either by a default name: "MindTheGap_Expe-[date:YY:MM:DD-HH:mm]" or by a user defined prefix (option `-out` of MindTheGap)
+    All the output files are prefixed either by a default name: "MindTheGap_Expe-[date:YY:MM:DD-HH:mm]" or by a user defined prefix (option `-out` of MindTheGap).
     Both MindTheGap modules generate the graph file if reads were given as input: 
     * a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program `dbginfo` located in your bin directory or in ext/gatb-core/bin/.
 

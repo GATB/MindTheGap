@@ -11,7 +11,7 @@ For more details on the method and some recent results, see the [web page](http:
 	
 ## Usage
 
-MindTheGap is composed of two main modules : breakpoint detection (`find` module) and the local assembly of insertions or gaps (`fill` module). Both steps are implemented in a single executable, MindTheGap, and can be run independently by specifying the module name as follows :
+MindTheGap is composed of two main modules : breakpoint detection (`find` module) and the local assembly of insertions (`fill` module). Both steps are implemented in a single executable, MindTheGap, and can be run independently by specifying the module name as follows :
 
     MindTheGap <module> [module options] 
 
@@ -29,25 +29,25 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 
 2. **Common options**
 
-   Common options for input read files,  de Bruijn graph construction and computational resource settings are detailed in the main [README.md](../README.md).
+   Common options for input read files, de Bruijn graph construction and computational resource settings are detailed in the main [README.md](../README.md).
    
 4. **Find module specific options**
   
-    In addition to the read or graph files, the find module has one mandatory option `-ref` and several optional options:
+    In addition to the read or graph files, the `find` module has one mandatory option `-ref` and several optional options:
     * `-ref`: the path to the reference genome file (in fasta format).
     * `-homo-only`: only homozygous insertions are reported (default: not activated).
     * `-max-rep`: maximal repeat size allowed for fuzzy sites  [default '5']. 
     * `-het-max-occ`: maximal number of occurrences of a (k-1)mer in the reference genome allowed for heterozyguous insertion breakpoints  [default '1']. In order to detect an heterozyguous insertion breakpoints, both flanking k-1-mers, at each side of the insertion site, must have strictly less than this number of occurrences in the reference genome. This prevents false positive predictions inside repeated regions. Warning : increasing this parameter may lead to numerous false positives (genomic approximate repeats).
-    * `-bed`: to limit the find algorithm to particular regions of the genome. This can be usefull for exome data.
+    * `-bed`: the path to a bed file defining genomic regions, to limit the find algorithm to particular regions of the genome. This can be usefull for exome data.
     
 5. **Fill module specific options**
   
-    In addition to the read or graph files, the fill module has one other mandatory option, `-bkpt` 	
-    * `-bkpt`: the breakpoint file path. This is one of the output of the Find module and contains for each detected insertion site its left and right kmers from and to which the local assembly will be performed (see section E for details about the format).
+    In addition to the read or graph files, the `fill` module has one other mandatory option, `-bkpt` 	
+    * `-bkpt`: the breakpoint file path. This is one of the output of the `find` module and contains for each detected insertion site its left and right kmers from and to which the local assembly will be performed (see section E for details about the format).
 	
 	The fill module has several optional options:
 	* `-max-nodes`: maximum number of nodes in contig graph for each insertion assembly [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
-    * `-max-length`: maximum length of insertions (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
+    * `-max-length`: maximum number of assembled nucleotides in the contig graph (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
     * `-filter`: if set, insertions with multiple solutions are not output in the final vcf file (default : not activated).
 	
 6. **MindTheGap Output**
@@ -81,9 +81,9 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
         #fuzzy_0 : is the size of the repeated sequence at the breakpoint (here 0 means it is a clean insertion site).
         #HOM : it was detected by the homozygous algorithm.
 
-    Note: in the case of a small repeat at the breakpoint site (fuzzy>0), the exact position can not be known inside the repeat, the reported position is always the right-most.
+    Note: in the case of a small repeat at the breakpoint site (fuzzy>0), the exact position can not be known inside the repeat, the reported position here is always the right-most (contrary to the VCF output of the `fill` module which is left-normalized).
 
-    Note #2: sometimes the header can contain the word `REPEATED` next to `left kmer` or `right kmer`. This concerns also repeated sequences but must not be confused with the `fuzzy` field. Fuzzy indicates if a small repeat (typically <5 bp) is exactly repeated at the breakpoint site and at an extremity of the inserted sequence (this can happen very often by chance and may have no biological meaning). Whereas "REPEATED" indicates that this insertion site is probably located in a repeated region of the reference genome, with the repeat size being >=(k-1). These breakpoints have more probability to be false positives.   
+    Note #2: some times the header can contain the word `REPEATED` next to `left kmer` or `right kmer`. This concerns also repeated sequences but must not be confused with the `fuzzy` field. Fuzzy indicates if a small repeat (typically <5 bp) is exactly repeated at the breakpoint site and at an extremity of the inserted sequence (this can happen very often by chance and may have no biological meaning). Whereas "REPEATED" indicates that this insertion site is probably located in a repeated region of the reference genome, with the repeat size being >=(k-1). These breakpoints have more probability to be false positives.   
 	
 2. VCF variant format
 
