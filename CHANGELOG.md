@@ -12,10 +12,10 @@
 * Some improvements:
     * optimization of the algorithm to find paths in the  fill module (should be faster);
     * new options for insertion variant detection:
-        * -bed (find module): to limit the search of insertion breakpoint in specific regions.
-        * -filter (fill module): to remove insertions with multiple sequence solutions from the final vcf file (since they most often are a sign of false positive)
+        * `-bed` (find module): to limit the search of insertion breakpoint in specific regions.
+        * `-filter` (fill module): to remove insertions with multiple sequence solutions from the final vcf file (since they most often are a sign of false positive)
 
-Note that the targeted assembly pipeline, including gfa graph simplification scripts, is no longer included in this repository. This is now a proper tool, called MinYS (for MineYousSymbiont), which is distributed independently of MindTheGap and has now its own github repository : [https://github.com/cguyomar/MinYS](https://github.com/cguyomar/MinYS)
+Note that the targeted assembly pipeline, including the gfa graph simplification scripts, is no longer included in this repository. This is now a proper tool, called MinYS (for MineYourSymbiont), which is distributed independently of MindTheGap and has now its own github repository : [https://github.com/cguyomar/MinYS](https://github.com/cguyomar/MinYS)
     
 
 --------------------------------------------------------------------------------
