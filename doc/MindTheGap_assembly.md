@@ -31,30 +31,14 @@ Most options are similar to those of the standard mode of MindTheGap, notably fo
 
 In contig mode, *MindTheGap* returns 3 files ; 
 1. GFA file : `out.gfa`
-    The assembly is returned in a [GFA format graph](https://github.com/GFA-spec/GFA-spec).
-    Both initial contigs and gapfilling sequences are represented by segments. Links indicate sequence overlaps between segments. The graph can be easily visualized using [Bandage](https://github.com/rrwick/Bandage). 
-    
-    Note that GFA Graphs supplied by MindTheGap may contain redundant sequence information (for instance this is likely that two contigs are linked in the graph by two gapfillings with reverse-complement sequences). Before further analyses, the graph can be simplified using the scripts available in (MinYS github repository)[https://github.com/cguyomar/MinYS] :
-    
-    ```
-    git clone https://github.com/cguyomar/MinYS.git
-    python3 MinYS/graph_simplification/graph_simplification.py MindTheGap_output.gfa simplified_graph.gfa
-    ```
-    
-    Other usefull scripts are available in the (MinYS github repository)[https://github.com/cguyomar/MinYS]  to deal with this graph data structure : to enumerate paths, to convert the segments to a fasta file, to filter connected components according to their size...
+    The assembly is returned in a [GFA format graph](https://github.com/GFA-spec/GFA-spec). Both initial contigs and gapfilling sequences are represented by segments. Links indicate sequence overlaps between segments.
     
 2. Insertion sequences `out.insertions.fa`
     In addition to the GFA file, gap-filling sequences are reported in a fasta format file (see the header format below).
 
 3. Gap-filling information file :  `out.info.txt`
 
-    For each gap-fill, some informations about the filling process are given in the file `.info.txt`, whether it has been successfully filled or not. This can help  understand why some gaps could not be filled. Here are the  description of the columns:
-
-    - column 1 : gap-filling name
-    - column 2-4 : number of nodes in the contig graph, total nt assembled, number of nodes containing the right breakpoint kmer
-    - (optionnally) column 5-7 : same informations as in column 2-4 but  for the filling process in the reverse direction from right to left  kmer, activated only if the filling failed in the forward direction
-    - last 2 columns : number of alternative filled sequences before  comparison, number of output filled sequences (can be reduced if some  pairs of alternative sequences are more than 90% identical).
-
+    For each gap-fill, some informations about the filling process are given in the file `.info.txt`, whether it has been successfully filled or not. 
 
 
 ### Output formats
@@ -72,6 +56,28 @@ MindTheGap fill outputs a file in fasta format containing the obtained  gap-fill
 ```
 
 it contains notably two contig identifiers (their fasta headers in the original contig file) with optionnally a suffix "_Rc" if it is reversed.
+
+**Gap-filling information file**
+
+For each gap-fill, some informations about the filling process are given in the file `.info.txt`, whether it has been successfully filled or not. This can help  understand why some gaps could not be filled. Here are the  description of the columns:
+
+- column 1 : gap-filling name
+- column 2-4 : number of nodes in the contig graph, total nt assembled, number of nodes containing the right breakpoint kmer
+- (optionnally) column 5-7 : same informations as in column 2-4 but  for the filling process in the reverse direction from right to left  kmer, activated only if the filling failed in the forward direction
+- last 2 columns : number of alternative filled sequences before  comparison, number of output filled sequences (can be reduced if some  pairs of alternative sequences are more than 90% identical).
+
+### Dealing and analysing genome graphs (GFA files)
+
+The graph output by MindTheGap can be easily visualized using [Bandage](https://github.com/rrwick/Bandage). 
+
+Note that GFA Graphs supplied by MindTheGap may contain redundant sequence information (for instance this is likely that two contigs are linked in the graph by two gapfillings with reverse-complement sequences). Before further analyses, we recommend to simplify and reduce the redundancy in the graph using the scripts available in (MinYS github repository)[https://github.com/cguyomar/MinYS] :
+
+```
+git clone https://github.com/cguyomar/MinYS.git
+python3 MinYS/graph_simplification/graph_simplification.py MindTheGap_output.gfa simplified_graph.gfa
+```
+
+Other usefull scripts are available in the (MinYS github repository)[https://github.com/cguyomar/MinYS]  to deal with this graph data structure : to enumerate paths, to convert the segments to a fasta file, to filter connected components according to their size...
 
 
 
