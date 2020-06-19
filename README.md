@@ -62,17 +62,16 @@ In case the software does not run appropriately on your system, you should consi
     # the binary file is located in directory build/bin/
     ./build/bin/MindTheGap -help
 
-## Using docker or conda
+## Using conda or docker
 
-Pull the docker image of the latest release of MindTheGap:
+MindTheGap is also distributed as a [Bioconda package](https://anaconda.org/bioconda/mindthegap):
+ 
+    conda install -c bioconda mindthegap
+
+Or pull the docker image of MindTheGap (warning: need to be updated with latest releases):
 
     docker pull clemaitr/mindthegap
 
-MindTheGap is also distributed as a [Bioconda package](https://anaconda.org/bioconda/mindthegap):
-
-``` 
-conda install -c bioconda mindthegap
-```
 
 
 
@@ -82,7 +81,7 @@ conda install -c bioconda mindthegap
 
 MindTheGap is a software that performs integrated detection and assembly of **genomic insertion variants** in NGS read datasets with respect to a reference genome. It is designed to call insertions of any size, whether they are novel or duplicated, homozygous or heterozygous in the donor genome. 
 
-Alternatively and since release 2.1.0, MindTheGap can also be used as a **genome assembly finishing tool**. It is integrated as an essential step in the **targeted assembly** tool [MinYS (MineYourSymbiont in metagenomics datasets)](https://github.com/cguyomar/MinYS).
+Alternatively and since release 2.1.0, MindTheGap can also be used as a **genome assembly finishing tool**. It is integrated as an essential step in the **targeted assembly** tool [MinYS (MineYourSymbiont in metagenomics datasets)](https://github.com/cguyomar/MinYS). It takes also part of a gap-filling pipeline dedicated to linked-read data (10X Genomics):  [MTG-link](https://github.com/anne-gcd/MTG-Link).
 
 **Insertion variant detection**
 

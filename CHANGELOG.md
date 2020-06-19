@@ -4,6 +4,11 @@
 ## [Unreleased]
 
 --------------------------------------------------------------------------------
+## [2.2.2] - 2020-06-19
+
+* A bug fix: updating gatb-core version, notably this fixes a bug in the `fill` module: nodes at extremities of contigs of size exactly `k` were not marked correctly, potentially leading to duplicated contigs in the contig graph. This could prevent exploring some parts of the graph, and if graph exploration parameters where set too large (`-max-nodes` and `-max-length`), it could lead in some rare cases to extreme running times and/or memory consumptions. This should no longer happen now.
+
+--------------------------------------------------------------------------------
 ## [2.2.1] - 2019-11-29
 
 * Some bug fixes:

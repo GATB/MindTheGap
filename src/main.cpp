@@ -26,7 +26,7 @@
 
 using namespace std;
 
-static const char* MTG_VERSION = "2.2.1";
+static const char* MTG_VERSION = "2.2.2";
 
 static const char* STR_FIND        = "find";
 static const char* STR_FILL = "fill";
