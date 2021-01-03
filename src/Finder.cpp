@@ -26,8 +26,9 @@
 #include <FindHeteroInsertion.hpp>
 #include <FindInsertion.hpp>
 #include <FindSNP.hpp>
-#include <limits> //for std::numeric_limits
 #include <FindSmallInsertion.hpp>
+#include <limits> //for std::numeric_limits
+
 
 //#define PRINT_DEBUG
 /********************************************************************************/

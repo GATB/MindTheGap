@@ -100,18 +100,16 @@ bool FindHeteroInsertion<span>::update()
 							}
 						}
 						if (found_base_one == true)
-							break;
+						{
+							this->_find->writeIndel(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, ref, inser_base_one, i, STR_HET_TYPE);
+							this->_find->hetero_indel_iterate();
+							this->_find->breakpoint_id_iterate();
+							return true;
+						}
 					}
-					if (found_base_one)
+					if (this->_find->sum_branch() > 90)
 					{
-						this->_find->writeIndel(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, ref, inser_base_one, i, STR_HET_TYPE);
-						this->_find->hetero_indel_iterate();
-						this->_find->breakpoint_id_iterate();
-						return true;
-					}
-					else
-					{
-						this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1 + i, kmer_begin_str, kmer_end_str, i, STR_HET_TYPE, this->_find->het_kmer_history(this->_find->het_kmer_begin_index() + i).is_repeated, this->_find->kmer_end_is_repeated());
+						this->_find->writeBreakpoint(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1 + i, kmer_begin_str, kmer_end_str, i, STR_HET_TYPE, this->_find->sum_branch(), this->_find->het_kmer_history(this->_find->het_kmer_begin_index() + i).is_repeated, this->_find->kmer_end_is_repeated());
 
 						this->_find->breakpoint_id_iterate();
 
@@ -125,15 +123,18 @@ bool FindHeteroInsertion<span>::update()
 						}
 
 						this->_find->recent_hetero(this->_find->max_repeat()); // we found a breakpoint, the next hetero one mus be at least _max_repeat apart from this one.
-						return true;										   //reports only the smallest repeat size found.
+						return true;
 					}
+					else
+					{
+						return false;
+					} //reports only the smallest repeat size found.
 				}
-			}
+			}	
 		}
-
 		this->_find->recent_hetero(max(0, this->_find->recent_hetero() - 1)); // when recent_hetero=0 : we are sufficiently far from the previous hetero-site
+		
 	}
-
 	return false;
 }
 

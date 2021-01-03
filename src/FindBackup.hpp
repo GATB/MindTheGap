@@ -54,9 +54,9 @@ bool FindBackup<span>::update()
 		string kmer_begin_str = this->_find->model().toString(this->_find->kmer_begin().forward());
 		string kmer_end_str = this->_find->model().toString(this->_find->kmer_end().forward());
 		string chrom_name_bak = this->_find->chrom_name()+"_backup";
-		
-		this->_find->writeBreakpoint(this->_find->breakpoint_id(), chrom_name_bak, this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0, STR_BKP_TYPE);
-		
+
+		this->_find->writeBreakpoint(this->_find->breakpoint_id(), chrom_name_bak, this->_find->position() - 1, kmer_begin_str, kmer_end_str, 0, STR_BKP_TYPE, this->_find->sum_branch());
+
 		this->_find->breakpoint_id_iterate();
 		this->_find->backup_iterate();
 		

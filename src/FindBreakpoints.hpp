@@ -98,8 +98,8 @@ public :
     
     /** writes a given breakpoint in the output file
      */
-    void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type,bool repeat_in_genome_kmer_begin =false, bool repeat_in_genome_kmer_end = false);
-
+    //void writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type,bool repeat_in_genome_kmer_begin =false, bool repeat_in_genome_kmer_end = false);
+    void writeBreakpoint(int bkt_id, string &chrom_name, uint64_t position, string &kmer_begin, string &kmer_end, int repeat_size, string type, int sum_branch, bool repeat_in_genome_kmer_begin = false, bool repeat_in_genome_kmer_end = false);
     /** writes a given variant in the output vcf file
      */
     void writeVcfVariant(int bkt_id, string& chrom_name, uint64_t position, char* ref_char, char* alt_char, int repeat_size, string type);
@@ -113,7 +113,7 @@ public :
     /** Return the position of first pb of actual read kmer
      */
     uint64_t position();
-
+    int sum_branch();
     /** Return the reference chromosome sequence
      */
     char* chrom_seq();
@@ -267,7 +267,7 @@ private :
     uint64_t m_position;
     char* m_chrom_sequence;
     string m_chrom_name;
-
+    int m_sum_branch;
     /*Kmer related object*/
     KmerModel m_model;
     KmerCanonical m_previous_kmer;
@@ -325,8 +325,8 @@ FindBreakpoints<span>::FindBreakpoints(Finder * find) : gap_obs(), m_model(find-
 	this->m_chrom_name = "";
 	this->m_kmer_begin = KmerCanonical(); // init kmerbegin and kmerend otherwise not init when checking this->_find->kmer_begin().isValid() in update
 	this->m_kmer_end = KmerCanonical();
-	
-	//m_het_kmer_end_index_CB = new iterCB (&m_het_kmer_history_CB);
+    this->m_sum_branch = 0;
+    //m_het_kmer_end_index_CB = new iterCB (&m_het_kmer_history_CB);
 	//m_het_kmer_begin_index_CB = new iterCB (&m_het_kmer_history_CB);
 	
 	/*Homozygote usage*/
@@ -380,14 +380,16 @@ void FindBreakpoints<span>::operator()()
 									  System::thread().newSynchronizer())
 				 );
 	_progress->init ();
-	
-	
-	
-	// We loop over sequences
+
+    FILE *fp;
+    fp = fopen("example.txt", "w");
+
+    // We loop over sequences
 	for (it_seq->first(); !it_seq->isDone(); it_seq->next())
 	{
-
-		this->m_kmer_begin = KmerCanonical();
+        int array_branchin[100];
+        int counter = 0, n, sum;
+        this->m_kmer_begin = KmerCanonical();
 		this->m_kmer_end = KmerCanonical();
 		//DEBUG
 		//cout<<"sequence "<< (*it_seq)->getCommentShort() << endl;
@@ -413,7 +415,7 @@ void FindBreakpoints<span>::operator()()
 		this->m_chrom_sequence = (*it_seq)->getDataBuffer();
 		this->m_chrom_name = (*it_seq)->getCommentShort();
 		this->m_position = 0;
-		
+        this->m_sum_branch = 0;
         if (this->finder->_bed_file_name=="")
         {
             // We iterate the kmers.
@@ -436,10 +438,31 @@ void FindBreakpoints<span>::operator()()
                     Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
                     
                     uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
-                    
+                    if (m_position % 100 == 0)
+                    {
+                        counter = 0;
+                    }
+                    else
+                    {
+                        if (!this->graph_contains(node))
+                        {
+                            array_branchin[counter] = 1;
+                            counter++;
+                            array_branchin[counter] = 1;
+                        }
+                        else
+                        {
+                            array_branchin[counter] = this->finder->_graph.indegree(node);
+                            counter++;
+                            array_branchin[counter] = this->finder->_graph.outdegree(node);
+                        }
+                    }
+                    n = sizeof(array_branchin) / sizeof(array_branchin[0]);
+                    sum = count(array_branchin, array_branchin + n, 1); // + count(array_branchin, array_branchin + n, 2));
+                    m_sum_branch = sum;
                     //we notify all observer
                     this->notify(node, (*m_it_kmer).isValid());
-                    
+                    //cout << "position: " << m_position << "percent :" << percent << "Quantity : " << sum << endl;
                     m_position = save_position;
                     
                     //save actual kmer for potential False Positive
@@ -519,7 +542,29 @@ void FindBreakpoints<span>::operator()()
                         Node node(Node::Value(m_it_kmer->value()), m_it_kmer->strand());// strand is necessary for hetero mode (in/out degree depends on the strand
                         
                         uint64_t save_position = m_position; // m_position can be modified by observer (multisnp rev)
-                        
+                        if (m_position % 100 == 0)
+                        {
+                            counter = 0;
+                        }
+                        else
+                        {
+                            if (!this->graph_contains(node))
+                            {
+                                array_branchin[counter] = 1;
+                                counter++;
+                                array_branchin[counter] = 1;
+                            }
+                            else
+                            {
+                                array_branchin[counter] = this->finder->_graph.indegree(node);
+                                counter++;
+                                array_branchin[counter] = this->finder->_graph.outdegree(node);
+                            }
+                        }
+                        n = sizeof(array_branchin) / sizeof(array_branchin[0]);
+                        sum = count(array_branchin, array_branchin + n, 1); // + count(array_branchin, array_branchin + n, 2);
+                        m_sum_branch = sum;
+                        //cout << "position: " << m_position << " in :" << this->finder->_graph.indegree(node) << " out :" << this->finder->_graph.outdegree(node) << " Quantity : " << sum << endl;
                         //we notify all observer
                         this->notify(node, (*m_it_kmer).isValid());
                         
@@ -620,24 +665,26 @@ void FindBreakpoints<span>::addKmerObserver(IFindObserver<span>* new_obs)
     this->kmer_obs.push_back(new_obs);
 }
 
-template<size_t span>
-void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string& chrom_name, uint64_t position, string& kmer_begin, string& kmer_end, int repeat_size, string type, bool repeat_in_genome_kmer_begin, bool repeat_in_genome_kmer_end  ){
-    fprintf(this->finder->_breakpoint_file,">bkpt%i_%s_pos_%lli_fuzzy_%i_%s %s left_kmer\n%s\n>bkpt%i_%s_pos_%lli_fuzzy_%i_%s %s right_kmer\n%s\n",
-	    bkt_id,
-	    chrom_name.c_str(),
-	    position+1, //switch to 1-based
-	    repeat_size,
-	    type.c_str(),
-		repeat_in_genome_kmer_begin ? "REPEATED" : "",
-	    kmer_begin.c_str(),
-	    bkt_id,
-	    chrom_name.c_str(),
-	    position+1, //switch to 1-based
-	    repeat_size,
-	    type.c_str(),
-		repeat_in_genome_kmer_end ? "REPEATED" : "",
-	    kmer_end.c_str()
-	);
+template <size_t span>
+void FindBreakpoints<span>::writeBreakpoint(int bkt_id, string &chrom_name, uint64_t position, string &kmer_begin, string &kmer_end, int repeat_size, string type, int sum_branch, bool repeat_in_genome_kmer_begin, bool repeat_in_genome_kmer_end)
+{
+    fprintf(this->finder->_breakpoint_file, ">bkpt%i_%s_pos_%lli_fuzzy_%i_%i_%s %s left_kmer\n%s\n>bkpt%i_%s_pos_%lli_fuzzy_%i_%i_%s %s right_kmer\n%s\n",
+            bkt_id,
+            chrom_name.c_str(),
+            position + 1, //switch to 1-based
+            repeat_size,
+            sum_branch,
+            type.c_str(),
+            repeat_in_genome_kmer_begin ? "REPEATED" : "",
+            kmer_begin.c_str(),
+            bkt_id,
+            chrom_name.c_str(),
+            position + 1, //switch to 1-based
+            repeat_size,
+            sum_branch,
+            type.c_str(),
+            repeat_in_genome_kmer_end ? "REPEATED" : "",
+            kmer_end.c_str());
 }
 
 template<size_t span>
@@ -709,7 +756,11 @@ uint64_t FindBreakpoints<span>::position()
 {
     return this->m_position;
 }
-
+template <size_t span>
+int FindBreakpoints<span>::sum_branch()
+{
+    return this->m_sum_branch;
+}
 template<size_t span>
 char * FindBreakpoints<span>::chrom_seq()
 {
