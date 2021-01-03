@@ -27,6 +27,7 @@
 #include <FindInsertion.hpp>
 #include <FindSNP.hpp>
 #include <limits> //for std::numeric_limits
+#include <FindSmallInsertion.hpp>
 
 //#define PRINT_DEBUG
 /********************************************************************************/
@@ -75,14 +76,17 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _nb_solo_snp = 0;
     _nb_multi_snp = 0;
     _nb_backup = 0;
-    
+    _nb_homo_clean_indel = 0;
+    _nb_homo_fuzzy_indel = 0;
+    _nb_hetero_indel = 0;
     _homo_only = false;
     _homo_insert = true;
     _hete_insert = true;
     _snp = true;
     _backup = false;
     _deletion = true;
-    
+    _small_homo = true;
+
     _bed_file_name="";
 	
 	setHelp(&HelpFinder);
@@ -318,6 +322,7 @@ void Finder::execute ()
 	_snp = true;
 	_backup = false;
 	_deletion = true;
+    _small_homo = true;
     }
     
     if(getInput()->get(STR_INSERT_ONLY) != 0)
@@ -328,6 +333,7 @@ void Finder::execute ()
 	_snp = false;
 	_backup = false;
 	_deletion = false;
+    _small_homo = true;
     }
 
     if(getInput()->get(STR_SNP_ONLY) != 0)
@@ -338,6 +344,7 @@ void Finder::execute ()
 	_snp = true;
 	_backup = false;
 	_deletion = false;
+    _small_homo = true;
     }
 
     if(getInput()->get(STR_DELETION_ONLY) != 0)
@@ -348,6 +355,7 @@ void Finder::execute ()
 	_snp = false;
 	_backup = false;
 	_deletion = true;
+    _small_homo = true;
     }
 
     if(getInput()->get(STR_HETERO_ONLY) != 0)
@@ -358,6 +366,7 @@ void Finder::execute ()
 	_snp = false;
 	_backup = false;
 	_deletion = false;
+    _small_homo = true;
     }
 
     if(getInput()->get(STR_WITH_BACKUP) != 0)
@@ -474,6 +483,8 @@ void Finder::resumeResults(double seconds){
     getInfo()->add(3,"fuzzy","%i", _nb_hetero_fuzzy);
     getInfo()->add(1,"Other variants");
     getInfo()->add(2,"deletions","%i", _nb_clean_deletion+_nb_fuzzy_deletion);
+    getInfo()->add(2, "Homozygous insertions 1-2 bp size", "%i", _nb_homo_clean_indel + _nb_homo_fuzzy_indel);
+    getInfo()->add(2, "Heterozygous insertions 1-2 bp size", "%i", _nb_hetero_indel);
     //getInfo()->add(3,"clean", "%i", _nb_clean_deletion);
     //getInfo()->add(3,"fuzzy", "%i", _nb_fuzzy_deletion);
     getInfo()->add(2,"SNPs","%i", _nb_solo_snp+_nb_multi_snp);
@@ -540,8 +551,12 @@ void Finder::runFindBreakpoints<span>::operator ()  (Finder* object)
 	{
 		findBreakpoints.addGapObserver(new FindDeletion<span>(&findBreakpoints));
 	}
-	
-	if(object->_homo_insert)
+    if (object->_small_homo)
+    {
+        findBreakpoints.addGapObserver(new FindSmallCleanInsertion<span>(&findBreakpoints));
+        findBreakpoints.addGapObserver(new FindSmallFuzzyInsertion<span>(&findBreakpoints));
+    }
+    if(object->_homo_insert)
 	{
 		findBreakpoints.addGapObserver(new FindCleanInsertion<span>(&findBreakpoints));
 		findBreakpoints.addGapObserver(new FindFuzzyInsertion<span>(&findBreakpoints));
