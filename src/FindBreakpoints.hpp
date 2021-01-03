@@ -103,7 +103,7 @@ public :
     /** writes a given variant in the output vcf file
      */
     void writeVcfVariant(int bkt_id, string& chrom_name, uint64_t position, char* ref_char, char* alt_char, int repeat_size, string type);
-
+    void writeIndel(int bkt_id, string &chrom_name, uint64_t position, string ref_char, string alt_char, int repeat_size, string type);
 
     /*Getter*/
     /** Return the number of found breakpoints
@@ -233,7 +233,18 @@ public :
     /** Incremente the value of backup_iterate
      */
     int backup_iterate();
-    
+
+    /*Incremente the value of homo_clean_indel
+     */
+    int homo_clean_indel_iterate();
+
+    /* Incremente the value of homo_fuzzy_indel
+     */
+    int homo_fuzzy_indel_iterate();
+    /* Incremente the value of hetero_indel
+     */
+    int hetero_indel_iterate();
+
     /*Setter*/
     /** Set value of recent_hetero
      */
@@ -648,7 +659,32 @@ void FindBreakpoints<span>::writeVcfVariant(int bkt_id, string& chrom_name, uint
 			repeat_size
 	);
 }
-
+template <size_t span>
+void FindBreakpoints<span>::writeIndel(int bkt_id, string &chrom_name, uint64_t position, string ref_string, string alt_string, int repeat_size, string type)
+{
+    //cout << ref_char << alt_char << endl;
+    // NOTE : currently all positions coming from FindObservers are 0-based, VCF is supposed to be 1-based, so we add +1
+    int variant_size = alt_string.length() - 1;
+    string GT = "./.";
+    if (type == "HOM")
+    {
+        GT = "1/1";
+    }
+    if (type == "HET")
+    {
+        GT = "0/1";
+    }
+    fprintf(this->finder->_vcf_file, "%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\tTYPE=%s;LEN=%i;FUZZY=%i\tGT\t%s\n",
+            chrom_name.c_str(),
+            position + 1, //switch to 1-based
+            bkt_id,
+            ref_string.c_str(),
+            alt_string.c_str(),
+            type.c_str(),
+            variant_size,
+            repeat_size,
+            GT.c_str());
+}
 /*Getter*/
 template<size_t span>
 int FindBreakpoints<span>::node_in_branch(Node& kmer_node)
@@ -870,7 +906,22 @@ int FindBreakpoints<span>::backup_iterate()
 {
     return this->finder->_nb_backup++;
 }
+template <size_t span>
+int FindBreakpoints<span>::homo_clean_indel_iterate()
+{
+    return this->finder->_nb_homo_clean_indel++;
+}
 
+template <size_t span>
+int FindBreakpoints<span>::homo_fuzzy_indel_iterate()
+{
+    return this->finder->_nb_homo_fuzzy_indel++;
+}
+template <size_t span>
+int FindBreakpoints<span>::hetero_indel_iterate()
+{
+    return this->finder->_nb_hetero_indel++;
+}
 /*Setter*/
 template<size_t span>
 void FindBreakpoints<span>::recent_hetero(int value)
