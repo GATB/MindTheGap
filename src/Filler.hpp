@@ -37,6 +37,7 @@ static const char* STR_URI_BKPT = "-bkpt";
 static const char* STR_MAX_DEPTH = "-max-length";
 static const char* STR_MAX_NODES = "-max-nodes";
 static const char* STR_FILTER = "-filter";
+static const char* STR_FWD_ONLY = "-fwd-only";
 
 
  class info_node_t
@@ -141,8 +142,11 @@ public:
     //parameter for gap-filling between contigs
     int _contig_trim_size;
 
-    //parameter for filtering out low quality insertions
+    //parameter for filtering out low quality insertions (in vcf output, bkpt mode only)
     bool _filter;
+    
+    //parameter for constraining assembly in the forward direction only (bkpt mode only), otherwise (default behavior) tries the revcomp direction when no inserted sequence is assembled in forward.
+    bool _fwd_only;
     
     string _vcf_file_name;
     FILE * _vcf_file;

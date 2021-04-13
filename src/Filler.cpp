@@ -64,6 +64,7 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     _breakpointMode = true;
     _contig_trim_size = 0;
     _filter = false;
+    _fwd_only = false;
 
 
 
@@ -82,7 +83,8 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     generalParser->push_front (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
 
     IOptionsParser* inputParser = new OptionsParser("Input / output");
-    inputParser->push_front (new OptionNoParam (STR_FILTER, "do not output low quality insertions", false));
+    inputParser->push_front (new OptionNoParam (STR_FWD_ONLY, "do not try in reverse direction if no inserted sequence is assembled (bkpt mode)", false));
+    inputParser->push_front (new OptionNoParam (STR_FILTER, "do not output low quality insertions (bkpt mode)", false));
     inputParser->push_front (new OptionOneParam (STR_CONTIG_OVERLAP, "Overlap between input contigs (default, ie. 0 = kmer size)",  false, "0"));
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
     inputParser->push_front (new OptionOneParam (STR_URI_BKPT, "breakpoint file", false, ""));
@@ -296,6 +298,11 @@ void Filler::execute ()
     if(getInput()->get(STR_FILTER) != 0)
     {
         _filter = true;
+    }
+    
+    if(getInput()->get(STR_FWD_ONLY) != 0)
+    {
+        _fwd_only = true;
     }
     
     // Now do the job
@@ -633,7 +640,7 @@ public:
             _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, targetDictionary, is_anchor_repeated, false);
 
             //If gap-filling failed in one direction, try the other direction (from target to source in revcomp)
-            if(filledSequences.size()==0){
+            if(!_object->_fwd_only & filledSequences.size()==0){
                 string targetSequence2 = revcomp_sequence(sourceSequence);
                 targetDictionary.clear();
                 targetDictionary.insert({targetSequence2, std::make_pair(breakpointName, false)});
