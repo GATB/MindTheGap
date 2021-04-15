@@ -38,6 +38,7 @@ static const char* STR_MAX_DEPTH = "-max-length";
 static const char* STR_MAX_NODES = "-max-nodes";
 static const char* STR_FILTER = "-filter";
 static const char* STR_FWD_ONLY = "-fwd-only";
+static const char* STR_EXTEND = "-extend";
 
 
  class info_node_t
@@ -130,6 +131,15 @@ public:
     //output file with statistics about each attempt of gap-filling
     string _insert_info_file_name;
     FILE * _insert_info_file;
+    
+    //output file in vcf format (bkpt mode)
+    string _vcf_file_name;
+    FILE * _vcf_file;
+    
+    //output file for single-contig extensions (-extend option)
+    string _extension_file_name;
+    FILE * _extension_file;
+    bool _extend;
 
     //parameters for dbg traversal (stop criteria)
     int _max_depth;
@@ -148,8 +158,7 @@ public:
     //parameter for constraining assembly in the forward direction only (bkpt mode only), otherwise (default behavior) tries the revcomp direction when no inserted sequence is assembled in forward.
     bool _fwd_only;
     
-    string _vcf_file_name;
-    FILE * _vcf_file;
+
 
     // Actual job done by the tool is here
     void execute ();
@@ -165,6 +174,11 @@ public:
      */
     void writeVcf(std::vector<filled_insertion_t>& filledSequences, string breakpointName, string seedk);
 
+    /** writes a given extension sequence in the output extension file (fasta format)
+    */
+    void writeExtensions(string contigSeq, string seedName, string sourceSequence);
+
+    
     /** Fill one gap
      */
     /*template<size_t span>
@@ -172,7 +186,7 @@ public:
                  ,bool reversed =false);*/
 
     template<size_t span>
-    void gapFillFromSource(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary,bool is_anchor_repeated, bool reverse );
+    void gapFillFromSource(std::string & infostring, int tid, string sourceSequence, string targetSequence, std::vector<filled_insertion_t>& filledSequences, bkpt_dict_t targetDictionary,bool is_anchor_repeated, bool reverse, std::string & extensionSequence );
 
     gatb::core::tools::dp::IteratorListener* _progress;
 
@@ -207,6 +221,12 @@ private:
     set< info_node_t >  find_nodes_containing_R(string targetSequence, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed, bool anchor_is_repeated);
     set< info_node_t> find_nodes_containing_multiple_R(bkpt_dict_t targetDictionary, string linear_seqs_name, int nb_mis_allowed, int nb_gaps_allowed);
 
+    /**
+     returns the first contig from the local assembly (only if >_kmer_size), when no solution is fund, it can be returned as a safe extension.
+     */
+    string  get_first_contig(string contig_file_name);
+
+    
     /** Handle on the progress information. */
     void setProgress (gatb::core::tools::dp::IteratorListener* progress)  { SP_SETATTR(progress); }
 
