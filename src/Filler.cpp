@@ -666,7 +666,7 @@ public:
             
 
             //If gap-filling failed in one direction, try the other direction (from target to source in revcomp)
-            if(!_object->_fwd_only & filledSequences.size()==0){
+            if(!_object->_fwd_only && filledSequences.size()==0){
                 string targetSequence2 = revcomp_sequence(sourceSequence);
                 targetDictionary.clear();
                 targetDictionary.insert({targetSequence2, std::make_pair(breakpointName, false)});
