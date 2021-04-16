@@ -6,7 +6,7 @@
 
 Travis CI : [![Build Status](https://travis-ci.org/GATB/MindTheGap.svg?branch=master)](https://travis-ci.org/GATB/MindTheGap)
 
-[![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)
+[![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)      [![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/mindthegap/README.html)
 
 # What is MindTheGap ?
 
@@ -65,7 +65,7 @@ In case the software does not run appropriately on your system, you should consi
 ## Using conda or docker
 
 MindTheGap is also distributed as a [Bioconda package](https://anaconda.org/bioconda/mindthegap):
- 
+
     conda install -c bioconda mindthegap
 
 Or pull the docker image of MindTheGap (warning: need to be updated with latest releases):
@@ -194,21 +194,26 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     Both MindTheGap modules generate the graph file if reads were given as input: 
     
 * a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program `dbginfo` located in your bin directory or in ext/gatb-core/bin/.
-    
+  
     `MindTheGap find` generates the following output files:
+    
     * a breakpoint file (`.breakpoints`) in fasta format. 
+    
 * a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
-    
+  
     `MindTheGap fill` generates the following output files:
+    
 * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. 
-    
+  
 * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection. 
-    
+  
 * an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
-    
+  
 * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
-    
-      
+  
+* with option `-extend`, an additional sequence file (`.extensions.fasta`) in fasta format. It contains sequence extensions for failed insertion or gap-filling assemblies, ie. when the target kmer was not found, the first contig immediately after the source kmer is output.
+  
+  ​    
 
 Other optional parameters and details on input and output file formats are given in [doc/MindTheGap_insertion_caller.md](doc/MindTheGap_insertion_caller.md) and [doc/MindTheGap_assembly.md](doc/MindTheGap_assembly.md), depending on the usage.
 

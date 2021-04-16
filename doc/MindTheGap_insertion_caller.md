@@ -49,6 +49,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 	* `-max-nodes`: maximum number of nodes in contig graph for each insertion assembly [default '100']. This arguments limits the computational time, this is especially useful for complex genomes.
     * `-max-length`: maximum number of assembled nucleotides in the contig graph (nt)  [default '10000']. This arguments limits the computational time, this is especially useful for complex genomes.
     * `-filter`: if set, insertions with multiple solutions are not output in the final vcf file (default : not activated).
+	* `-fwd-only`: if set, inserted sequences are searched in only one direction : from the left kmer to the right kmer. Default behavior : not set, ie. when no solution is found in the forward direction, a solution is searched in the opposite direction (revcomp(right) --> revcomp(left)).
 	
 6. **MindTheGap Output**
   
@@ -92,7 +93,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 	For insertion variants (`insertions.vcf` file only), positions are **left-normalized**. This happens when there is a small (typically <5bp)) repeated sequence between the breakpoint site and one extremity of the inserted sequence. In this case, multiple positions are possible. Here, the leftmost position is reported and the number of possible positions is indicated in the INFO field (NPOS id). This latter value is at least the size of the repeated sequence + 1 (>= fuzzy +1). 
 	
 		chr4    618791     bkpt20  T    TAGGTGTATTTAGCTCCG   .       PASS    TYPE=INS;LEN=17;QUAL=50;NSOL=1;NPOS=4;AVK=22.71;MDK=23.00      GT      1/1
-	 	#there are 4 (NPOS) possible positions for an insertion of 17 nt from positions 618791 to 618794 on chr4, therefore the repeat is of size 3 and is AGG.
+		#there are 4 (NPOS) possible positions for an insertion of 17 nt from positions 618791 to 618794 on chr4, therefore the repeat is of size 3 and is AGG.
 	
 	FILTER field: can be `PASS`or `LOWQUAL` (for insertions with multiple solutions)
 	
