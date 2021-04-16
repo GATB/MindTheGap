@@ -83,7 +83,6 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     generalParser->push_front (new OptionOneParam (STR_NB_CORES,    "number of cores",      false, "0"  ));
 
     IOptionsParser* inputParser = new OptionsParser("Input / output");
-    inputParser->push_front (new OptionNoParam (STR_FWD_ONLY, "do not try in reverse direction if no inserted sequence is assembled (bkpt mode)", false));
     inputParser->push_front (new OptionNoParam (STR_FILTER, "do not output low quality insertions (bkpt mode)", false));
     inputParser->push_front (new OptionOneParam (STR_CONTIG_OVERLAP, "Overlap between input contigs (default, ie. 0 = kmer size)",  false, "0"));
     inputParser->push_front (new OptionOneParam (STR_URI_OUTPUT, "prefix for output files", false, ""));
@@ -95,6 +94,7 @@ Filler::Filler ()  : Tool ("MindTheGap fill") , _progress(0)
     
     IOptionsParser* fillerParser = new OptionsParser("Assembly");
     //TODO HERE PUT THE FILL OPTIONS
+    fillerParser->push_front (new OptionNoParam (STR_FWD_ONLY, "do not try in reverse direction if no inserted sequence is assembled (bkpt mode)", false));
     fillerParser->push_front (new OptionOneParam (STR_MAX_DEPTH, "maximum length of insertions (nt)", false, "10000"));
     fillerParser->push_front (new OptionOneParam (STR_MAX_NODES, "maximum number of nodes in contig graph (nt)", false, "100"));
 
@@ -640,7 +640,7 @@ public:
             _object->gapFillFromSource<span>(infostring,_tid, sourceSequence, targetSequence,filledSequences, targetDictionary, is_anchor_repeated, false);
 
             //If gap-filling failed in one direction, try the other direction (from target to source in revcomp)
-            if(!_object->_fwd_only & filledSequences.size()==0){
+            if(!_object->_fwd_only && filledSequences.size()==0){
                 string targetSequence2 = revcomp_sequence(sourceSequence);
                 targetDictionary.clear();
                 targetDictionary.insert({targetSequence2, std::make_pair(breakpointName, false)});
