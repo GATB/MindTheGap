@@ -4,9 +4,9 @@
 |-----------|-------------|
 [![Build Status](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-debian7-64bits-gcc-4.7/) | [![Build Status](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-macos-10.9.5-gcc-4.2.1/)
 
-Travis CI : [![Build Status](https://travis-ci.org/GATB/MindTheGap.svg?branch=master)](https://travis-ci.org/GATB/MindTheGap)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/mindthegap/README.html)
 
-[![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)      [![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/mindthegap/README.html)
+[![License](http://img.shields.io/:license-affero-blue.svg)](http://www.gnu.org/licenses/agpl-3.0.en.html)     
 
 # What is MindTheGap ?
 
@@ -49,10 +49,7 @@ Retrieve a binary archive file from one of the official MindTheGap releases (see
     tar -zxf MindTheGap-vX.Y.Z-bin-Darwin.tar.gz
     cd MindTheGap-vX.Y.Z-bin-Darwin
     chmod u+x bin/MindTheGap
-    
-    # run a simple example
-    ./bin/MindTheGap find -in data/reads_r1.fastq,data/reads_r2.fastq -ref data/reference.fasta -out example
-    ./bin/MindTheGap fill -graph example.h5 -bkpt example.breakpoints -out example
+    ./build/bin/MindTheGap -help
 
 In case the software does not run appropriately on your system, you should consider to install it from its source code. Retrieve the source archive file `MindTheGap-vX.Y.Z-Source.tar.gz`.
 
@@ -72,6 +69,12 @@ Or pull the docker image of MindTheGap (warning: need to be updated with latest 
 
     docker pull clemaitr/mindthegap
 
+## Small run example
+
+```
+MindTheGap find -in data/reads_r1.fastq,data/reads_r2.fastq -ref data/reference.fasta -out example
+MindTheGap fill -graph example.h5 -bkpt example.breakpoints -out example
+```
 
 
 
