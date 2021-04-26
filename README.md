@@ -49,7 +49,7 @@ Retrieve a binary archive file from one of the official MindTheGap releases (see
     tar -zxf MindTheGap-vX.Y.Z-bin-Darwin.tar.gz
     cd MindTheGap-vX.Y.Z-bin-Darwin
     chmod u+x bin/MindTheGap
-    ./build/bin/MindTheGap -help
+    ./bin/MindTheGap -help
 
 In case the software does not run appropriately on your system, you should consider to install it from its source code. Retrieve the source archive file `MindTheGap-vX.Y.Z-Source.tar.gz`.
 
