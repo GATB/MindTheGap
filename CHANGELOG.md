@@ -4,6 +4,14 @@
 ## [Unreleased]
 
 --------------------------------------------------------------------------------
+## [2.2.3] - 2021-06-11
+
+* 2 novel options in the `Fill` (local assembly) module :
+  * `-fwd-only`:  output the first-contig extensions of failed gap-fillings in a separate file, it can be useful for the assembly of the extremities of linear genomes (as in the [MinYS](https://github.com/cguyomar/MinYS) tool)
+  * `-extend`:  do not try in reverse direction if no inserted sequence is assembled (bkpt mode), it can improve the running time and/or help the user controlling the direction of assembly (as in the [MTG-link](https://github.com/anne-gcd/MTG-Link) tool)
+
+--------------------------------------------------------------------------------
+
 ## [2.2.2] - 2020-06-19
 
 * A bug fix: updating gatb-core version, notably this fixes a bug in the `fill` module: nodes at extremities of contigs of size exactly `k` were not marked correctly, potentially leading to duplicated contigs in the contig graph. This could prevent exploring some parts of the graph, and if graph exploration parameters where set too large (`-max-nodes` and `-max-length`), it could lead in some rare cases to extreme running times and/or memory consumptions. This should no longer happen now.
