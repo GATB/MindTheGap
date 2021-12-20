@@ -233,9 +233,13 @@ Either in your `bin/` directory or in `ext/gatb-core/bin/`, you can find additio
 
 ## Reference
 
+If you use MindTheGap, please cite: 
+
 MindTheGap: integrated detection and assembly of short and long insertions. Guillaume Rizk, Anaïs Gouin, Rayan Chikhi and Claire Lemaitre. Bioinformatics 2014 30(24):3451-3457. http://bioinformatics.oxfordjournals.org/content/30/24/3451
 
 [Web page](https://gatb.inria.fr/software/mind-the-gap/) with some updated results.
+
+MindTheGap was also evaluated in a recent benchmark exploring many different genomic features (size, nature, repeat context, junctional homology at breakpoints) of human insertion variants. Among other tested SV callers, MindTheGap was the only tool able to output sequence-resolved insertions for many types of insertions. Read more: [Towards a better understanding of the low recall of insertion variants with short-read based variant callers.](https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-020-07125-5) Delage W, Thevenon J, Lemaitre C. *BMC Genomics* **2020**, 21(1):762.
 
 
 # Contact
