@@ -65,7 +65,7 @@ In case the software does not run appropriately on your system, you should consi
 ## Using conda or docker
 
 MindTheGap is also distributed as a [Bioconda package](https://anaconda.org/bioconda/mindthegap):
- 
+
     conda install -c bioconda mindthegap
 
 Or pull the docker image of MindTheGap (warning: need to be updated with latest releases):
@@ -194,21 +194,21 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     Both MindTheGap modules generate the graph file if reads were given as input: 
     
 * a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program `dbginfo` located in your bin directory or in ext/gatb-core/bin/.
-    
+  
     `MindTheGap find` generates the following output files:
     * a breakpoint file (`.breakpoints`) in fasta format. 
 * a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
-    
+  
     `MindTheGap fill` generates the following output files:
 * a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. 
-    
+  
 * an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection. 
-    
+  
 * an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
-    
+  
 * a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
-    
-      
+  
+  ​    
 
 Other optional parameters and details on input and output file formats are given in [doc/MindTheGap_insertion_caller.md](doc/MindTheGap_insertion_caller.md) and [doc/MindTheGap_assembly.md](doc/MindTheGap_assembly.md), depending on the usage.
 
@@ -225,9 +225,11 @@ Either in your `bin/` directory or in `ext/gatb-core/bin/`, you can find additio
 
 ## Reference
 
-MindTheGap: integrated detection and assembly of short and long insertions. Guillaume Rizk, Anaïs Gouin, Rayan Chikhi and Claire Lemaitre. Bioinformatics 2014 30(24):3451-3457. http://bioinformatics.oxfordjournals.org/content/30/24/3451
+MindTheGap: integrated detection and assembly of short and long insertions. Guillaume Rizk, Anaïs Gouin, Rayan Chikhi and Claire Lemaitre. *Bioinformatics* **2014** 30(24):3451-3457. http://bioinformatics.oxfordjournals.org/content/30/24/3451
 
 [Web page](https://gatb.inria.fr/software/mind-the-gap/) with some updated results.
+
+MindTheGap was also evaluated in a recent benchmark exploring many different genomic features (size, nature, repeat context, junctional homology at breakpoints) of human insertion variants. Among other tested SV callers, MindTheGap was the only tool able to output sequence-resolved insertions for many types of insertions. Read more: [Towards a better understanding of the low recall of insertion variants with short-read based variant callers.](https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-020-07125-5) Delage W, Thevenon J, Lemaitre C. *BMC Genomics* **2020**, 21(1):762.
 
 
 # Contact
