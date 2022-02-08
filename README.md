@@ -2,7 +2,7 @@
 
 | **Linux** | **Mac OSX** |
 |-----------|-------------|
-[![Build Status](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-debian7-64bits-gcc-4.7/badge/icon)](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-debian7-64bits-gcc-4.7/) | [![Build Status](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-macos-10.9.5-gcc-4.2.1/badge/icon)](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-macos-10.9.5-gcc-4.2.1/)
+[![Build Status](https://ci.inria.fr/gatb-core/view/MindTheGap-gitlab/job/tool-mindthegap-build-debian7-64bits-gcc-4.7-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-debian7-64bits-gcc-4.7/) | [![Build Status](https://ci.inria.fr/gatb-core/view/MindTheGap-gitlab/job/tool-mindthegap-build-macos-10.9.5-gcc-4.2.1-gitlab/badge/icon)](https://ci.inria.fr/gatb-core/view/MindTheGap/job/tool-mindthegap-build-macos-10.9.5-gcc-4.2.1/)
 
 [![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/mindthegap/README.html)
 
@@ -202,13 +202,13 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     
     * a breakpoint file (`.breakpoints`) in fasta format. 
     
-* a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs and deletion events.
+* a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs, deletions and very small insertions (1-2 bp).
   
     `MindTheGap fill` generates the following output files:
     
-* a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences or contig gap-fills that were successfully assembled. 
+* a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences (for insertions >2 bp) or contig gap-fills that were successfully assembled. 
   
-* an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection. 
+* an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection (for insertions >2 bp). 
   
 * an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
   
