@@ -662,7 +662,6 @@ void FindBreakpoints<span>::writeVcfVariant(int bkt_id, string& chrom_name, uint
 template <size_t span>
 void FindBreakpoints<span>::writeIndel(int bkt_id, string &chrom_name, uint64_t position, string ref_string, string alt_string, int repeat_size, string type)
 {
-    //cout << ref_char << alt_char << endl;
     // NOTE : currently all positions coming from FindObservers are 0-based, VCF is supposed to be 1-based, so we add +1
     int variant_size = alt_string.length() - 1;
     string GT = "./.";
@@ -674,13 +673,12 @@ void FindBreakpoints<span>::writeIndel(int bkt_id, string &chrom_name, uint64_t 
     {
         GT = "0/1";
     }
-    fprintf(this->finder->_vcf_file, "%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\tTYPE=%s;LEN=%i;FUZZY=%i\tGT\t%s\n",
+    fprintf(this->finder->_vcf_file, "%s\t%lli\tbkpt%i\t%s\t%s\t.\tPASS\tTYPE=INS;LEN=%i;FUZZY=%i\tGT\t%s\n",
             chrom_name.c_str(),
             position + 1, //switch to 1-based
             bkt_id,
             ref_string.c_str(),
             alt_string.c_str(),
-            type.c_str(),
             variant_size,
             repeat_size,
             GT.c_str());

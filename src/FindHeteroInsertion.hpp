@@ -64,6 +64,8 @@ bool FindHeteroInsertion<span>::update()
                     //modif 15/06/2018 to check !!! (before in case of fuzzy>0, the end and right kmers overlapped, => insertion of wrong size (- fuzzy), missing the repeat + loss of recall if insertion of size < repeat)
                     string kmer_end_str = string(&(this->_find->chrom_seq()[this->_find->position() + i]), this->_find->kmer_size());
 					string ref = kmer_begin_str.substr(kmer_begin_str.size() - 1 - i, 1);
+                    
+                    //Tests if this can be a small (1-2 bp) insertion
 					char nucleo[20][6] = {"A", "C", "G", "T", "AA", "AC", "AG", "AT", "CA", "CC", "CG", "CT", "GA", "GC", "GG", "GT", "TA", "TC", "TG", "TT"};
 					KmerModel local_m(this->_find->kmer_size());
 					KmerIterator local_it(local_m);
@@ -74,8 +76,7 @@ bool FindHeteroInsertion<span>::update()
                                return false;
                     }
 
-					//std::list<char> fourth (nucleo, nucleo + sizeof(nucleo) / sizeof(char) );
-					for (int a = 0; a < 20; a++)
+					for (int a = 0; a < 20; a++) // for all possible 1-2 bp insertions, perform a micro-assembly
 					{
 						seq = kmer_begin_str + nucleo[a] + kmer_end_str;
 						Data local_d(const_cast<char *>(seq.c_str()));
@@ -104,7 +105,7 @@ bool FindHeteroInsertion<span>::update()
 					}
 					if (found_base_one)
 					{
-						this->_find->writeIndel(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 2, ref, inser_base_one, i, STR_HET_TYPE);
+						this->_find->writeIndel(this->_find->breakpoint_id(), this->_find->chrom_name(), this->_find->position() - 1, ref, inser_base_one, i, STR_HET_TYPE);
 						this->_find->hetero_indel_iterate();
 						this->_find->breakpoint_id_iterate();
 						return true;
