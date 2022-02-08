@@ -1,6 +1,6 @@
 MindTheGap find                         
-    version                                  : 1.0.0
-    gatb-core-library                        : 1.2.0
+    version                                  : 2.2.3
+    gatb-core-library                        : 1.4.2
     supported_kmer_sizes                     : 32 64 96 128
 Parameters                              
     Input data                              
@@ -8,11 +8,11 @@ Parameters
         Reference                                : ../../data/reference.fasta
     Graph                                   
         kmer-size                                : 31
-        abundance_min (auto inferred)            : 3 
-        abundance_min (used)                     : 3
+        abundance_min (auto inferred)            : 7 
+        abundance_min (used)                     : 7
         abundance_max                            : 2147483647
-        nb_solid_kmers                           : 5473
-        nb_branching_nodes                       : 34
+        nb_solid_kmers                           : 7419
+        nb_branching_nodes                       : 36
     Breakpoint detection options            
         max_repeat                               : 5
         hetero_max_occ                           : 1
@@ -25,12 +25,14 @@ Results
         homozygous                               : 5
             clean                                    : 3
             fuzzy                                    : 2
-        heterozygous                             : 2
-            clean                                    : 1
+        heterozygous                             : 3
+            clean                                    : 2
             fuzzy                                    : 1
     Other variants                          
-        deletions                                : 3
-        SNPs                                     : 13
+        deletions                                : 2
+        Homozygous insertions 1-2 bp size        : 9
+        Heterozygous insertions 1-2 bp size      : 7
+        SNPs                                     : 11
     Time                                     : 0.0 s
     Output files                            
         graph_file                               : gold.h5

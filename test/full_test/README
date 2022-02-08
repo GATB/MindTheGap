@@ -121,5 +121,46 @@ cp reference.fasta ../../data/reference.fasta
 
 # 7. Create Gold files for automated tests
 
-../../build/bin/MindTheGap find -in ../../data/reads_r1.fastq,../../data/reads_r2.fastq -ref ../../data/reference.fasta -out gold > gold_find.output
-../../build/bin/MindTheGap fill -graph gold.h5 -bkpt gold.breakpoints -out gold > gold_fill.output
+../../build/bin/MindTheGap find -in ../../data/reads_r1.fastq,../../data/reads_r2.fastq -ref ../../data/reference.fasta -out gold -nb-cores 1 > gold_find.output
+../../build/bin/MindTheGap fill -graph gold.h5 -bkpt gold.breakpoints -out gold -nb-cores 1 > gold_fill.output
+
+
+# 08/02/2022 : rajoute des petites insertions 1-2 bp 
+
+ou ajout de seq5 et seq6 depuis : Projets/mindTheGap/test-small-indels (990 premiers nt de chr1 et chr2, 6/10 HOM, 4/10 HET seulement dans allele 1)
+
+# change les param de simulation des reads : augmente couverture (+diminue tx erreurs)
+~/Bin/samtools-0.1.18/misc/wgsim -e 0.001 -d 200 -s 20 -N 1000 -1 100 -2 100 -r 0 -R 0 allele1.fasta allele1_r1.fq allele1_r2.fq
+~/Bin/samtools-0.1.18/misc/wgsim -e 0.001 -d 200 -s 20 -N 1000 -1 100 -2 100 -r 0 -R 0 allele2.fasta allele2_r1.fq allele2_r2.fq
+
+cat allele1_r1.fq allele2_r1.fq > reads_r1.fastq
+cat allele1_r2.fq allele2_r2.fq > reads_r2.fastq
+
+ATTENTION : changements dans les résultats : othervariants.vcf : perd 2 snps (Seq1 206, 219), gagne 1 del (Seq0 297) mais en perd une autre (Seq1 740) ; ne change pas les résultats des grandes insertions
+
+RQ : rate 2 petites insertions de taille 2 (Seq6 : pos 500 et 900)
+
+# List of all mutations :
+Seq0	101
+Seq0	123
+Seq0	816
+Seq1	206
+Seq1	219
+Seq1	342
+Seq1	740
+Seq2	320
+Seq2	344
+Seq2	379
+Seq2	535
+Seq2	834
+Seq3	256
+Seq3	511
+Seq3	766
+Seq3	781
+Seq4	257
+Seq4	349
+Seq4	512
+Seq4	600
+Seq4	841
+Seq4	884
+Seq4	821
