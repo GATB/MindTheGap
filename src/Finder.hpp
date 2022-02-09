@@ -31,6 +31,7 @@ static const char* STR_URI_REF = "-ref";
 static const char* STR_MAX_REPEAT = "-max-rep";;
 static const char* STR_HET_MAX_OCC = "-het-max-occ";
 static const char* STR_SNP_MIN_VAL = "-snp-min-val";
+static const char* STR_BRANCHING_FILTER = "-branching-filter";
 
 static const char* STR_HOMO_ONLY = "-homo-only";
 static const char* STR_INSERT_ONLY = "-insert-only";
@@ -65,10 +66,12 @@ public:
     const char* _mtg_version;
     size_t _kmerSize;
     Graph _graph;
-    //Graph _ref_graph; // no longer used
+
+    //parameters
     int _max_repeat;
     int _het_max_occ;
     int _snp_min_val;
+    int _branching_threshold;
     int _nbCores;
     bool _homo_only;
     bool _homo_insert;
@@ -78,6 +81,8 @@ public:
     bool _deletion;
     bool _small_homo;
     bool _small_hetero;
+    
+    //input/output files
     IBank* _refBank;
     string _breakpoint_file_name;
     FILE * _breakpoint_file;
@@ -86,6 +91,7 @@ public:
 
     string _bed_file_name;
 
+    //results statistics
     int _nb_homo_clean;
     int _nb_homo_fuzzy;
     int _nb_hetero_clean;

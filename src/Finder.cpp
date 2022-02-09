@@ -64,6 +64,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     _max_repeat = 0;
     _het_max_occ = 1;
     _snp_min_val = 5;
+    _branching_threshold = 5;
     _nbCores = 0;
     _breakpoint_file_name = "";
     _vcf_file_name = "";
@@ -116,6 +117,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     finderParser->push_front (new OptionNoParam (STR_INSERT_ONLY, "search only insertion breakpoints (do not report other variants)", false));
     //finderParser->getParser(STR_INSERT_ONLY)->setVisible(false);
     finderParser->push_front (new OptionOneParam (STR_HET_MAX_OCC, "maximal number of occurrences of a kmer in the reference genome allowed for heterozyguous breakpoints", false,"1"));
+    finderParser->push_front (new OptionOneParam (STR_BRANCHING_FILTER, "branching filter paramater, maximal number of branching kmers before a heterozygous site (if -1 = no filter)", false,"5"));
     //allow to find heterozyguous breakpoints in n-repeated regions of the reference genome
     finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy sites", false, "5"));
     finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "search only homozygous breakpoints", false));
@@ -309,7 +311,8 @@ void Finder::execute ()
     _max_repeat = getInput()->getInt(STR_MAX_REPEAT);
     _het_max_occ=getInput()->getInt(STR_HET_MAX_OCC);
     _snp_min_val=getInput()->getInt(STR_SNP_MIN_VAL);
-
+    _branching_threshold = getInput()->getInt(STR_BRANCHING_FILTER);
+    
     if(_het_max_occ<1){
     	_het_max_occ=1;
     }

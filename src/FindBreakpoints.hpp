@@ -130,7 +130,7 @@ public :
      */
     size_t kmer_size();
 
-    /** Return the numbre of max repeat 
+    /** Return the max repeat size at breakpoint
      */
     int max_repeat();
 
@@ -138,6 +138,9 @@ public :
      */
     int snp_min_val();
 
+    /** Return the threashold value of the branching filter
+    */
+    int branching_threshold();
     
     /** The last solid kmer before gap
      */
@@ -742,6 +745,12 @@ template<size_t span>
 int FindBreakpoints<span>::snp_min_val()
 {
     return this->finder->_snp_min_val;
+}
+
+template<size_t span>
+int FindBreakpoints<span>::branching_threshold()
+{
+    return this->finder->_branching_threshold;
 }
 
 /*Kmer related object*/
