@@ -194,27 +194,30 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 4. **MindTheGap Output**
 
     All the output files are prefixed either by a default name: "MindTheGap_Expe-[date:YY:MM:DD-HH:mm]" or by a user defined prefix (option `-out` of MindTheGap).
-    Both MindTheGap modules generate the graph file if reads were given as input: 
     
-* a graph file (`.h5`). This is a binary file, to obtain information stored in it, you can use the utility program `dbginfo` located in your bin directory or in ext/gatb-core/bin/.
-  
-    `MindTheGap find` generates the following output files:
+    The main results files are output by the Fill module, these are:
     
-    * a breakpoint file (`.breakpoints`) in fasta format. 
+    * an **insertion variant file** (`.insertions.vcf`) in vcf format, in the case of insertion variant detection (for insertions >2 bp).
+
+    * an **assembly graph file** (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
+
+    Additional output files are:
     
-* a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs, deletions and very small insertions (1-2 bp).
+	* a graph file (`.h5`), output by both MindTheGap modules. This is a binary file containing the de Bruijn graph data structure. To obtain information stored in it, you can use the utility program `dbginfo` located in your bin directory or in ext/gatb-core/bin/.
   
-    `MindTheGap fill` generates the following output files:
+    * Files output specifically by `MindTheGap find`:
     
-* a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences (for insertions >2 bp) or contig gap-fills that were successfully assembled. 
+    	* a breakpoint file (`.breakpoints`) in fasta format. 
+    
+		* a variant file (`.othervariants.vcf`) in vcf format. It contains SNPs, deletions and very small insertions (1-2 bp).
   
-* an insertion variant file (`.insertions.vcf`) in vcf format, in the case of insertion variant detection (for insertions >2 bp). 
+    * Files output specifically by `MindTheGap fill`:
+    
+		* a sequence file (`.insertions.fasta`) in fasta format. It contains the inserted sequences (for insertions >2 bp) or contig gap-fills that were successfully assembled. 
   
-* an assembly graph file (`.gfa`) in GFA format, in the case of contig gap-filling. It contains the original contigs and the obtained gap-fill sequences (nodes of the graph), together with their overlapping relationships (arcs of the graph).
+		* a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
   
-* a log file (`.info.txt`), a tabular file with some information about the filling process for each breakpoint/grap-fill. 
-  
-* with option `-extend`, an additional sequence file (`.extensions.fasta`) in fasta format. It contains sequence extensions for failed insertion or gap-filling assemblies, ie. when the target kmer was not found, the first contig immediately after the source kmer is output.
+		* with option `-extend`, an additional sequence file (`.extensions.fasta`) in fasta format. It contains sequence extensions for failed insertion or gap-filling assemblies, ie. when the target kmer was not found, the first contig immediately after the source kmer is output.
   
   ​    
 
