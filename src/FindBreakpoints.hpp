@@ -503,18 +503,28 @@ void FindBreakpoints<span>::operator()()
                         end_pos=get<1>(interval_vector.front());
                     }
                     
-                    if(!(*m_it_kmer).isValid() || (m_position<start_pos))
+                    if(!(*m_it_kmer).isValid())
                     {
-                        //Reintialize stretch_size for each bed region
-                        
+                        //Re-initialize stretch_size
                         this->m_solid_stretch_size = 0;
                         this->m_gap_stretch_size = 0;
                         this->m_kmer_begin = KmerCanonical();
                         this->m_kmer_end = KmerCanonical();
-                        //DEBUG
-                        //cout<<"n";
+
                     }
-                    
+
+                    if(m_position==start_pos-1) //for each beginning of bed region
+                    {
+                        //Re-initialize stretch_size for each bed region
+                        this->m_solid_stretch_size = 0;
+                        this->m_gap_stretch_size = 0;
+                        this->m_kmer_begin = KmerCanonical();
+                        this->m_kmer_end = KmerCanonical();
+                        
+                        //Re-initialize het_kmer_history for each bed region
+                        memset(this->m_het_kmer_history, 0, sizeof(info_type)*256);
+                    }
+
                     
                     if(((*m_it_kmer).isValid()) && (m_position>=start_pos)) //inside the current bed interval
                     {
