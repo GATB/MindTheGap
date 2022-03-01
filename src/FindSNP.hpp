@@ -146,9 +146,7 @@ bool FindSNP<span>::snp_at_end(unsigned char* beginpos, size_t limit, KmerType* 
     nuc[un] = 0;
     nuc[deux] = 0;
     nuc[trois] = 0;
-	
-    unsigned char endpos = (*beginpos + limit) % 256;
-	
+		
     unsigned char  beginpos_init = (*beginpos);
     //this->remove_nuc(nuc, *beginpos);
     *ref_nuc = this->_find->het_kmer_history(*beginpos).kmer & 3; // obtain the reference nuc
