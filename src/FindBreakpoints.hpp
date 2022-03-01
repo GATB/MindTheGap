@@ -479,8 +479,12 @@ void FindBreakpoints<span>::operator()()
                     v.push_back(token);
                 }
                 if(v[0]==m_chrom_name){ // we are on the current chromosome
-                    interval=std::make_pair(std::stoi(v[1]),std::stoi(v[2]));
-                    interval_vector.push_back( tuple<uint64_t ,uint64_t>(interval));
+                    uint64_t bed_begin = std::stoi(v[1]);
+                    uint64_t bed_end = std::stoi(v[2]);
+                    if ((bed_end-bed_begin) > this->finder->_kmerSize){
+                        interval=std::make_pair(std::stoi(v[1]),std::stoi(v[2]));
+                        interval_vector.push_back( tuple<uint64_t ,uint64_t>(interval));
+                    }
                 }
                 iss.clear();
             }

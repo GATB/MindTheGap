@@ -431,6 +431,10 @@ void Finder::resumeParameters(){
         getInfo()->add(2,"Graph",getInput()->getStr(STR_URI_GRAPH).c_str());
     }
     getInfo()->add(2,"Reference",getInput()->getStr(STR_URI_REF).c_str());
+    if(getInput()->get(STR_BED) != 0)
+    {
+        getInfo()->add(2,"Bed file",_bed_file_name.c_str());
+    }
     getInfo()->add(1,"Graph");
     getInfo()->add(2,"kmer-size","%i", _kmerSize);
 
