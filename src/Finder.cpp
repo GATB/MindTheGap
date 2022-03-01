@@ -117,7 +117,7 @@ Finder::Finder ()  : Tool ("MindTheGap find")
     finderParser->push_front (new OptionNoParam (STR_INSERT_ONLY, "search only insertion breakpoints (do not report other variants)", false));
     //finderParser->getParser(STR_INSERT_ONLY)->setVisible(false);
     finderParser->push_front (new OptionOneParam (STR_HET_MAX_OCC, "maximal number of occurrences of a kmer in the reference genome allowed for heterozyguous breakpoints", false,"1"));
-    finderParser->push_front (new OptionOneParam (STR_BRANCHING_FILTER, "branching filter paramater, maximal number of branching kmers before a heterozygous site (if -1 = no filter)", false,"5"));
+    finderParser->push_front (new OptionOneParam (STR_BRANCHING_FILTER, "branching filter paramater for heterozygous insertions, maximal number of branching kmers in a 100-bp window before a heterozygous site (if -1 = no filter)", false,"15"));
     //allow to find heterozyguous breakpoints in n-repeated regions of the reference genome
     finderParser->push_front (new OptionOneParam (STR_MAX_REPEAT, "maximal repeat size detected for fuzzy sites", false, "5"));
     finderParser->push_front (new OptionNoParam (STR_HOMO_ONLY, "search only homozygous breakpoints", false));
@@ -468,6 +468,7 @@ void Finder::resumeParameters(){
     getInfo()->add(1,"Breakpoint detection options");
     getInfo()->add(2,"max_repeat","%i", _max_repeat);
     getInfo()->add(2,"hetero_max_occ","%i", _het_max_occ);
+    getInfo()->add(2,"branching filter value", "‰i", _branching_threshold);
     getInfo()->add(2,"homo_insertions","%s", _homo_insert ? "yes" : "no");
     getInfo()->add(2,"hete_insertions","%s", _hete_insert ? "yes" : "no");
     getInfo()->add(2,"snp","%s", _snp ? "yes" : "no");

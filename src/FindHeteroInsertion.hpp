@@ -49,14 +49,15 @@ bool FindHeteroInsertion<span>::update()
 {
 	if(!this->_find->homo_only())
 	{
-        int branching_threshold = this->_find->branching_threshold(); //max number of branching kmers in the window of previous kmers
+        // branching filter parameters
+        int branching_threshold = this->_find->branching_threshold(); //max number of branching kmers in the 100 bp window of previous kmers
         int max_branching_kmers = branching_threshold;
         bool filtering = true;
         if (branching_threshold<0){
             filtering = false;
-            max_branching_kmers = 50;
+            max_branching_kmers = 100;
         }
-        int filter_window_size = 50 ; //should not be larger than the size of het_kmer_history = 256
+        int filter_window_size = 100 ; //should not be larger than the size of het_kmer_history = 256
   
         
 		// hetero site detection
@@ -128,10 +129,9 @@ bool FindHeteroInsertion<span>::update()
                          int nb_branching = 0;
                         //Applying the branching-filter :
                         if (filtering){
-                            //counts the number of branching-kmers amog the 50 previous ones
+                            //counts the number of branching-kmers among the 100 previous ones
                             int nb_prev = 0;
                             unsigned char begin_index = this->_find->het_kmer_begin_index()-1;
-                            //cout << "begin_index" << begin_index << endl;
                             while ((nb_branching <= max_branching_kmers) && (nb_prev<filter_window_size)){
                                 //cout << "in loop" << nb_prev << "  " << begin_index-nb_prev << endl;
                                 if(this->_find->het_kmer_history(begin_index-nb_prev).nb_out >1 || this->_find->het_kmer_history(begin_index-nb_prev).nb_in >1 ){
@@ -139,7 +139,6 @@ bool FindHeteroInsertion<span>::update()
                                 }
                                 nb_prev++;
                             }
-                            //cout << "within " << nb_prev << " kmers : " << nb_branching << " branching kmers" << endl;
                         }
                         
                         if(nb_branching <= max_branching_kmers){

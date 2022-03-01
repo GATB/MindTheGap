@@ -39,6 +39,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
     * `-homo-only`: only homozygous insertions are reported (default: not activated).
     * `-max-rep`: maximal repeat size allowed for fuzzy sites  [default '5']. 
     * `-het-max-occ`: maximal number of occurrences of a (k-1)mer in the reference genome allowed for heterozyguous insertion breakpoints  [default '1']. In order to detect an heterozyguous insertion breakpoints, both flanking k-1-mers, at each side of the insertion site, must have strictly less than this number of occurrences in the reference genome. This prevents false positive predictions inside repeated regions. Warning : increasing this parameter may lead to numerous false positives (genomic approximate repeats).
+    * `-branching-filter`: maximal number of branching kmers in a 100-bp window before a heterozygous site [default '15', '-1' means no filter applied]. This filter prevents numerous false positive predictions inside repeated regions. In large and complex genomes, such as human, this parameter can be set to lower values (10 or 5), in order to decrease the running time of the Fill module (but this may result in a loss of recall in repeat-rich regions).
     * `-bed`: the path to a bed file defining genomic regions, to limit the find algorithm to particular regions of the genome. This can be usefull for exome data.
     
 5. **Fill module specific options**
