@@ -52,7 +52,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
   
     In addition to the read or graph files, the `fill` module has one other mandatory option, `-bkpt`:
      	
-    * `-bkpt`: the breakpoint file path. This is one of the output of the `find` module and contains for each detected insertion site its left and right kmers from and to which the local assembly will be performed (see section E for details about the format).
+    * `-bkpt`: the breakpoint file path. This is one of the output of the `find` module and contains for each detected insertion site its left and right kmers from and to which the local assembly will be performed (see section [Output formats](#output-formats) for details about the format).
 	
 	The fill module has several optional options:
 	
@@ -83,6 +83,7 @@ MindTheGap is composed of two main modules : breakpoint detection (`find` module
 
 
 ## Details on output formats
+<a name="output-formats"></a>
 
 1. Breakpoint format
   

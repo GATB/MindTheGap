@@ -4,6 +4,16 @@
 ## [Unreleased]
 
 --------------------------------------------------------------------------------
+## [2.3.0] - 2022-04-20
+
+Improving the `Find` (insertion breakpoint finder) module:
+
+* very small insertions (1 or 2 bp) are now directly assembled in the `Find` module and are output in the `.othervariants.vcf` file. This may increase the running time of the `Find` module but the overall running time of MindTheGap (Find+Fill) is drastically reduced. Indeed, these numerous small insertions are no longer output in the breakpoint file, nor given as input for the `Fill` assembly module which performs a deeper traversal of the de Bruijn graph (designed for longer insertions). 
+* a novel filter is implemented to reduce the amount of False Positive insertion sites. It is based on the number of branching kmers in a 100-bp window before a heterozygous site. It can be tuned with the novel option `-branching-filter`. It is now activated by default, so this may modify the amount of heterozygous sites detected with respect to previous versions. 
+
+With this new version, the running time of MindTheGap as an insertion variant caller is reduced for real large datasets, such as human genome re-sequencing data. 
+
+--------------------------------------------------------------------------------
 ## [2.2.3] - 2021-06-11
 
 * 2 novel options in the `Fill` (local assembly) module :
